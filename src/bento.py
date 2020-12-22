@@ -3,7 +3,7 @@
 from timecode import Timecode
 from PySide2.QtCore import Signal, Slot, QObject, QPoint, QThread
 from PySide2.QtWidgets import QApplication
-from annot.annot import Annotations
+from annot.annot import Annotations, Bout
 from annot.behavior import Behavior, Behaviors
 from mainWindow import MainWindow
 from video.videoWindow import VideoDockWidget
@@ -62,14 +62,14 @@ class Bento(QObject):
         self.time_start = Timecode('30.0', '0:0:0:1')
         self.time_end = Timecode('30.0', '23:59:59:29')
         self.current_time = self.time_start
-        self.active_annotations = [] # tuples ('ch_key', idx)
+        self.active_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
+        self.pending_bout = None
         f = open('../color_profiles.txt','r')
         self.behaviors.load(f)
         f.close()
         self.annotations = Annotations(self.behaviors)
         self.scene = AnnotationsScene()
-        self.bouts_by_end = {}
         self.current_time.set_fractional(False)
         self.active_channels = []
         self.player = PlayerWorker(self)
@@ -81,39 +81,25 @@ class Bento(QObject):
 
     def load_annotations(self, fn):
         self.annotations.read(fn)
-        self.annotations.sort_channels()
-        self.build_and_sort_end_bouts()
         self.active_channels = self.annotations.channel_names()
-        self.scene.load(self.annotations.bouts(self.active_channels[0]))
+        self.scene.loadBouts(self.annotations.channel(self.active_channels[0]))
         rect = self.scene.sceneRect()
         self.scene.setSceneRect(rect.x() - 30., rect.y(), rect.width() + 2. * 30., rect.height())
         self.time_start = self.annotations.time_start()
         self.time_end = self.annotations.time_end()
         self.set_time(self.time_start)
 
-    def build_and_sort_end_bouts(self):
-        for ch in self.annotations.channel_names():
-            bouts = self.annotations.bouts(ch)
-            self.bouts_by_end[ch] = list(range(len(bouts)))
-            self.bouts_by_end[ch] = sorted(
-                self.bouts_by_end[ch],
-                key=lambda i : bouts[self.bouts_by_end[ch][i]].end())
-    
     def update_active_annotations(self):
         self.active_annotations.clear()
         for ch in self.active_channels:
-            bouts = self.annotations.bouts(ch)
-            for ix in range(len(bouts)):
-                if bouts[ix]._end < self.current_time:
-                    continue
-                if bouts[ix]._start > self.current_time:
-                    break
-                self.active_annotations.append((ch, ix))
+            bouts = self.annotations.channel(ch).get_at(self.current_time)
+            for bout in bouts:
+                self.active_annotations.append((ch, bout))
         self.annotChanged.emit([(
             c, 
-            self.annotations.bouts(c)[i].name(),
-            self.annotations.bouts(c)[i].color())
-            for (c, i) in self.active_annotations])
+            bout.name(),
+            bout.color())
+            for (c, bout) in self.active_annotations])
 
     def set_time(self, new_tc: Timecode):
         if not isinstance(new_tc, Timecode):
@@ -155,45 +141,79 @@ class Bento(QObject):
     @Slot()
     def toNextEvent(self):
         next_event = self.time_end
-        for (ch, ix) in self.active_annotations:
-            next_event = min(next_event, self.annotations.bouts(ch)[ix].end() + 1)
+        print(f"toNextEvent: current_time is {self.current_time.frames}, next_event is {next_event.frames}")
+        for (ch, bout) in self.active_annotations:
+            next_event = min(next_event, bout.end() + 1)
+            print(f"  in loop 1: value is {next_event.frames}")
+            print(f"  after active bout {bout.name()}: {bout.start().frames} - {bout.end().frames}")
         for ch in self.active_channels:
-            bouts = self.annotations.bouts(ch)
-            for ix in range(len(bouts)):
-                if bouts[ix].end() < self.current_time:
-                    continue
-                if bouts[ix].start() > self.current_time:
-                    next_event = min(next_event, bouts[ix].start())
-                    break   # can break here because annotations are sorted in start order
+            print(f"Channel {ch}")
+            next_bout = self.annotations.channel(ch).get_next_start(self.current_time)
+            next_event = min(next_event, next_bout.start())
+            print(f"  in loop 2: next_event is {next_event.frames}")
+            print(f"  next bout {next_bout.name()}: {next_bout.start().frames} - {next_bout.end().frames}")
+        print(f"  finally, value is {next_event.frames}")
         self.set_time(next_event)
     
     @Slot()
     def toPrevEvent(self):
         prev_event = self.time_start
-        for (ch, ix) in self.active_annotations:
-            prev_event = max(prev_event, self.annotations.bouts(ch)[ix].start() - 1)
+        print(f"toPrevEvent: current_time is {self.current_time.frames}, prev_event is {prev_event.frames}")
+        for (ch, bout) in self.active_annotations:
+            prev_event = max(prev_event, bout.start() - 1)
+            print(f"  in loop 1: prev_event is {prev_event.frames}")
+            print(f"  before active bout {bout.name()}: {bout.start().frames} - {bout.end().frames}")
         for ch in self.active_channels:
-            bouts = self.annotations.bouts(ch)
-            bouts_by_end = self.bouts_by_end[ch]
-            for ix in range(len(bouts))[::-1]:
-                if bouts[bouts_by_end[ix]].start() > self.current_time:
-                    continue
-                if bouts[bouts_by_end[ix]].end() < self.current_time:
-                    prev_event = max(prev_event, bouts[bouts_by_end[ix]].end())
-                    break
+            print(f"Channel {ch}")
+            prev_bout = self.annotations.channel(ch).get_prev_end(self.current_time - 1)
+            prev_event = max(prev_event, prev_bout.end())
+            print(f"  in loop 2: prev_event is {prev_event.frames}")
+            print(f"  prev_bout is {prev_bout.name()}: {prev_bout.start().frames} - {prev_bout.end().frames}")
+        print(f"  finally, prev_event is {prev_event.frames}")
         self.set_time(prev_event)
 
     @Slot(int)
-    def toggleAnnotation(self, key: int):
-        # map key to annotation name
+    def processHotKey(self, key: int):
         """
-        name = self.annot_key_map[key]
+        processHotKey - start or finish a bout referenced by a hot key
         """
+        # Which behavior does the key correspond to?
+        print(f"processHotKey: key = {chr(key).lower()}")
+        beh = self.behaviors.from_hot_key(chr(key).lower())
+        if not beh:
+            # that hot key is not defined; do nothing
+            print(f"processHotKey: didn't match a behavior, so doing nothing")
+            return
+        # Is there a pending bout?
+        if self.pending_bout:
+            # if it's the same as the current hot key, end it here
+            if self.pending_bout.name() == beh.get_name():
+                if self.pending_bout.start() > self.current_time:
+                    # swap start and end before completing
+                    self.pending_bout.set_end(self.pending_bout.start())
+                    self.pending_bout.set_start(self.current_time)
+                    print("processHotKey: swapping start and end")
+                else:
+                    # typical case
+                    self.pending_bout.set_end(self.current_time)
+                # insert the pending bout in the active channel
+                #TODO: need a way to specify the active channel, as distinct from visible channels
+                for chan in self.active_channels:
+                    print(f"processHotKey: adding new bout to chan {chan}")
+                    self.annotations.add_bout(self.pending_bout, chan)
+                self.scene.addBout(self.pending_bout)
+                self.pending_bout = None
+                return
+            else:
+                self.pending_bout = None
         # Is that annotation active here?
-        for bout in self.active_annotations:
-            if bout.name() == name:
+        for (c, bout) in self.active_annotations:
+            if bout.name() == beh.get_name():
                 # what to do to "toggle" it?
-                pass            
+                print(f"processHotKey: behavior {beh.get_name()} is already active")
+                pass
+        self.pending_bout = Bout(self.current_time, self.current_time, beh)
+        print(f"processHotKey: pending_bout is now {self.pending_bout}")            
 
     @Slot()
     def quit(self):

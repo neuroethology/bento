@@ -56,14 +56,14 @@ class MainWindow(QMainWindow):
             else:
                 self.bento.toNextEvent()
         elif event.key() in range(Qt.Key_A, Qt.Key_Z):
-            self.bento.toggleAnnotation(event.key())
+            self.bento.processHotKey(event.key())
         elif event.key() == Qt.Key_Space and self.bento.player:
             self.bento.player.togglePlayer()
         event.accept()
 
     @Slot(tc.Timecode)
     def updateTime(self, t):
-        self.ui.timeLabel.setText(str(t))
+        self.ui.timeLabel.setText(f"{t} ({t.frame_number})")
         self.ui.annotationsView.updatePosition(t)
         self.show()
 

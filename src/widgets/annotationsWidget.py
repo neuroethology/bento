@@ -64,6 +64,7 @@ class AnnotationsScene(QGraphicsScene):
     def __init__(self):
         super(AnnotationsScene, self).__init__()
         self.setBackgroundBrush(QBrush(Qt.white))
+        self.height = 1.
     
     def addBout(self, bout):
         """
@@ -71,8 +72,9 @@ class AnnotationsScene(QGraphicsScene):
         For now, put it vertically at (0, 1).  Eventually, we will probably want to
         place it depending on which channel it is in.
         """
-        self.addRect(bout.start().float, 0., bout.len().float, 1., QPen(QBrush(), 0, s=Qt.NoPen), QBrush(bout.color()))
+        color = bout.color
+        self.addRect(bout.start().float, 0., bout.len().float, self.height, QPen(QBrush(), 0, s=Qt.NoPen), QBrush(color()))
     
-    def load(self, bouts):
-        for bout in bouts:
+    def loadBouts(self, channel):
+        for bout in channel:
             self.addBout(bout)

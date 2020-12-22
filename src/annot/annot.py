@@ -1,6 +1,7 @@
 # annot.py
 import timecode as tc
 from annot.behavior import Behavior
+from sortedcontainers import SortedKeyList
 
 class Bout(object):
     """
@@ -12,10 +13,20 @@ class Bout(object):
         self._behavior = behavior
     
     def __lt__(self, b):
-        return self._start < b._start
+        if type(b) is tc.Timecode:
+            return self._start.float < b.float
+        elif type(b) is Bout:
+            return self._start < b._start
+        else:
+            raise NotImplementedError(f"Comparing Bout with {type(b)} not supported")
 
     def __le__(self, b):
-        return self._start <= b._start
+        if type(b) is tc.Timecode:
+            return self._start.float <= b.is_float
+        elif type(b) is Bout:
+            return self._start <= b._start
+        else:
+            raise NotImplementedError(f'Comparing Bout with {type(b)} not supported')
 
     def is_at(self, t):
         return self._start <= t and self._end >= t
@@ -23,8 +34,14 @@ class Bout(object):
     def start(self):
         return self._start
 
+    def set_start(self, start):
+        self._start = start
+
     def end(self):
         return self._end
+
+    def set_end(self, end):
+        self._end = end
     
     def len(self):
         return self._end - self._start
@@ -35,27 +52,67 @@ class Bout(object):
     def color(self):
         return self._behavior.get_color()
 
+    def is_visiblel(self):
+        return self._behavior.is_visible()
+
 class Channel(object):
     """
     """
 
     def __init__(self, chan = None):
         if not chan is None:
-            self._bouts = chan._bouts
+            self._bouts_by_start = chan._bouts_by_start
+            self._bouts_by_end = chan._bouts_by_end
         else:
-            self._bouts = []
+            self._bouts_by_start = SortedKeyList(key=lambda bout: bout.start().float)
+            self._bouts_by_end = SortedKeyList(key=lambda bout: bout.end().float)
+        self.cur_ix = 0
 
     def append(self, b):
         if isinstance(b, Bout):
-            self._bouts.append(b)
+            self._bouts_by_start.add(b)
+            self._bouts_by_end.add(b)
         else:
             raise TypeError("Can only append Bout to Channel")
     
     def __add__(self, b):
         self.append(b)
 
-    def sort(self):
-        self._bouts.sort()
+    def _get_next(self, t, sortedlist):
+        ix = sortedlist.bisect_key_right(t.float)
+        l = len(sortedlist)
+        if ix == l:
+            return sortedlist[l-1]
+        return sortedlist[ix]
+
+    def get_next_start(self, t):
+        return self._get_next(t, self._bouts_by_start)
+
+    def get_next_end(self, t):
+        return self._get_next(t, self._bouts_by_end)
+
+    def _get_prev(self, t, sortedlist):
+        ix = sortedlist.bisect_key_left(t.float)
+        if ix == 0:
+            return sortedlist[0]
+        return sortedlist[ix-1]
+
+    def get_prev_start(self, t):
+        return self._get_prev(t, self._bouts_by_start)
+
+    def get_prev_end(self, t):
+        return self._get_prev(t, self._bouts_by_end)
+
+    def get_at(self, t):
+        """
+        get all bouts that span time t
+        """
+        return [bout for bout in self._bouts_by_start
+            if bout.start().float <= t.float and bout.end().float >= t.float] 
+
+    def __iter__(self):
+        return iter(self._bouts_by_start)
+
     
 class Annotations(object):
     """
@@ -180,10 +237,15 @@ class Annotations(object):
                             pass # skip a header line
                         else:
                             items = line.split()
-                            self._channels[current_channel].append(Bout(
-                                tc.Timecode(self._frame_rate, start_seconds=float(items[0])),
-                                tc.Timecode(self._frame_rate, start_seconds=float(items[1])),
-                                getattr(self._behaviors, current_bout)))
+                            is_float = '.' in items[0] or '.' in items[1] or '.' in items[2]
+                            self.add_bout(
+                                Bout(
+                                    tc.Timecode(self._frame_rate, start_seconds=float(items[0])) if is_float
+                                        else tc.Timecode(self._frame_rate, frames=int(items[0])),
+                                    tc.Timecode(self._frame_rate, start_seconds=float(items[1])) if is_float
+                                        else tc.Timecode(self._frame_rate, frames=int(items[1])),
+                                    getattr(self._behaviors, current_bout)),
+                                current_channel)
                         line = f.readline()
             line = f.readline()
         print(f"Done reading Caltech annotation file {f.name}")
@@ -194,12 +256,13 @@ class Annotations(object):
     def channel_names(self):
         return list(self._channels.keys())
 
-    def bouts(self, ch: str) -> [Bout]:
-        return self._channels[ch]._bouts
+    def channel(self, ch: str) -> Channel:
+        return self._channels[ch]
 
-    def sort_channels(self):
-        for ch in self._channels:
-            self._channels[ch].sort()
+    def add_bout(self, bout, channel):
+        self._channels[channel].append(bout)
+        if bout.end() > self._time_end:
+            self._time_end = bout.end()
 
     def time_start(self):
         if not self._time_start or not self._frame_rate:

@@ -19,6 +19,7 @@ class Behavior(object):
         self.name = name
         self.hot_key = hot_key
         self.color = color
+        self.visible = True
 
     def set_hot_key(self, hot_key: str):
         self.hot_key = hot_key
@@ -26,11 +27,17 @@ class Behavior(object):
     def set_color(self, color: QColor):
         self.color = color
 
+    def set_visible(self, visible):
+        self.visible = visible
+
     def get_name(self):
         return self.name
 
     def get_color(self):
         return self.color
+
+    def is_visible(self):
+        return self.visible
 
 class Behaviors(object):
     """
@@ -69,6 +76,7 @@ class Behaviors(object):
     
     def from_hot_key(self, key):
         try:
+            print(f"available hot keys: {self._hot_keys}")
             return getattr(self, self._hot_keys[key])
         except KeyError:
             return None
