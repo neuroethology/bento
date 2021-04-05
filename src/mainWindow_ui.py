@@ -14,16 +14,29 @@ from PySide2.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont,
     QFontDatabase, QIcon, QLinearGradient, QPalette, QPainter, QPixmap,
     QRadialGradient)
 from PySide2.QtWidgets import *
-from widgets.annotationsWidget import AnnotationsScene, AnnotationsView
+
+from widgets.annotationsWidget import AnnotationsView
 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(455, 310)
+        MainWindow.resize(457, 328)
+        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
+        MainWindow.setSizePolicy(sizePolicy)
+        MainWindow.setMinimumSize(QSize(457, 328))
+        MainWindow.setMaximumSize(QSize(457, 328))
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
+        self.centralwidget.setSizePolicy(sizePolicy1)
         self.annotLabel = QLabel(self.centralwidget)
         self.annotLabel.setObjectName(u"annotLabel")
         self.annotLabel.setGeometry(QRect(10, 20, 271, 101))
@@ -74,59 +87,65 @@ class Ui_MainWindow(object):
 
         self.layoutWidget1 = QWidget(self.centralwidget)
         self.layoutWidget1.setObjectName(u"layoutWidget1")
-        self.layoutWidget1.setGeometry(QRect(290, 220, 155, 32))
-        self.horizontalLayout = QHBoxLayout(self.layoutWidget1)
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
-        self.openButton = QPushButton(self.layoutWidget1)
-        self.openButton.setObjectName(u"openButton")
+        self.layoutWidget1.setGeometry(QRect(240, 240, 210, 32))
+        self.mainButtonLayout = QHBoxLayout(self.layoutWidget1)
+        self.mainButtonLayout.setObjectName(u"mainButtonLayout")
+        self.mainButtonLayout.setContentsMargins(0, 0, 0, 0)
+        self.sessionPushButton = QPushButton(self.layoutWidget1)
+        self.sessionPushButton.setObjectName(u"sessionPushButton")
 
-        self.horizontalLayout.addWidget(self.openButton)
+        self.mainButtonLayout.addWidget(self.sessionPushButton)
 
         self.quitButton = QPushButton(self.layoutWidget1)
         self.quitButton.setObjectName(u"quitButton")
 
-        self.horizontalLayout.addWidget(self.quitButton)
+        self.mainButtonLayout.addWidget(self.quitButton)
 
         self.layoutWidget2 = QWidget(self.centralwidget)
         self.layoutWidget2.setObjectName(u"layoutWidget2")
-        self.layoutWidget2.setGeometry(QRect(140, 160, 166, 32))
-        self.horizontalLayout_2 = QHBoxLayout(self.layoutWidget2)
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.layoutWidget2.setGeometry(QRect(90, 160, 280, 32))
+        self.nextPrevLayout = QHBoxLayout(self.layoutWidget2)
+        self.nextPrevLayout.setObjectName(u"nextPrevLayout")
+        self.nextPrevLayout.setContentsMargins(0, 0, 0, 0)
         self.previousButton = QPushButton(self.layoutWidget2)
         self.previousButton.setObjectName(u"previousButton")
 
-        self.horizontalLayout_2.addWidget(self.previousButton)
+        self.nextPrevLayout.addWidget(self.previousButton)
 
         self.nextButton = QPushButton(self.layoutWidget2)
         self.nextButton.setObjectName(u"nextButton")
 
-        self.horizontalLayout_2.addWidget(self.nextButton)
+        self.nextPrevLayout.addWidget(self.nextButton)
 
         self.horizontalLayoutWidget = QWidget(self.centralwidget)
         self.horizontalLayoutWidget.setObjectName(u"horizontalLayoutWidget")
-        self.horizontalLayoutWidget.setGeometry(QRect(160, 200, 121, 32))
-        self.horizontalLayout_3 = QHBoxLayout(self.horizontalLayoutWidget)
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.horizontalLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayoutWidget.setGeometry(QRect(98, 200, 261, 32))
+        self.playbackSpeedLayout = QHBoxLayout(self.horizontalLayoutWidget)
+        self.playbackSpeedLayout.setObjectName(u"playbackSpeedLayout")
+        self.playbackSpeedLayout.setContentsMargins(0, 0, 0, 0)
         self.halveFrameRateButton = QPushButton(self.horizontalLayoutWidget)
         self.halveFrameRateButton.setObjectName(u"halveFrameRateButton")
 
-        self.horizontalLayout_3.addWidget(self.halveFrameRateButton)
+        self.playbackSpeedLayout.addWidget(self.halveFrameRateButton)
+
+        self.oneXFrameRateButton = QPushButton(self.horizontalLayoutWidget)
+        self.oneXFrameRateButton.setObjectName(u"oneXFrameRateButton")
+
+        self.playbackSpeedLayout.addWidget(self.oneXFrameRateButton)
 
         self.doubleFrameRateButton = QPushButton(self.horizontalLayoutWidget)
         self.doubleFrameRateButton.setObjectName(u"doubleFrameRateButton")
 
-        self.horizontalLayout_3.addWidget(self.doubleFrameRateButton)
+        self.playbackSpeedLayout.addWidget(self.doubleFrameRateButton)
 
-        self.annotationsView = AnnotationsView(AnnotationsScene(), self.centralwidget)
+        self.annotationsView = AnnotationsView(self.centralwidget)
         self.annotationsView.setObjectName(u"annotationsView")
         self.annotationsView.setGeometry(QRect(0, 60, 451, 51))
+        self.annotationsView.setResizeAnchor(QGraphicsView.AnchorViewCenter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 455, 22))
+        self.menubar.setGeometry(QRect(0, 0, 457, 22))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -148,11 +167,12 @@ class Ui_MainWindow(object):
         self.stepButton.setText(QCoreApplication.translate("MainWindow", u">", None))
         self.ffButton.setText(QCoreApplication.translate("MainWindow", u">>", None))
         self.toEndButton.setText(QCoreApplication.translate("MainWindow", u">|", None))
-        self.openButton.setText(QCoreApplication.translate("MainWindow", u"Open...", None))
+        self.sessionPushButton.setText(QCoreApplication.translate("MainWindow", u"Select Session...", None))
         self.quitButton.setText(QCoreApplication.translate("MainWindow", u"Quit", None))
         self.previousButton.setText(QCoreApplication.translate("MainWindow", u"Previous", None))
         self.nextButton.setText(QCoreApplication.translate("MainWindow", u"Next", None))
         self.halveFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"/2", None))
+        self.oneXFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"1x", None))
         self.doubleFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"* 2", None))
     # retranslateUi
 

@@ -76,7 +76,7 @@ class Behaviors(object):
     
     def from_hot_key(self, key):
         try:
-            print(f"available hot keys: {self._hot_keys}")
+            # print(f"available hot keys: {self._hot_keys}")
             return getattr(self, self._hot_keys[key])
         except KeyError:
             return None

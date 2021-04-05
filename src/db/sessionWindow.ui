@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SessionDockWidget</class>
+ <widget class="QDockWidget" name="SessionDockWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1055</width>
+    <height>678</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Session Search Window</string>
+  </property>
+  <widget class="QWidget" name="experimentDockWidgetContents">
+   <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,1,0">
+    <item row="4" column="0" colspan="4">
+     <widget class="QTableView" name="sessionsTableView"/>
+    </item>
+    <item row="5" column="3">
+     <layout class="QHBoxLayout" name="pushButtonsHorizontalLayout">
+      <item>
+       <widget class="QPushButton" name="searchPushButton">
+        <property name="text">
+         <string>Search</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="loadPushButton">
+        <property name="text">
+         <string>Load Session</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="2" column="0" colspan="2">
+     <layout class="QGridLayout" name="dateRangeGridLayout">
+      <item row="2" column="0">
+       <widget class="QCalendarWidget" name="endCalendarWidget">
+        <property name="minimumSize">
+         <size>
+          <width>379</width>
+          <height>173</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="trialDateStartLabel">
+        <property name="text">
+         <string>Start</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="useDateRangeCheckBox">
+        <property name="text">
+         <string>Filter by Trial Date Range:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QCalendarWidget" name="startCalendarWidget">
+        <property name="minimumSize">
+         <size>
+          <width>375</width>
+          <height>263</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="trialDateEndLabel">
+        <property name="text">
+         <string>End</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item row="0" column="0" colspan="2">
+     <layout class="QHBoxLayout" name="investigatorHorizontalLayout">
+      <item>
+       <widget class="QCheckBox" name="useInvestigatorCheckBox">
+        <property name="text">
+         <string>Filter by Investigator:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="investigatorComboBox"/>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

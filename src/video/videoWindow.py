@@ -1,29 +1,44 @@
 # videoWindow.py
 
-from video.videoWindow_ui import Ui_videoDockWidget
+from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
-from PySide2.QtCore import Signal, Slot, QRect, QPoint, Qt, QObject
-from PySide2.QtGui import QColor, QPixmap, QPainter
-from PySide2.QtWidgets import QDockWidget, QFileDialog
-import time
+from PySide2.QtCore import Signal, Slot, QRect, QPoint, Qt
+from PySide2.QtGui import QPixmap, QPainter
+from PySide2.QtWidgets import QFrame
 from timecode import Timecode
 
-class VideoDockWidget(QDockWidget):
+class VideoFrame(QFrame):
 
     openReader = Signal(str)
     quitting = Signal()
 
     def __init__(self, bento):
-        super(VideoDockWidget, self).__init__()
+        super().__init__()
         self.bento = bento
-        self.ui = Ui_videoDockWidget()
+        self.sizePolicy().setHeightForWidth(True)
+        self.ui = Ui_videoFrame()
         self.ui.setupUi(self)
-        self.ui.openButton.clicked.connect(self.openFile)
         self.quitting.connect(self.bento.quit)
 
         self.reader = None
         self.pixmap = QPixmap()
         self.active_annots = []
+        self.aspect_ratio = 1.
+    
+    def hasHeightForWidth(self):
+        print("called hasHeightForWidth")
+        return False
+
+    def heightForWidth(self, width):
+        print(f"called heightForWidth, returning {int(float(width) * self.aspect_ratio)} for width {width}")
+        return int(float(width) * self.aspect_ratio)
+
+    # def resizeEvent(self, event):
+    #     super().resizeEvent(event)
+    #     height = self.myHeightForWidth(event.size().height())
+    #     self.setMinimumHeight(height)
+    #     self.setMaximumHeight(height)
+    #     self.update()
 
     def load_video(self, fn):
         self.reader = seqIo.seqIo_reader(fn)
@@ -31,6 +46,8 @@ class VideoDockWidget(QDockWidget):
         frame_height = self.reader.header['height']
         self.resize(frame_width, frame_height)
         self.ui.label.setGeometry(QRect(0, 0, frame_width, frame_height))
+        self.aspect_ratio = float(frame_height) / float(frame_width)
+        print(f"aspect_ratio set to {self.aspect_ratio}")
         self.updateFrame(self.bento.current_time)
 
     def keyPressEvent(self, event):
@@ -48,8 +65,6 @@ class VideoDockWidget(QDockWidget):
             self.bento.toPrevEvent()
         elif event.key() == Qt.Key_Down:
             self.bento.toNextEvent()
-        elif event.key() == Qt.Key_Q:
-            self.quitting.emit()
         elif event.key() == Qt.Key_Space and self.bento.player:
             self.bento.player.togglePlayer()
         else:
@@ -75,17 +90,9 @@ class VideoDockWidget(QDockWidget):
             painter.setPen(annot[2])
             painter.drawText(self.ui.label.rect().topLeft() + margin, label)
             margin.setY(margin.y() + pointSize + 3)
-        self.ui.label.setPixmap(self.pixmap)
+        self.ui.label.setPixmap(self.pixmap.scaled(self.size(), aspectMode=Qt.KeepAspectRatio))
         self.show()
 
     @Slot(list)
     def updateAnnots(self, annots):
         self.active_annots = annots
-
-    @Slot()
-    def openFile(self):
-        filename, _ = QFileDialog.getOpenFileName(self,
-            "Open Video", "", "Video Files (*.seq)")
-        print(f"filename: {filename}")
-        if filename:
-            self.load_video(filename)

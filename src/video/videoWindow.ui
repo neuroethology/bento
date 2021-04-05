@@ -1,49 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>videoDockWidget</class>
- <widget class="QDockWidget" name="videoDockWidget">
+ <class>videoFrame</class>
+ <widget class="QFrame" name="videoFrame">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1024</width>
-    <height>650</height>
+    <width>823</width>
+    <height>522</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>video</string>
+   <string>Video Viewer</string>
   </property>
-  <widget class="QWidget" name="dockWidgetContents">
-   <widget class="QPushButton" name="openButton">
-    <property name="geometry">
-     <rect>
-      <x>780</x>
-      <y>590</y>
-      <width>171</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Open...</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>0</y>
-      <width>1024</width>
-      <height>575</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>video</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
-    </property>
-   </widget>
-  </widget>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>1</horstretch>
+       <verstretch>1</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>Video</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

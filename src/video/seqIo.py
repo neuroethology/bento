@@ -52,7 +52,8 @@ def fread(fid, nelements, dtype):
         dt = dtype
 
     data_array = np.fromfile(fid, dt, nelements)
-    if data_array.size==1:data_array=data_array[0]
+    if data_array.size == 1:
+        data_array = data_array[0]
     return data_array
 
 def fwrite(fid,a,dtype=np.str):

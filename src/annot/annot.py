@@ -2,6 +2,7 @@
 import timecode as tc
 from annot.behavior import Behavior
 from sortedcontainers import SortedKeyList
+from PySide2.QtGui import QColor
 
 class Bout(object):
     """
@@ -44,7 +45,7 @@ class Bout(object):
         self._end = end
     
     def len(self):
-        return self._end - self._start
+        return self._end - self._start + tc.Timecode(self._start.framerate, frames=1)
 
     def name(self):
         return self._behavior.get_name()
@@ -67,6 +68,16 @@ class Channel(object):
             self._bouts_by_start = SortedKeyList(key=lambda bout: bout.start().float)
             self._bouts_by_end = SortedKeyList(key=lambda bout: bout.end().float)
         self.cur_ix = 0
+        self.fakeFirstBout = Bout(
+            tc.Timecode('30.0', '0:0:0:0'),
+            tc.Timecode('30.0', '0:0:0:0'),
+            Behavior('none', '', QColor.fromRgbF(0., 0., 0.))
+        )
+        self.fakeLastBout = Bout(
+            tc.Timecode('30.0', '23:59:59:29'),
+            tc.Timecode('30.0', '23:59:59:29'),
+            Behavior('none', '', QColor.fromRgbF(0., 0., 0.))
+        )
 
     def append(self, b):
         if isinstance(b, Bout):
@@ -82,7 +93,7 @@ class Channel(object):
         ix = sortedlist.bisect_key_right(t.float)
         l = len(sortedlist)
         if ix == l:
-            return sortedlist[l-1]
+            return self.fakeLastBout
         return sortedlist[ix]
 
     def get_next_start(self, t):
@@ -94,7 +105,7 @@ class Channel(object):
     def _get_prev(self, t, sortedlist):
         ix = sortedlist.bisect_key_left(t.float)
         if ix == 0:
-            return sortedlist[0]
+            return self.fakeFirstBout
         return sortedlist[ix-1]
 
     def get_prev_start(self, t):

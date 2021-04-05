@@ -6,13 +6,14 @@ import timecode as tc
 from PySide2.QtCore import *
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
+from db.sessionWindow import SessionDockWidget
 
 class MainWindow(QMainWindow):
 
     quitting = Signal()
 
     def __init__(self, bento):
-        super(MainWindow, self).__init__()
+        super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.ui.stepButton.clicked.connect(bento.incrementTime)
@@ -25,13 +26,15 @@ class MainWindow(QMainWindow):
         self.ui.previousButton.clicked.connect(bento.toPrevEvent)
         self.ui.quitButton.clicked.connect(bento.quit)
         self.quitting.connect(bento.quit)
-        self.ui.openButton.clicked.connect(self.openFile)
+        self.ui.sessionPushButton.clicked.connect(self.selectSession)
         self.ui.playButton.clicked.connect(bento.player.togglePlayer)
         self.ui.halveFrameRateButton.clicked.connect(bento.player.halveFrameRate)
         self.ui.doubleFrameRateButton.clicked.connect(bento.player.doubleFrameRate)
+        self.ui.oneXFrameRateButton.clicked.connect(bento.player.resetFrameRate)
         self.ui.annotationsView.set_bento(bento)
-        self.ui.annotationsView.setScene(bento.scene)
+        self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
+
         self.bento = bento
 
     def keyPressEvent(self, event):
@@ -75,9 +78,6 @@ class MainWindow(QMainWindow):
         self.show()
 
     @Slot()
-    def openFile(self):
-        filename, _ = QFileDialog.getOpenFileName(self,
-            "Open Annotation", "", "Annotation Files (*.annot)")
-        print(f"filename: {filename}")
-        if filename:
-            self.bento.load_annotations(filename)
+    def selectSession(self):
+        self.bento.sessionWindow = SessionDockWidget(self.bento)
+        self.bento.sessionWindow.show()
