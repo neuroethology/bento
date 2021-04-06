@@ -9,6 +9,7 @@ class TableModel(QAbstractTableModel):
         super().__init__(parent, *args)
         self.mylist = mylist
         self.header = header
+            
     def rowCount(self, parent):
         return len(self.mylist)
     def columnCount(self, parent):

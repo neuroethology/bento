@@ -27,6 +27,7 @@ class Ui_SessionDockWidget(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.sessionsTableView = QTableView(self.experimentDockWidgetContents)
         self.sessionsTableView.setObjectName(u"sessionsTableView")
+        self.sessionsTableView.horizontalHeader().setStretchLastSection(True)
 
         self.gridLayout.addWidget(self.sessionsTableView, 4, 0, 1, 4)
 

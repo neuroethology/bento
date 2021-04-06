@@ -5,7 +5,8 @@ from db.schema_sqlalchemy import VideoData
 from db.trialWindow_ui import Ui_TrialDockWidget
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import Qt
-from PySide2.QtWidgets import QAbstractItemView, QDockWidget
+from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
+
 from db.schema_sqlalchemy import *
 from widgets.tableModel import TableModel
 
@@ -32,6 +33,7 @@ class TrialDockWidget(QDockWidget):
                 elem.stimulus
                 ) for elem in bento.session.trials]
             model = TableModel(self, data_list, header)
+            self.ui.trialTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
             self.ui.trialTableView.setModel(model)
             self.ui.trialTableView.resizeColumnsToContents()
             self.ui.trialTableView.hideColumn(0)   # don't show the trial's ID field, but we need it for Load
@@ -61,6 +63,7 @@ class TrialDockWidget(QDockWidget):
                 ) for elem in trial.video_data]
             model = TableModel(self, data_list, header)
             self.ui.videoTableView.setModel(model)
+            self.ui.videoTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
             self.ui.videoTableView.resizeColumnsToContents()
             self.ui.videoTableView.hideColumn(0)   # don't show the trial's ID field, but we need it for Load
             self.ui.videoTableView.setSortingEnabled(True)
@@ -85,6 +88,7 @@ class TrialDockWidget(QDockWidget):
                 ) for elem in trial.annotations]
             model = TableModel(self, data_list, header)
             self.ui.annotationTableView.setModel(model)
+            self.ui.annotationTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
             self.ui.annotationTableView.resizeColumnsToContents()
             self.ui.annotationTableView.hideColumn(0)   # don't show the trial's ID field, but we need it for Load
             self.ui.annotationTableView.setSortingEnabled(True)

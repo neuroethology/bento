@@ -2,7 +2,7 @@
 
 from db.sessionWindow_ui import Ui_SessionDockWidget
 from PySide2.QtCore import Signal, Slot
-from PySide2.QtWidgets import QAbstractItemView, QDockWidget
+from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
 from db.schema_sqlalchemy import *
 from widgets.tableModel import TableModel
 
@@ -50,6 +50,7 @@ class SessionDockWidget(QDockWidget):
             ) for elem in results]
         model = TableModel(self, data_list, header)
         self.ui.sessionsTableView.setModel(model)
+        self.ui.sessionsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.sessionsTableView.resizeColumnsToContents()
         self.ui.sessionsTableView.hideColumn(0)   # don't show the trial's ID field, but we need it for Load
         self.ui.sessionsTableView.setSortingEnabled(True)

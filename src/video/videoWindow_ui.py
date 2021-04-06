@@ -15,48 +15,46 @@ from PySide2.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont,
     QRadialGradient)
 from PySide2.QtWidgets import *
 
-class ConstantAspectGridLayout(QGridLayout):
-    """
-    Layout class that keeps the corresponding widget's aspect ratio constant
-    """
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.aspect_ratio = 1.
-
-    def hasHeightFromWidth(self):
-        return True
-
-    def heightFromWidth(self, width: int):
-        return int(float(width) * self.aspectRatio + 0.5)
-
-    def setAspectRatio(self, ratio: float):
-        self.aspect_ratio = ratio
 class Ui_videoFrame(object):
     def setupUi(self, videoFrame):
         if videoFrame.objectName():
             videoFrame.setObjectName(u"videoFrame")
-        videoFrame.resize(761, 628)
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        videoFrame.resize(798, 542)
+        self.verticalLayout = QVBoxLayout(videoFrame)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.leftSpacer = QSpacerItem(12, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+
+        self.horizontalLayout.addItem(self.leftSpacer)
+
+        self.showPoseCheckBox = QCheckBox(videoFrame)
+        self.showPoseCheckBox.setObjectName(u"showPoseCheckBox")
+        self.showPoseCheckBox.setEnabled(False)
+        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(videoFrame.sizePolicy().hasHeightForWidth())
-        videoFrame.setSizePolicy(sizePolicy)
-        self.gridLayout = ConstantAspectGridLayout(videoFrame)
-        self.gridLayout.setObjectName(u"gridLayout")
-        self.gridLayout.setSizeConstraint(QLayout.SetNoConstraint)
-        self.gridLayout.setContentsMargins(0, 0, 0, 0)
-        self.label = QLabel(videoFrame)
-        self.label.setObjectName(u"label")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        sizePolicy1.setHorizontalStretch(1)
-        sizePolicy1.setVerticalStretch(1)
-        sizePolicy1.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
-        self.label.setSizePolicy(sizePolicy1)
-        self.label.setAlignment(Qt.AlignCenter)
+        sizePolicy.setHeightForWidth(self.showPoseCheckBox.sizePolicy().hasHeightForWidth())
+        self.showPoseCheckBox.setSizePolicy(sizePolicy)
 
-        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
+        self.horizontalLayout.addWidget(self.showPoseCheckBox)
 
+        self.rightSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout.addItem(self.rightSpacer)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout)
+
+        self.videoView = QGraphicsView(videoFrame)
+        self.videoView.setObjectName(u"videoView")
+        self.videoView.setInteractive(False)
+
+        self.verticalLayout.addWidget(self.videoView)
+
+        self.verticalLayout.setStretch(1, 1)
 
         self.retranslateUi(videoFrame)
 
@@ -65,6 +63,6 @@ class Ui_videoFrame(object):
 
     def retranslateUi(self, videoFrame):
         videoFrame.setWindowTitle(QCoreApplication.translate("videoFrame", u"Video Viewer", None))
-        self.label.setText(QCoreApplication.translate("videoFrame", u"Video", None))
+        self.showPoseCheckBox.setText(QCoreApplication.translate("videoFrame", u"Show Pose", None))
     # retranslateUi
 

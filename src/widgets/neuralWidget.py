@@ -61,7 +61,7 @@ class NeuralView(QGraphicsView):
         self.start_transform = None
         self.start_x = 0.
         self.scale_h = 1.
-        self.scale_v = 1.
+        self.min_scale_v = 0.2
         self.center_y = 0.
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.verticalScrollBar().sliderReleased.connect(self.updateFromScroll)
@@ -75,24 +75,47 @@ class NeuralView(QGraphicsView):
         super().setScene(scene)
         self.time_x = Timecode(str(scene.sample_rate), '0:0:0:1')
         self.center_y = float(scene.num_chans) / 2.
+
+    def setTransformScaleV(t, self, scale_v: float):
+        t.setMatrix(
+                t.m11(),
+                t.m12(),
+                t.m13(),
+                t.m21(),
+                scale_v,
+                t.m23(),
+                t.m31(),
+                t.m32(),
+                t.m33()
+            )
+        self.setTransform(t, combine=False)
+    
+    def resizeEvent(self, event):
+        oldHeight = float(event.oldSize().height())
+        if oldHeight < 0.:
+            return
+        newHeight = float(event.size().height())
+        self.min_scale_v *= newHeight / oldHeight
+        t = self.transform()
+        if t.m22() < self.min_scale_v:
+            self.setTransformScaleV(t, self.min_scale_v)
+            self.update()
     
     @Slot()
     def updateScene(self):
         self.sample_rate = self.scene().sample_rate
         # self.time_x.framerate(self.sample_rate)
 
-        t = self.transform()
         self.center_y = self.scene().height() / 2.
-        self.scale_v = max(1. / self.scene().height(), 0.02)
-        self.scale(10., self.scale_v)
+        scale_v = max(self.frameRect().height() / self.scene().height(), self.min_scale_v)
+        self.scale(10., scale_v)
+        self.min_scale_v = self.transform().m22()
         self.updatePosition(self.bento.current_time)
         
     @Slot(Timecode)
     def updatePosition(self, t):
         pt = QPointF(t.float, self.center_y)
         self.centerOn(pt)
-        center = self.viewport().rect().center()
-        sceneCenter = self.mapToScene(center)
         self.show()
 
     def mousePressEvent(self, event):
@@ -112,21 +135,9 @@ class NeuralView(QGraphicsView):
         if event.modifiers() & Qt.ShiftModifier:
             factor_x = event.localPos().x() / self.start_x
             factor_y = event.localPos().y() / self.start_y
-            transform = QTransform(self.start_transform)
-            transform.scale(factor_x, factor_y)
-            if transform.m22() not in (1., 64.):
-                transform.setMatrix(
-                    transform.m11(),
-                    transform.m12(),
-                    transform.m13(),
-                    transform.m21(),
-                    min(64., max(1., transform.m22())),
-                    transform.m23(),
-                    transform.m31(),
-                    transform.m32(),
-                    transform.m33()
-                )
-            self.setTransform(transform, combine=False)
+            t = QTransform(self.start_transform)
+            t.scale(factor_x, factor_y)
+            self.setTransformScaleV(t, min(64., max(self.min_scale_v, t.m22())))
         else:
             x = event.localPos().x() / self.scale_h
             start_x = self.start_x / self.scale_h

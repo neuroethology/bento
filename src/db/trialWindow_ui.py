@@ -33,6 +33,7 @@ class Ui_TrialDockWidget(object):
         self.videoTableView.setSelectionMode(QAbstractItemView.MultiSelection)
         self.videoTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.videoTableView.setTextElideMode(Qt.ElideNone)
+        self.videoTableView.horizontalHeader().setStretchLastSection(True)
 
         self.gridLayout.addWidget(self.videoTableView, 3, 0, 1, 2)
 
@@ -48,6 +49,7 @@ class Ui_TrialDockWidget(object):
         self.annotationTableView.setDragDropOverwriteMode(False)
         self.annotationTableView.setSelectionMode(QAbstractItemView.MultiSelection)
         self.annotationTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.annotationTableView.horizontalHeader().setStretchLastSection(True)
 
         self.gridLayout.addWidget(self.annotationTableView, 5, 0, 1, 2)
 
@@ -69,6 +71,7 @@ class Ui_TrialDockWidget(object):
         self.trialTableView.setSelectionMode(QAbstractItemView.SingleSelection)
         self.trialTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.trialTableView.setTextElideMode(Qt.ElideNone)
+        self.trialTableView.horizontalHeader().setStretchLastSection(True)
 
         self.gridLayout.addWidget(self.trialTableView, 1, 0, 1, 2)
 

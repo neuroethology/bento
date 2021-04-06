@@ -35,6 +35,9 @@
       <property name="textElideMode">
        <enum>Qt::ElideNone</enum>
       </property>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
      </widget>
     </item>
     <item row="2" column="0">
@@ -61,6 +64,9 @@
       <property name="selectionBehavior">
        <enum>QAbstractItemView::SelectRows</enum>
       </property>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
      </widget>
     </item>
     <item row="4" column="0">
@@ -97,6 +103,9 @@
       <property name="textElideMode">
        <enum>Qt::ElideNone</enum>
       </property>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
      </widget>
     </item>
     <item row="0" column="0">
