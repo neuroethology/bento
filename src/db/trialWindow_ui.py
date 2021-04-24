@@ -60,6 +60,11 @@ class Ui_TrialDockWidget(object):
 
         self.loadTrialPushButton = QPushButton(self.dockWidgetContents)
         self.loadTrialPushButton.setObjectName(u"loadTrialPushButton")
+        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.loadTrialPushButton.sizePolicy().hasHeightForWidth())
+        self.loadTrialPushButton.setSizePolicy(sizePolicy)
 
         self.gridLayout.addWidget(self.loadTrialPushButton, 10, 1, 1, 1)
 

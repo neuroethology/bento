@@ -3,15 +3,14 @@
 """
 
 from os import X_OK
-from PySide2.QtCore import Qt, QPointF, QRectF, Slot
+from PySide2.QtCore import Qt, QPointF, QRectF, Signal, Slot
 from PySide2.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
-    QGraphicsRectItem, QGraphicsScene, QGraphicsView, QMessageBox)
+    QGraphicsScene, QGraphicsView, QMessageBox)
 from PySide2.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent)
 import pymatreader as pmr
-import h5py
-import scipy.io
 from timecode import Timecode
+from utils import padded_rectf
 import warnings
 
 class QGraphicsSubSceneItem(QGraphicsItem):
@@ -56,6 +55,8 @@ class NeuralView(QGraphicsView):
     from AnnotationsScene so that annotation data can be overlayed.
     """
 
+    hScaleChanged = Signal(float)
+
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.start_transform = None
@@ -65,6 +66,7 @@ class NeuralView(QGraphicsView):
         self.center_y = 0.
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.verticalScrollBar().sliderReleased.connect(self.updateFromScroll)
+        self.ticksScale = 1.
 
     def set_bento(self, bento):
         self.bento = bento
@@ -76,7 +78,7 @@ class NeuralView(QGraphicsView):
         self.time_x = Timecode(str(scene.sample_rate), '0:0:0:1')
         self.center_y = float(scene.num_chans) / 2.
 
-    def setTransformScaleV(t, self, scale_v: float):
+    def setTransformScaleV(self, t, scale_v: float):
         t.setMatrix(
                 t.m11(),
                 t.m12(),
@@ -107,7 +109,7 @@ class NeuralView(QGraphicsView):
         # self.time_x.framerate(self.sample_rate)
 
         self.center_y = self.scene().height() / 2.
-        scale_v = max(self.frameRect().height() / self.scene().height(), self.min_scale_v)
+        scale_v = max(self.viewport().height() / self.scene().height(), self.min_scale_v)
         self.scale(10., scale_v)
         self.min_scale_v = self.transform().m22()
         self.updatePosition(self.bento.current_time)
@@ -138,6 +140,7 @@ class NeuralView(QGraphicsView):
             t = QTransform(self.start_transform)
             t.scale(factor_x, factor_y)
             self.setTransformScaleV(t, min(64., max(self.min_scale_v, t.m22())))
+            self.hScaleChanged.emit(self.transform().m11())
         else:
             x = event.localPos().x() / self.scale_h
             start_x = self.start_x / self.scale_h
@@ -163,6 +166,29 @@ class NeuralView(QGraphicsView):
         super(NeuralView, self).wheelEvent(event)
         self.updateFromScroll()
 
+    def drawForeground(self, painter, rect):
+        now = self.bento.get_time().float
+        pen = QPen(Qt.white if self.scene().heatmap.isVisible() else Qt.black)
+        pen.setWidth(0)
+        painter.setPen(pen)
+        painter.drawLine(
+            QPointF(now, rect.top()),
+            QPointF(now, rect.bottom())
+            )
+        pen.setDashPattern((4, 20))
+        pen.setCapStyle(Qt.FlatCap)
+        painter.setPen(pen)
+        offset = self.ticksScale
+        while now + offset < rect.right():
+            painter.drawLine(
+                QPointF(now + offset, rect.top()),
+                QPointF(now + offset, rect.bottom())
+            )
+            painter.drawLine(
+                QPointF(now - offset, rect.top()),
+                QPointF(now - offset, rect.bottom())
+            )
+            offset += self.ticksScale
 
 class NeuralScene(QGraphicsScene):
     """
@@ -228,10 +254,8 @@ class NeuralScene(QGraphicsScene):
         self.heatmap.setOpacity(0.5)
         # finally, add the traces on top of everything
         self.addItem(self.traces)
-        sceneRect = self.sceneRect()
         # pad some time on left and right to allow centering
-        sceneRect.setX(-200.)
-        sceneRect.setWidth(sceneRect.width() + 400.)
+        sceneRect = padded_rectf(self.sceneRect())
         sceneRect.setY(-1.)
         sceneRect.setHeight(float(self.num_chans) + 1.)
         self.setSceneRect(sceneRect)
@@ -278,25 +302,24 @@ class NeuralScene(QGraphicsScene):
         self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene)
         self.annotations.setZValue(-1.) # draw below neural data
         self.addItem(self.annotations)
-        print(f"scene.annotations set to {self.annotations}")
         transparentWhite = QColor(Qt.white)
         transparentWhite.setAlphaF(0.7)
         rectItem = self.addRect(QRectF(self.sceneRect()), brush=QBrush(transparentWhite))
         rectItem.setZValue(-1.) # draw below neural data
 
-    @Slot(int)
-    def showTraces(self, state):
+    @Slot(bool)
+    def showTraces(self, enabled):
         if isinstance(self.traces, QGraphicsItem):
-            self.traces.setVisible(state > 0)
+            self.traces.setVisible(enabled)
     
-    @Slot(int)
-    def showHeatmap(self, state):
+    @Slot(bool)
+    def showHeatmap(self, enabled):
         if isinstance(self.heatmap, QGraphicsItem):
-            self.heatmap.setVisible(state > 0)
+            self.heatmap.setVisible(enabled)
     
-    @Slot(int)
-    def showAnnotations(self, state):
+    @Slot(bool)
+    def showAnnotations(self, enabled):
         if isinstance(self.annotations, QGraphicsItem):
-            self.annotations.setVisible(state > 0)
+            self.annotations.setVisible(enabled)
         if isinstance(self.heatmap, QGraphicsItem):
-            self.heatmap.setOpacity(0.5 if state > 0 else 1.)
+            self.heatmap.setOpacity(0.5 if enabled else 1.)

@@ -1,20 +1,22 @@
 # bento.py
 
 from timecode import Timecode
-from PySide2.QtCore import Signal, Slot, QObject, QPoint, QThread
-from PySide2.QtWidgets import QApplication, QMessageBox
+from PySide2.QtCore import Signal, Slot, QObject, QThread
+from PySide2.QtWidgets import QApplication, QFileDialog, QMenuBar, QMessageBox
 from annot.annot import Annotations, Bout
-from annot.behavior import Behavior, Behaviors
+from annot.behavior import Behaviors
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
 from widgets.neuralWidget import NeuralScene, NeuralView
 from db.sessionWindow import SessionDockWidget
 from db.trialWindow import TrialDockWidget
+from db.schema_sqlalchemy import Animal, Camera, Investigator, Session, Trial
+from db.investigatorDialog import InvestigatorDialog
 # from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
 from os.path import sep
-from utils import fix_path
+from utils import fix_path, padded_rectf
 import sys
 import time
 
@@ -76,14 +78,29 @@ class Bento(QObject):
         self.active_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
         self.pending_bout = None
-        f = open('../color_profiles.txt','r')
-        self.behaviors.load(f)
-        f.close()
+        with open('../color_profiles.txt','r') as f:
+            self.behaviors.load(f)
         self.session = None
+        self.trial = None
         self.mainWindow = None
         self.video_widgets = []
         self.neural_widgets = []
         self.annotations = Annotations(self.behaviors)
+        self.menuBar = QMenuBar(None)
+        self.fileMenu = self.menuBar.addMenu("File")
+        self.saveAnnotationsAction = self.fileMenu.addAction("Save Annotations...")
+        self.saveAnnotationsAction.triggered.connect(self.save_annotations)
+        self.dbMenu = self.menuBar.addMenu("Database")
+        self.newTrialAction = self.dbMenu.addAction("Trial...")
+        self.newTrialAction.triggered.connect(self.new_trial)
+        self.newSessionAction = self.dbMenu.addAction("Session...")
+        self.newSessionAction.triggered.connect(self.new_session)
+        self.newAnimalAction = self.dbMenu.addAction("Animal...")
+        self.newAnimalAction.triggered.connect(self.new_animal)
+        self.investigatorAction = self.dbMenu.addAction("Investigator...")
+        self.investigatorAction.triggered.connect(self.edit_investigator)
+        self.newCameraAction = self.dbMenu.addAction("Camera...")
+        self.newCameraAction.triggered.connect(self.new_camera)
         self.annotationsScene = AnnotationsScene()
         self.current_time.set_fractional(False)
         self.active_channels = []
@@ -100,11 +117,69 @@ class Bento(QObject):
         self.active_channels = self.annotations.channel_names()
         self.annotationsScene.setSampleRate(sample_rate)
         self.annotationsScene.loadAnnotations(self.annotations, self.active_channels, sample_rate)
-        rect = self.annotationsScene.sceneRect()
-        self.annotationsScene.setSceneRect(rect.x() - 30., rect.y(), rect.width() + 2. * 30., rect.height())
+        self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
         self.time_start = self.annotations.time_start()
         self.time_end = self.annotations.time_end()
         self.set_time(self.time_start)
+
+    @Slot()
+    def save_annotations(self):
+        fileName, filter = QFileDialog.getSaveFileName(
+            self.mainWindow,
+            caption="Annotation File Name",
+            dir=self.session.base_directory)
+        with open(fileName, 'w') as file:
+            self.annotations.write_caltech(
+                file,
+                [video_data.file_path for video_data in self.trial.video_data],
+                self.trial.stimulus
+                )
+        print(f"Filter returned from file dialog was {filter}")
+
+    # Database actions
+
+    @Slot()
+    def new_animal(self):
+        """
+        Add an animal to the database associated with the selected investigator
+        """
+        print("new_animal() called")
+
+    @Slot()
+    def new_camera(self):
+        """
+        Add a new camera type to the database
+        """
+        print("new_camera() called")
+
+    @Slot()
+    def edit_investigator(self):
+        """
+        Edit or add a new investigator to the database
+        """
+        dialog = InvestigatorDialog(self)
+        dialog.exec_()
+
+    @Slot()
+    def new_session(self):
+        """
+        Add a new experiment session to the database
+        associated with the selected investigator
+        """
+        print("new_session() called")
+
+    @Slot()
+    def new_trial(self):
+        """
+        Add a new experiment trial associated with the current session
+        """
+        if not isinstance(self.session, Session):
+            QMessageBox.about(self.selectTrialWindow, "Error", "Please select a Session"
+                "before trying to create a Trial")
+        else:
+            print(f"new_trial() called for session {self.session}")
+
+    # State-related methods
 
     def update_active_annotations(self):
         self.active_annotations.clear()
@@ -121,9 +196,11 @@ class Bento(QObject):
     def set_time(self, new_tc: Timecode):
         if not isinstance(new_tc, Timecode):
             new_tc = Timecode('30.0', new_tc)
-        self.current_time = new_tc
-        self.update_active_annotations()
-        self.timeChanged.emit(self.current_time)
+        new_tc = max(self.time_start, min(self.time_end, new_tc))
+        if self.current_time != new_tc:
+            self.current_time = new_tc
+            self.update_active_annotations()
+            self.timeChanged.emit(self.current_time)
     
     def change_time(self, increment: Timecode):
         self.set_time(self.current_time + increment)
@@ -259,15 +336,15 @@ class Bento(QObject):
             widget.show()
         if annotation:
             annot_path = fix_path(base_dir + annotation.file_path)
-            # try:
-            self.load_annotations(annot_path, annotation.sample_rate)
-            # except Exception as e:
-            #     QMessageBox.about(self.selectTrialWindow, "Error", f"Problem loading annotations from {annot_path}\n"
-            #         f"Error reported was {str(e)}")
-            #     for widget in self.video_widgets:
-            #         widget.close() 
-            #     self.video_widgets.clear()
-            #     return False
+            try:
+                self.load_annotations(annot_path, annotation.sample_rate)
+            except Exception as e:
+                QMessageBox.about(self.selectTrialWindow, "Error", f"Attempt to load annotations from {annot_path} "
+                    f"failed with error {str(e)}")
+                for widget in self.video_widgets:
+                    widget.close() 
+                self.video_widgets.clear()
+                return False
             self.annotationsSceneUpdated.emit()
         if loadPose:
             if self.trial.pose_data:
@@ -288,6 +365,8 @@ class Bento(QObject):
                 print(f"Load audio from {self.trial.audio_data[0].file_path}")
             else:
                 print("No audio data in trial.")
+        # set the time to get all the new widgets in sync
+        self.set_time(self.time_start)
         return True
 
    # Signals

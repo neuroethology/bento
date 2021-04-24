@@ -20,32 +20,11 @@ class Ui_SessionDockWidget(object):
     def setupUi(self, SessionDockWidget):
         if SessionDockWidget.objectName():
             SessionDockWidget.setObjectName(u"SessionDockWidget")
-        SessionDockWidget.resize(1055, 678)
+        SessionDockWidget.resize(801, 678)
         self.experimentDockWidgetContents = QWidget()
         self.experimentDockWidgetContents.setObjectName(u"experimentDockWidgetContents")
         self.gridLayout = QGridLayout(self.experimentDockWidgetContents)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.sessionsTableView = QTableView(self.experimentDockWidgetContents)
-        self.sessionsTableView.setObjectName(u"sessionsTableView")
-        self.sessionsTableView.horizontalHeader().setStretchLastSection(True)
-
-        self.gridLayout.addWidget(self.sessionsTableView, 4, 0, 1, 4)
-
-        self.pushButtonsHorizontalLayout = QHBoxLayout()
-        self.pushButtonsHorizontalLayout.setObjectName(u"pushButtonsHorizontalLayout")
-        self.searchPushButton = QPushButton(self.experimentDockWidgetContents)
-        self.searchPushButton.setObjectName(u"searchPushButton")
-
-        self.pushButtonsHorizontalLayout.addWidget(self.searchPushButton)
-
-        self.loadPushButton = QPushButton(self.experimentDockWidgetContents)
-        self.loadPushButton.setObjectName(u"loadPushButton")
-
-        self.pushButtonsHorizontalLayout.addWidget(self.loadPushButton)
-
-
-        self.gridLayout.addLayout(self.pushButtonsHorizontalLayout, 5, 3, 1, 1)
-
         self.dateRangeGridLayout = QGridLayout()
         self.dateRangeGridLayout.setObjectName(u"dateRangeGridLayout")
         self.endCalendarWidget = QCalendarWidget(self.experimentDockWidgetContents)
@@ -103,6 +82,33 @@ class Ui_SessionDockWidget(object):
 
         self.gridLayout.addLayout(self.investigatorHorizontalLayout, 0, 0, 1, 2)
 
+        self.pushButtonsHorizontalLayout = QHBoxLayout()
+        self.pushButtonsHorizontalLayout.setObjectName(u"pushButtonsHorizontalLayout")
+        self.searchPushButton = QPushButton(self.experimentDockWidgetContents)
+        self.searchPushButton.setObjectName(u"searchPushButton")
+
+        self.pushButtonsHorizontalLayout.addWidget(self.searchPushButton)
+
+        self.newSessionPushButton = QPushButton(self.experimentDockWidgetContents)
+        self.newSessionPushButton.setObjectName(u"newSessionPushButton")
+
+        self.pushButtonsHorizontalLayout.addWidget(self.newSessionPushButton)
+
+        self.loadPushButton = QPushButton(self.experimentDockWidgetContents)
+        self.loadPushButton.setObjectName(u"loadPushButton")
+
+        self.pushButtonsHorizontalLayout.addWidget(self.loadPushButton)
+
+
+        self.gridLayout.addLayout(self.pushButtonsHorizontalLayout, 5, 1, 1, 1)
+
+        self.sessionsTableView = QTableView(self.experimentDockWidgetContents)
+        self.sessionsTableView.setObjectName(u"sessionsTableView")
+        self.sessionsTableView.horizontalHeader().setDefaultSectionSize(60)
+        self.sessionsTableView.horizontalHeader().setStretchLastSection(True)
+
+        self.gridLayout.addWidget(self.sessionsTableView, 4, 0, 1, 2)
+
         self.gridLayout.setRowStretch(4, 1)
         SessionDockWidget.setWidget(self.experimentDockWidgetContents)
 
@@ -113,11 +119,12 @@ class Ui_SessionDockWidget(object):
 
     def retranslateUi(self, SessionDockWidget):
         SessionDockWidget.setWindowTitle(QCoreApplication.translate("SessionDockWidget", u"Session Search Window", None))
-        self.searchPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Search", None))
-        self.loadPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Load Session", None))
         self.trialDateStartLabel.setText(QCoreApplication.translate("SessionDockWidget", u"Start", None))
         self.useDateRangeCheckBox.setText(QCoreApplication.translate("SessionDockWidget", u"Filter by Trial Date Range:", None))
         self.trialDateEndLabel.setText(QCoreApplication.translate("SessionDockWidget", u"End", None))
         self.useInvestigatorCheckBox.setText(QCoreApplication.translate("SessionDockWidget", u"Filter by Investigator:", None))
+        self.searchPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Search", None))
+        self.newSessionPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"New Session...", None))
+        self.loadPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Load Session", None))
     # retranslateUi
 

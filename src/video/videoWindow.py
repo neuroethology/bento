@@ -2,10 +2,47 @@
 
 from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
-from PySide2.QtCore import Signal, Slot, QRect, QPoint, Qt
-from PySide2.QtGui import QPixmap, QPainter
+from PySide2.QtCore import Signal, Slot, QMargins, Qt
+from PySide2.QtGui import QBrush, QFontMetrics, QPixmap
 from PySide2.QtWidgets import QFrame, QGraphicsScene
 from timecode import Timecode
+
+class VideoScene(QGraphicsScene):
+    """
+    A scene that knows how to draw annotations text into its foreground
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.annots = None
+    
+    def setAnnots(self, annots):
+        self.annots = annots
+
+    def drawForeground(self, painter, rect):
+        # add annotations
+        font = painter.font()
+        pointSize = font.pointSize()+10
+        font.setPointSize(pointSize)
+        painter.setFont(font)
+        margins = QMargins(10, 10, 0, 0)
+        fm = QFontMetrics(font)
+        flags = Qt.AlignLeft | Qt.AlignTop
+        rectWithMargins = rect.toRect()
+        rectWithMargins -= margins
+        whiteBrush = QBrush(Qt.white)
+        blackBrush = QBrush(Qt.black)
+        for annot in self.annots:
+            painter.setBrush(whiteBrush if annot[2].lightnessF() < 0.5 else blackBrush)
+            text = annot[0] + ": " + annot[1]
+            bounds = fm.boundingRect(rectWithMargins, flags, text)
+            painter.setPen(Qt.NoPen)
+            painter.drawRect(bounds)
+            painter.setPen(annot[2])
+            painter.drawText(bounds, text)
+            margins.setTop(margins.top() + pointSize + 3)
+            rectWithMargins = rect.toRect()
+            rectWithMargins -= margins
 
 class VideoFrame(QFrame):
 
@@ -21,23 +58,28 @@ class VideoFrame(QFrame):
         self.quitting.connect(self.bento.quit)
 
         self.reader = None
-        self.scene = QGraphicsScene()
+        self.scene = VideoScene()
         self.ui.videoView.setScene(self.scene)
         self.pixmap = QPixmap()
         self.pixmapItem = self.scene.addPixmap(self.pixmap)
         self.active_annots = []
         self.aspect_ratio = 1.
     
-    def hasHeightForWidth(self):
-        print("called hasHeightForWidth")
-        return False
-
-    def heightForWidth(self, width):
-        print(f"called heightForWidth, returning {int(float(width) * self.aspect_ratio)} for width {width}")
-        return int(float(width) * self.aspect_ratio)
-
     def resizeEvent(self, event):
-        self.ui.videoView.fitInView(self.pixmapItem, aspectRatioMode=Qt.KeepAspectRatio)
+        self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
+
+    def mouseReleaseEvent(self, event):
+        viewport = self.ui.videoView.viewport()
+        viewAspectRatio = viewport.height() / viewport.width()
+        if viewAspectRatio == self.aspect_ratio:
+            print("just right")
+            return
+        elif viewAspectRatio < self.aspect_ratio:
+            # too wide
+            print("too wide")
+        else:
+            # too tall
+            print("too tall")
 
     def load_video(self, fn):
         self.reader = seqIo.seqIo_reader(fn)
@@ -77,20 +119,9 @@ class VideoFrame(QFrame):
         i = min(t.frames, self.reader.header['numFrames']-1)
         image, _ = self.reader.getFrame(i, decode=False)
         self.pixmap.loadFromData(image.tobytes())
-        # add annotations
-        painter = QPainter(self.pixmap)
-        font = painter.font()
-        pointSize = font.pointSize()+10
-        font.setPointSize(pointSize)
-        painter.setFont(font)
-        margin = QPoint(10, 30)
-        # for annot in self.active_annots:
-        #     label = annot[0] + ": " + annot[1]
-        #     painter.setPen(annot[2])
-        #     painter.drawText(self.ui.label.rect().topLeft() + margin, label)
-        #     margin.setY(margin.y() + pointSize + 3)
-        # self.ui.label.setPixmap(self.pixmap.scaled(self.size(), aspectMode=Qt.KeepAspectRatio))
         self.pixmapItem.setPixmap(self.pixmap)
+        if isinstance(self.scene, VideoScene):
+            self.scene.setAnnots(self.active_annots)
         self.show()
 
     @Slot(list)

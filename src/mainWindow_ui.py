@@ -141,6 +141,8 @@ class Ui_MainWindow(object):
         self.annotationsView = AnnotationsView(self.centralwidget)
         self.annotationsView.setObjectName(u"annotationsView")
         self.annotationsView.setGeometry(QRect(0, 60, 451, 51))
+        self.annotationsView.setAcceptDrops(False)
+        self.annotationsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.annotationsView.setResizeAnchor(QGraphicsView.AnchorViewCenter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)

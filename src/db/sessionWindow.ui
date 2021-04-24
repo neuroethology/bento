@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1055</width>
+    <width>801</width>
     <height>678</height>
    </rect>
   </property>
@@ -15,31 +15,6 @@
   </property>
   <widget class="QWidget" name="experimentDockWidgetContents">
    <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,1,0">
-    <item row="4" column="0" colspan="4">
-     <widget class="QTableView" name="sessionsTableView">
-      <attribute name="horizontalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
-     </widget>
-    </item>
-    <item row="5" column="3">
-     <layout class="QHBoxLayout" name="pushButtonsHorizontalLayout">
-      <item>
-       <widget class="QPushButton" name="searchPushButton">
-        <property name="text">
-         <string>Search</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="loadPushButton">
-        <property name="text">
-         <string>Load Session</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
     <item row="2" column="0" colspan="2">
      <layout class="QGridLayout" name="dateRangeGridLayout">
       <item row="2" column="0">
@@ -130,6 +105,41 @@
        </spacer>
       </item>
      </layout>
+    </item>
+    <item row="5" column="1">
+     <layout class="QHBoxLayout" name="pushButtonsHorizontalLayout">
+      <item>
+       <widget class="QPushButton" name="searchPushButton">
+        <property name="text">
+         <string>Search</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="newSessionPushButton">
+        <property name="text">
+         <string>New Session...</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="loadPushButton">
+        <property name="text">
+         <string>Load Session</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="4" column="0" colspan="2">
+     <widget class="QTableView" name="sessionsTableView">
+      <attribute name="horizontalHeaderDefaultSectionSize">
+       <number>60</number>
+      </attribute>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
+     </widget>
     </item>
    </layout>
   </widget>

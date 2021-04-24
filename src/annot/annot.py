@@ -261,8 +261,56 @@ class Annotations(object):
             line = f.readline()
         print(f"Done reading Caltech annotation file {f.name}")
 
+    def write_caltech(self, f, video_files, stimulus):
+        if not f.writable():
+            raise RuntimeError("File not writable")
+        f.write("Bento annotation file\n")
+        f.write("Movie file(s):")
+        for file in video_files:
+            f.write(' ' + file)
+        f.write('\n\n')
+
+        f.write(f"Stimulus name: {stimulus}\n")
+        f.write(f"Annotation start frame: {self._time_start}\n")
+        f.write(f"Annotation stop frame: {self._time_end}\n")
+        f.write(f"Annotation framerate: {self._frame_rate}\n")
+        f.write("\n")
+
+        f.write("List of Channels:\n")
+        for ch in self.channel_names():
+            f.write(ch + "\n")
+        f.write("\n")
+
+        f.write("List of annotations:\n")
+        for annot in self.annotation_names:
+            f.write(annot + "\n")
+        f.write("\n")
+
+        for ch in self.channel_names():
+            by_name = {}
+            f.write(f"{ch}----------\n")
+
+            for bout in self.channel(ch):
+                if not by_name.get(bout.name()):
+                    by_name[bout.name()] = []
+                by_name[bout.name()].append(bout)
+
+            for annot in by_name:
+                f.write(f">{annot}\n")
+                f.write("Start\tStop\tDuration\n")
+                for bout in by_name[annot]:
+                    start = bout.start().frames
+                    end = bout.end().frames
+                    f.write(f"{start}\t{end}\t{end - start}\n")
+                f.write("\n")
+
+            f.write("\n")
+
+        f.close()
+        print(f"Done writing Caltech annotation file {f.name}")
+
     def _read_ethovision(self, f):
-        pass
+        print("Ethovision annotations not yet supported")
 
     def channel_names(self):
         return list(self._channels.keys())

@@ -222,6 +222,12 @@
       <height>51</height>
      </rect>
     </property>
+    <property name="acceptDrops">
+     <bool>false</bool>
+    </property>
+    <property name="verticalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
+    </property>
     <property name="resizeAnchor">
      <enum>QGraphicsView::AnchorViewCenter</enum>
     </property>

@@ -2,11 +2,10 @@
 """
 """
 
-from PySide2.QtCore import Qt, QPointF, Signal, Slot
-from PySide2.QtGui import QBrush, QColor, QPen, QMouseEvent, QPaintEvent
-from PySide2.QtWidgets import QGraphicsScene, QGraphicsView, QGraphicsRectItem
+from PySide2.QtCore import Qt, QPointF, QRectF, Slot
+from PySide2.QtGui import QBrush, QPen, QMouseEvent
+from PySide2.QtWidgets import QGraphicsScene, QGraphicsView
 from timecode import Timecode
-from annot.annot import Bout
 
 class AnnotationsView(QGraphicsView):
     """
@@ -27,6 +26,7 @@ class AnnotationsView(QGraphicsView):
         self.time_x = Timecode(str(self.sample_rate), '0:0:0:1')
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.ticksScale = 1.
 
     def set_bento(self, bento):
         self.bento = bento
@@ -43,6 +43,26 @@ class AnnotationsView(QGraphicsView):
     def updatePosition(self, t):
         pt = QPointF(t.float, self.scene().height/2.)
         self.centerOn(pt)
+        self.show()
+
+    def setTransformScaleH(self, t, scale_h: float):
+        t.setMatrix(
+                scale_h,
+                t.m12(),
+                t.m13(),
+                t.m21(),
+                t.m22(),
+                t.m23(),
+                t.m31(),
+                t.m32(),
+                t.m33()
+            )
+        self.setTransform(t, combine=False)
+    
+    @Slot(float)
+    def setHScale(self, hScale):
+        self.scale_h = hScale
+        self.setTransformScaleH(self.transform(), hScale)
         self.show()
 
     def mousePressEvent(self, event):
@@ -70,6 +90,50 @@ class AnnotationsView(QGraphicsView):
             self.time_x.framerate,
             start_seconds=sceneCenter.x()
         ))
+
+    def maybeDrawPendingBout(self, painter, rect):
+        bout = self.bento.pending_bout
+        if not bout:
+            return
+        now = self.bento.get_time().float
+        painter.setBrush(QBrush(bout.color()))
+        painter.drawRect(QRectF(QPointF(bout.start().float, rect.top()), QPointF(now, rect.bottom())))
+
+    def drawForeground(self, painter, rect):
+        self.maybeDrawPendingBout(painter, rect)
+        # draw current time indicator
+        now = self.bento.get_time().float
+        pen = QPen(Qt.black)
+        pen.setWidth(0)
+        painter.setPen(pen)
+        painter.drawLine(
+            QPointF(now, rect.top()),
+            QPointF(now, rect.bottom())
+            )
+        # draw tick marks
+        if self.scene().loaded:
+            offset = self.ticksScale
+            eighth = (rect.bottom() - rect.top()) / 8.
+            eighthDown = rect.top() + eighth
+            eighthUp = rect.bottom() - eighth
+            while now + offset < rect.right():
+                painter.drawLine(
+                    QPointF(now + offset, rect.top()),
+                    QPointF(now + offset, eighthDown)
+                )
+                painter.drawLine(
+                    QPointF(now + offset, eighthUp),
+                    QPointF(now + offset, rect.bottom())
+                )
+                painter.drawLine(
+                    QPointF(now - offset, rect.top()),
+                    QPointF(now - offset, eighthDown)
+                )
+                painter.drawLine(
+                    QPointF(now - offset, eighthUp),
+                    QPointF(now - offset, rect.bottom())
+                )
+                offset += self.ticksScale
         
 class AnnotationsScene(QGraphicsScene):
     """
@@ -87,6 +151,7 @@ class AnnotationsScene(QGraphicsScene):
         self.height = 1.
         self.sample_rate = sample_rate
         self.chan_map = {}
+        self.loaded = False
     
     def addBout(self, bout, chan):
         """
@@ -107,6 +172,7 @@ class AnnotationsScene(QGraphicsScene):
         for ix, chan in enumerate(activeChannels):
             self.chan_map[chan] = ix
             self.loadBouts(annotations.channel(chan),  ix)
+        self.loaded = True
 
     def loadBouts(self, channel, chan_num):
         print(f"Loading bouts for channel {chan_num}")
