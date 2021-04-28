@@ -3,9 +3,8 @@
 from mainWindow_ui import Ui_MainWindow
 import timecode as tc
 
-from PySide2.QtCore import *
-from PySide2.QtGui import *
-from PySide2.QtWidgets import *
+from PySide2.QtCore import Qt, Signal, Slot
+from PySide2.QtWidgets import QMainWindow, QMenuBar
 from db.sessionWindow import SessionDockWidget
 
 class MainWindow(QMainWindow):
@@ -34,6 +33,24 @@ class MainWindow(QMainWindow):
         self.ui.annotationsView.set_bento(bento)
         self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
+
+        # menus
+        self.menuBar = QMenuBar(self)
+        self.setMenuBar(self.menuBar)
+        self.fileMenu = self.menuBar.addMenu("File")
+        self.saveAnnotationsAction = self.fileMenu.addAction("Save Annotations...")
+        self.saveAnnotationsAction.triggered.connect(bento.save_annotations)
+        self.dbMenu = self.menuBar.addMenu("Database")
+        self.newTrialAction = self.dbMenu.addAction("Trial...")
+        self.newTrialAction.triggered.connect(bento.new_trial)
+        self.newSessionAction = self.dbMenu.addAction("Session...")
+        self.newSessionAction.triggered.connect(bento.new_session)
+        self.animalAction = self.dbMenu.addAction("Animal...")
+        self.animalAction.triggered.connect(bento.edit_animal)
+        self.investigatorAction = self.dbMenu.addAction("Investigator...")
+        self.investigatorAction.triggered.connect(bento.edit_investigator)
+        self.cameraAction = self.dbMenu.addAction("Camera...")
+        self.cameraAction.triggered.connect(bento.edit_camera)
 
         self.bento = bento
 
