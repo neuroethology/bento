@@ -13,6 +13,8 @@ from db.sessionWindow import SessionDockWidget
 from db.trialWindow import TrialDockWidget
 from db.schema_sqlalchemy import Animal, Camera, Investigator, Session, Trial
 from db.investigatorDialog import InvestigatorDialog
+from db.animalDialog import AnimalDialog
+from db.cameraDialog import CameraDialog
 # from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
 from os.path import sep
@@ -95,12 +97,12 @@ class Bento(QObject):
         self.newTrialAction.triggered.connect(self.new_trial)
         self.newSessionAction = self.dbMenu.addAction("Session...")
         self.newSessionAction.triggered.connect(self.new_session)
-        self.newAnimalAction = self.dbMenu.addAction("Animal...")
-        self.newAnimalAction.triggered.connect(self.new_animal)
+        self.animalAction = self.dbMenu.addAction("Animal...")
+        self.animalAction.triggered.connect(self.edit_animal)
         self.investigatorAction = self.dbMenu.addAction("Investigator...")
         self.investigatorAction.triggered.connect(self.edit_investigator)
-        self.newCameraAction = self.dbMenu.addAction("Camera...")
-        self.newCameraAction.triggered.connect(self.new_camera)
+        self.cameraAction = self.dbMenu.addAction("Camera...")
+        self.cameraAction.triggered.connect(self.edit_camera)
         self.annotationsScene = AnnotationsScene()
         self.current_time.set_fractional(False)
         self.active_channels = []
@@ -139,18 +141,22 @@ class Bento(QObject):
     # Database actions
 
     @Slot()
-    def new_animal(self):
+    def edit_animal(self):
         """
-        Add an animal to the database associated with the selected investigator
+        Edit or add a new animal to the database associated with the selected investigator
         """
-        print("new_animal() called")
+        print("edit_animal() called")
+        dialog = AnimalDialog(self)
+        dialog.exec_()
 
     @Slot()
-    def new_camera(self):
+    def edit_camera(self):
         """
-        Add a new camera type to the database
+        Edit or add a new camera type to the database
         """
-        print("new_camera() called")
+        print("edit_camera() called")
+        dialog = CameraDialog(self)
+        dialog.exec_()
 
     @Slot()
     def edit_investigator(self):

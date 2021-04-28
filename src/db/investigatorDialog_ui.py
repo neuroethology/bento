@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'investigatorDialog.ui'
+## Form generated from reading UI file 'InvestigatorDialog.ui'
 ##
 ## Created by: Qt User Interface Compiler version 5.14.1
 ##
@@ -16,16 +16,16 @@ from PySide2.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont,
 from PySide2.QtWidgets import *
 
 
-class Ui_investigatorDialog(object):
-    def setupUi(self, investigatorDialog):
-        if investigatorDialog.objectName():
-            investigatorDialog.setObjectName(u"investigatorDialog")
-        investigatorDialog.resize(511, 261)
-        self.verticalLayout = QVBoxLayout(investigatorDialog)
+class Ui_InvestigatorDialog(object):
+    def setupUi(self, InvestigatorDialog):
+        if InvestigatorDialog.objectName():
+            InvestigatorDialog.setObjectName(u"InvestigatorDialog")
+        InvestigatorDialog.resize(511, 261)
+        self.verticalLayout = QVBoxLayout(InvestigatorDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.comboBoxHorizontalLayout = QHBoxLayout()
         self.comboBoxHorizontalLayout.setObjectName(u"comboBoxHorizontalLayout")
-        self.investigatorLabel = QLabel(investigatorDialog)
+        self.investigatorLabel = QLabel(InvestigatorDialog)
         self.investigatorLabel.setObjectName(u"investigatorLabel")
         sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -35,7 +35,7 @@ class Ui_investigatorDialog(object):
 
         self.comboBoxHorizontalLayout.addWidget(self.investigatorLabel)
 
-        self.investigatorComboBox = QComboBox(investigatorDialog)
+        self.investigatorComboBox = QComboBox(InvestigatorDialog)
         self.investigatorComboBox.setObjectName(u"investigatorComboBox")
         sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         sizePolicy1.setHorizontalStretch(1)
@@ -50,12 +50,12 @@ class Ui_investigatorDialog(object):
 
         self.usernameHorizontalLayout = QHBoxLayout()
         self.usernameHorizontalLayout.setObjectName(u"usernameHorizontalLayout")
-        self.usernameLabel = QLabel(investigatorDialog)
+        self.usernameLabel = QLabel(InvestigatorDialog)
         self.usernameLabel.setObjectName(u"usernameLabel")
 
         self.usernameHorizontalLayout.addWidget(self.usernameLabel)
 
-        self.usernameLineEdit = QLineEdit(investigatorDialog)
+        self.usernameLineEdit = QLineEdit(InvestigatorDialog)
         self.usernameLineEdit.setObjectName(u"usernameLineEdit")
 
         self.usernameHorizontalLayout.addWidget(self.usernameLineEdit)
@@ -65,12 +65,12 @@ class Ui_investigatorDialog(object):
 
         self.firstNameHorizontalLayout = QHBoxLayout()
         self.firstNameHorizontalLayout.setObjectName(u"firstNameHorizontalLayout")
-        self.firstNameLabel = QLabel(investigatorDialog)
+        self.firstNameLabel = QLabel(InvestigatorDialog)
         self.firstNameLabel.setObjectName(u"firstNameLabel")
 
         self.firstNameHorizontalLayout.addWidget(self.firstNameLabel)
 
-        self.firstNameLineEdit = QLineEdit(investigatorDialog)
+        self.firstNameLineEdit = QLineEdit(InvestigatorDialog)
         self.firstNameLineEdit.setObjectName(u"firstNameLineEdit")
 
         self.firstNameHorizontalLayout.addWidget(self.firstNameLineEdit)
@@ -80,12 +80,12 @@ class Ui_investigatorDialog(object):
 
         self.lastNameHorizontalLayout = QHBoxLayout()
         self.lastNameHorizontalLayout.setObjectName(u"lastNameHorizontalLayout")
-        self.lastNameLabel = QLabel(investigatorDialog)
+        self.lastNameLabel = QLabel(InvestigatorDialog)
         self.lastNameLabel.setObjectName(u"lastNameLabel")
 
         self.lastNameHorizontalLayout.addWidget(self.lastNameLabel)
 
-        self.lastNameLineEdit = QLineEdit(investigatorDialog)
+        self.lastNameLineEdit = QLineEdit(InvestigatorDialog)
         self.lastNameLineEdit.setObjectName(u"lastNameLineEdit")
 
         self.lastNameHorizontalLayout.addWidget(self.lastNameLineEdit)
@@ -95,12 +95,12 @@ class Ui_investigatorDialog(object):
 
         self.institutionHorizontalLayout = QHBoxLayout()
         self.institutionHorizontalLayout.setObjectName(u"institutionHorizontalLayout")
-        self.institutionLabel = QLabel(investigatorDialog)
+        self.institutionLabel = QLabel(InvestigatorDialog)
         self.institutionLabel.setObjectName(u"institutionLabel")
 
         self.institutionHorizontalLayout.addWidget(self.institutionLabel)
 
-        self.institutionLineEdit = QLineEdit(investigatorDialog)
+        self.institutionLineEdit = QLineEdit(InvestigatorDialog)
         self.institutionLineEdit.setObjectName(u"institutionLineEdit")
 
         self.institutionHorizontalLayout.addWidget(self.institutionLineEdit)
@@ -110,12 +110,12 @@ class Ui_investigatorDialog(object):
 
         self.eMailHorizontalLayout = QHBoxLayout()
         self.eMailHorizontalLayout.setObjectName(u"eMailHorizontalLayout")
-        self.eMailLabel = QLabel(investigatorDialog)
+        self.eMailLabel = QLabel(InvestigatorDialog)
         self.eMailLabel.setObjectName(u"eMailLabel")
 
         self.eMailHorizontalLayout.addWidget(self.eMailLabel)
 
-        self.eMailLineEdit = QLineEdit(investigatorDialog)
+        self.eMailLineEdit = QLineEdit(InvestigatorDialog)
         self.eMailLineEdit.setObjectName(u"eMailLineEdit")
 
         self.eMailHorizontalLayout.addWidget(self.eMailLineEdit)
@@ -123,7 +123,7 @@ class Ui_investigatorDialog(object):
 
         self.verticalLayout.addLayout(self.eMailHorizontalLayout)
 
-        self.buttonBox = QDialogButtonBox(investigatorDialog)
+        self.buttonBox = QDialogButtonBox(InvestigatorDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Discard|QDialogButtonBox.Ok)
@@ -131,21 +131,21 @@ class Ui_investigatorDialog(object):
         self.verticalLayout.addWidget(self.buttonBox)
 
 
-        self.retranslateUi(investigatorDialog)
-        self.buttonBox.accepted.connect(investigatorDialog.accept)
-        self.buttonBox.rejected.connect(investigatorDialog.reject)
-        self.buttonBox.clicked.connect(investigatorDialog.update)
+        self.retranslateUi(InvestigatorDialog)
+        self.buttonBox.accepted.connect(InvestigatorDialog.accept)
+        self.buttonBox.rejected.connect(InvestigatorDialog.reject)
+        self.buttonBox.clicked.connect(InvestigatorDialog.update)
 
-        QMetaObject.connectSlotsByName(investigatorDialog)
+        QMetaObject.connectSlotsByName(InvestigatorDialog)
     # setupUi
 
-    def retranslateUi(self, investigatorDialog):
-        investigatorDialog.setWindowTitle(QCoreApplication.translate("investigatorDialog", u"Investigator", None))
-        self.investigatorLabel.setText(QCoreApplication.translate("investigatorDialog", u"Investigator: ", None))
-        self.usernameLabel.setText(QCoreApplication.translate("investigatorDialog", u"Username: ", None))
-        self.firstNameLabel.setText(QCoreApplication.translate("investigatorDialog", u"First Name: ", None))
-        self.lastNameLabel.setText(QCoreApplication.translate("investigatorDialog", u"Last Name: ", None))
-        self.institutionLabel.setText(QCoreApplication.translate("investigatorDialog", u"Institution: ", None))
-        self.eMailLabel.setText(QCoreApplication.translate("investigatorDialog", u"eMail: ", None))
+    def retranslateUi(self, InvestigatorDialog):
+        InvestigatorDialog.setWindowTitle(QCoreApplication.translate("InvestigatorDialog", u"Investigator", None))
+        self.investigatorLabel.setText(QCoreApplication.translate("InvestigatorDialog", u"Investigator: ", None))
+        self.usernameLabel.setText(QCoreApplication.translate("InvestigatorDialog", u"Username: ", None))
+        self.firstNameLabel.setText(QCoreApplication.translate("InvestigatorDialog", u"First Name: ", None))
+        self.lastNameLabel.setText(QCoreApplication.translate("InvestigatorDialog", u"Last Name: ", None))
+        self.institutionLabel.setText(QCoreApplication.translate("InvestigatorDialog", u"Institution: ", None))
+        self.eMailLabel.setText(QCoreApplication.translate("InvestigatorDialog", u"eMail: ", None))
     # retranslateUi
 

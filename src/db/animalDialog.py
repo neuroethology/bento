@@ -1,28 +1,28 @@
-# investigatorDialog.py
+# animalDialog.py
 
-from db.schema_sqlalchemy import Investigator
-from db.investigatorDialog_ui import Ui_InvestigatorDialog
+from db.schema_sqlalchemy import Animal
+from db.animalDialog_ui import Ui_AnimalDialog
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtWidgets import QDialog, QDialogButtonBox
 
 from db.schema_sqlalchemy import *
 
-class InvestigatorDialog(QDialog):
+class AnimalDialog(QDialog):
 
     quitting = Signal()
 
     def __init__(self, bento):
         super().__init__()
         self.bento = bento
-        self.ui = Ui_InvestigatorDialog()
+        self.ui = Ui_AnimalDialog()
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
 
         self.DB_Session = new_session()
         self.db_sess = self.DB_Session()
         self.populateComboBox(False)
-        self.ui.investigatorComboBox.currentIndexChanged.connect(self.showSelected)
-        self.investigator = Investigator()
+        self.ui.animalComboBox.currentIndexChanged.connect(self.showSelected)
+        self.animal = Animal()
 
     def populateComboBox(self, preSelect):
         if preSelect:
@@ -37,7 +37,9 @@ class InvestigatorDialog(QDialog):
 
     @Slot(object)
     def update(self, button, preSelect=True):
+        print(f"update called with button {button}, preSelect {preSelect}")
         if (not button or self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Apply):
+            print("processing update")
             self.investigator.user_name = self.ui.usernameLineEdit.text()
             self.investigator.last_name = self.ui.lastNameLineEdit.text()
             self.investigator.first_name = self.ui.firstNameLineEdit.text()
@@ -53,11 +55,13 @@ class InvestigatorDialog(QDialog):
 
     @Slot()
     def accept(self):
+        print("accept called")
         self.update(None, False)
         super().accept()
 
     @Slot()
     def reject(self):
+        print("reject called")
         super().reject()
 
     @Slot()

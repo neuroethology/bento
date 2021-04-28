@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>InvestigatorDialog</class>
- <widget class="QDialog" name="InvestigatorDialog">
+ <class>CameraDialog</class>
+ <widget class="QDialog" name="CameraDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>511</width>
-    <height>261</height>
+    <width>415</width>
+    <height>228</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Investigator</string>
+   <string>Camera</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="comboBoxHorizontalLayout">
+    <layout class="QHBoxLayout" name="cameraHorizontalLayout">
      <item>
-      <widget class="QLabel" name="investigatorLabel">
+      <widget class="QLabel" name="cameraLabel">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -25,89 +25,81 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>Investigator: </string>
+        <string>Camera: </string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="investigatorComboBox">
+      <widget class="QComboBox" name="cameraComboBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
          <horstretch>1</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="currentText">
+        <string notr="true"/>
+       </property>
       </widget>
      </item>
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="usernameHorizontalLayout">
+    <layout class="QHBoxLayout" name="nameHorizontalLayout">
      <item>
-      <widget class="QLabel" name="usernameLabel">
+      <widget class="QLabel" name="nameLabel">
        <property name="text">
-        <string>Username: </string>
+        <string>Name: </string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="usernameLineEdit"/>
+      <widget class="QLineEdit" name="nameLineEdit"/>
      </item>
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="firstNameHorizontalLayout">
+    <layout class="QHBoxLayout" name="modelHorizontalLayout">
      <item>
-      <widget class="QLabel" name="firstNameLabel">
+      <widget class="QLabel" name="modelLabel">
        <property name="text">
-        <string>First Name: </string>
+        <string>Model: </string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="firstNameLineEdit"/>
+      <widget class="QLineEdit" name="modelLineEdit"/>
      </item>
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="lastNameHorizontalLayout">
+    <layout class="QHBoxLayout" name="lensHorizontalLayout">
      <item>
-      <widget class="QLabel" name="lastNameLabel">
+      <widget class="QLabel" name="lensLabel">
        <property name="text">
-        <string>Last Name: </string>
+        <string>Lens: </string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lastNameLineEdit"/>
+      <widget class="QLineEdit" name="lensLineEdit"/>
      </item>
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="institutionHorizontalLayout">
+    <layout class="QHBoxLayout" name="positionHorizontalLayout">
      <item>
-      <widget class="QLabel" name="institutionLabel">
+      <widget class="QLabel" name="positionLabel">
        <property name="text">
-        <string>Institution: </string>
+        <string>Position: </string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="institutionLineEdit"/>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="eMailHorizontalLayout">
-     <item>
-      <widget class="QLabel" name="eMailLabel">
-       <property name="text">
-        <string>eMail: </string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="eMailLineEdit"/>
+      <widget class="QLineEdit" name="positionLineEdit"/>
      </item>
     </layout>
    </item>
@@ -128,7 +120,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>InvestigatorDialog</receiver>
+   <receiver>CameraDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -144,7 +136,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>InvestigatorDialog</receiver>
+   <receiver>CameraDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -154,22 +146,6 @@
     <hint type="destinationlabel">
      <x>286</x>
      <y>274</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>clicked(QAbstractButton*)</signal>
-   <receiver>InvestigatorDialog</receiver>
-   <slot>update()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>255</x>
-     <y>240</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>255</x>
-     <y>130</y>
     </hint>
    </hints>
   </connection>
