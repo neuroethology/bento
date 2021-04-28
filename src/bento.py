@@ -84,11 +84,13 @@ class Bento(QObject):
             self.behaviors.load(f)
         self.session = None
         self.trial = None
-        self.mainWindow = None
+        self.player = PlayerWorker(self)
+        self.annotationsScene = AnnotationsScene()
         self.video_widgets = []
         self.neural_widgets = []
         self.annotations = Annotations(self.behaviors)
-        self.menuBar = QMenuBar(None)
+        self.mainWindow = MainWindow(self)
+        self.menuBar = QMenuBar(self.mainWindow)
         self.fileMenu = self.menuBar.addMenu("File")
         self.saveAnnotationsAction = self.fileMenu.addAction("Save Annotations...")
         self.saveAnnotationsAction.triggered.connect(self.save_annotations)
@@ -103,14 +105,17 @@ class Bento(QObject):
         self.investigatorAction.triggered.connect(self.edit_investigator)
         self.cameraAction = self.dbMenu.addAction("Camera...")
         self.cameraAction.triggered.connect(self.edit_camera)
-        self.annotationsScene = AnnotationsScene()
         self.current_time.set_fractional(False)
         self.active_channels = []
-        self.player = PlayerWorker(self)
         self.quitting.connect(self.player.quit)
         self.player.incrementTime.connect(self.incrementTime)
         self.player.finished.connect(self.player.deleteLater)
         self.player.finished.connect(self.player.quit)
+        self.annotationsSceneUpdated.connect(self.mainWindow.ui.annotationsView.updateScene)
+        self.timeChanged.connect(self.mainWindow.updateTime)
+        self.annotChanged.connect(self.mainWindow.updateAnnotLabel)
+        self.set_time('0:0:0:0')
+        self.mainWindow.selectSession()
         self.player.start()
 
     def load_annotations(self, fn, sample_rate = 30.):
@@ -387,13 +392,7 @@ if __name__ == "__main__":
 
     bento = Bento()
 
-    bento.mainWindow = MainWindow(bento)
     app.aboutToQuit.connect(bento.player.quit)
-    bento.annotationsSceneUpdated.connect(bento.mainWindow.ui.annotationsView.updateScene)
-    bento.timeChanged.connect(bento.mainWindow.updateTime)
-    bento.annotChanged.connect(bento.mainWindow.updateAnnotLabel)
-    bento.set_time('0:0:0:0')
-    bento.mainWindow.selectSession()
     bento.screen_center = app.screens()[1].availableGeometry().center()
     # spacing = QPoint((window.width() + video.width()) / 4 + 5, 0)
     qr = bento.mainWindow.frameGeometry()
