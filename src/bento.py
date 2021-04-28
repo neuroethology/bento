@@ -378,7 +378,7 @@ if __name__ == "__main__":
     bento = Bento()
 
     app.aboutToQuit.connect(bento.player.quit)
-    bento.screen_center = app.screens()[1].availableGeometry().center()
+    bento.screen_center = app.screens()[len(app.screens())-1].availableGeometry().center()
     # spacing = QPoint((window.width() + video.width()) / 4 + 5, 0)
     qr = bento.mainWindow.frameGeometry()
     # qr.moveCenter(bento.screen_center - spacing)
