@@ -232,5 +232,21 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>clicked(QAbstractButton*)</signal>
+   <receiver>AnimalDialog</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>214</x>
+     <y>388</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>214</x>
+     <y>204</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
 </ui>

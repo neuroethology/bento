@@ -149,5 +149,21 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>clicked(QAbstractButton*)</signal>
+   <receiver>CameraDialog</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>207</x>
+     <y>207</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>207</x>
+     <y>113</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
 </ui>

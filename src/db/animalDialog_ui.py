@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'AnimalDialog.ui'
+## Form generated from reading UI file 'animalDialog.ui'
 ##
 ## Created by: Qt User Interface Compiler version 5.14.1
 ##
@@ -20,7 +20,7 @@ class Ui_AnimalDialog(object):
     def setupUi(self, AnimalDialog):
         if AnimalDialog.objectName():
             AnimalDialog.setObjectName(u"AnimalDialog")
-        AnimalDialog.resize(337, 260)
+        AnimalDialog.resize(429, 409)
         self.verticalLayout = QVBoxLayout(AnimalDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.investigatorHorizontalLayout = QHBoxLayout()
@@ -139,6 +139,35 @@ class Ui_AnimalDialog(object):
 
         self.verticalLayout.addLayout(self.nicknameHorizontalLayout)
 
+        self.surgeryHorizontalLayout = QHBoxLayout()
+        self.surgeryHorizontalLayout.setObjectName(u"surgeryHorizontalLayout")
+        self.surgeryVerticalLayout = QVBoxLayout()
+        self.surgeryVerticalLayout.setObjectName(u"surgeryVerticalLayout")
+        self.label = QLabel(AnimalDialog)
+        self.label.setObjectName(u"label")
+
+        self.surgeryVerticalLayout.addWidget(self.label)
+
+        self.pushButton = QPushButton(AnimalDialog)
+        self.pushButton.setObjectName(u"pushButton")
+
+        self.surgeryVerticalLayout.addWidget(self.pushButton)
+
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.surgeryVerticalLayout.addItem(self.verticalSpacer)
+
+
+        self.surgeryHorizontalLayout.addLayout(self.surgeryVerticalLayout)
+
+        self.tableView = QTableView(AnimalDialog)
+        self.tableView.setObjectName(u"tableView")
+
+        self.surgeryHorizontalLayout.addWidget(self.tableView)
+
+
+        self.verticalLayout.addLayout(self.surgeryHorizontalLayout)
+
         self.buttonBox = QDialogButtonBox(AnimalDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -150,6 +179,7 @@ class Ui_AnimalDialog(object):
         self.retranslateUi(AnimalDialog)
         self.buttonBox.accepted.connect(AnimalDialog.accept)
         self.buttonBox.rejected.connect(AnimalDialog.reject)
+        self.buttonBox.clicked.connect(AnimalDialog.update)
 
         QMetaObject.connectSlotsByName(AnimalDialog)
     # setupUi
@@ -165,5 +195,7 @@ class Ui_AnimalDialog(object):
         self.unknownRadioButton.setText(QCoreApplication.translate("AnimalDialog", u"Unknown", None))
         self.genotypeLabel.setText(QCoreApplication.translate("AnimalDialog", u"Genotype: ", None))
         self.nicknameLabel.setText(QCoreApplication.translate("AnimalDialog", u"Nickname: ", None))
+        self.label.setText(QCoreApplication.translate("AnimalDialog", u"Surgical Log: ", None))
+        self.pushButton.setText(QCoreApplication.translate("AnimalDialog", u"Add ...", None))
     # retranslateUi
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CameraDialog.ui'
+## Form generated from reading UI file 'cameraDialog.ui'
 ##
 ## Created by: Qt User Interface Compiler version 5.14.1
 ##
@@ -121,6 +121,7 @@ class Ui_CameraDialog(object):
         self.retranslateUi(CameraDialog)
         self.buttonBox.accepted.connect(CameraDialog.accept)
         self.buttonBox.rejected.connect(CameraDialog.reject)
+        self.buttonBox.clicked.connect(CameraDialog.update)
 
         QMetaObject.connectSlotsByName(CameraDialog)
     # setupUi
