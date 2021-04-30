@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
         self.fileMenu = self.menuBar.addMenu("File")
         self.saveAnnotationsAction = self.fileMenu.addAction("Save Annotations...")
         self.saveAnnotationsAction.triggered.connect(bento.save_annotations)
-        
+
         self.dbMenu = self.menuBar.addMenu("Database")
         self.newTrialAction = self.dbMenu.addAction("Trial...")
         self.newTrialAction.triggered.connect(bento.new_trial)
@@ -52,8 +52,8 @@ class MainWindow(QMainWindow):
         self.investigatorAction.triggered.connect(bento.edit_investigator)
         self.cameraAction = self.dbMenu.addAction("Camera...")
         self.cameraAction.triggered.connect(bento.edit_camera)
-        self.dbMenu.addSeparator()
-        self.configAction = self.dbMenu.addAction("Config...")
+        self.separatorAction = self.dbMenu.addSeparator()
+        self.configAction = self.dbMenu.addAction("Host Config...")
         self.configAction.triggered.connect(bento.edit_config)
 
         self.bento = bento
