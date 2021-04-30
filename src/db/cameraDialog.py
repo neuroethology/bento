@@ -38,8 +38,8 @@ class CameraDialog(QDialog):
     def update(self, button, preSelect=True):
         if (not button or self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Apply):
             self.camera.name = self.ui.nameLineEdit.text()
-            self.camera.model = self.ui.lensLineEdit.text()
-            self.camera.lens = self.ui.firstNameLineEdit.text()
+            self.camera.model = self.ui.modelLineEdit.text()
+            self.camera.lens = self.ui.lensLineEdit.text()
             self.camera.position = self.ui.positionLineEdit.text()
             self.db_sess.add(self.camera)
             self.db_sess.commit()
