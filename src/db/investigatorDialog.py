@@ -5,7 +5,7 @@ from db.investigatorDialog_ui import Ui_InvestigatorDialog
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtWidgets import QDialog, QDialogButtonBox
 
-from db.schema_sqlalchemy import *
+from db.schema_sqlalchemy import Investigator
 
 class InvestigatorDialog(QDialog):
 
@@ -18,8 +18,7 @@ class InvestigatorDialog(QDialog):
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
 
-        self.DB_Session = new_session()
-        self.db_sess = self.DB_Session()
+        self.db_sess = self.bento.db_sessionMaker()
         self.populateComboBox(False)
         self.ui.investigatorComboBox.currentIndexChanged.connect(self.showSelected)
         self.investigator = Investigator()

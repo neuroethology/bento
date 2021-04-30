@@ -18,8 +18,7 @@ class CameraDialog(QDialog):
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
 
-        self.DB_Session = new_session()
-        self.db_sess = self.DB_Session()
+        self.db_sess = self.bento.db_sessionMaker()
         self.populateComboBox(False)
         self.ui.cameraComboBox.currentIndexChanged.connect(self.showSelected)
         self.camera = Camera()
@@ -52,13 +51,11 @@ class CameraDialog(QDialog):
 
     @Slot()
     def accept(self):
-        print("accept called")
         self.update(None, False)
         super().accept()
 
     @Slot()
     def reject(self):
-        print("reject called")
         super().reject()
 
     @Slot()

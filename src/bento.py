@@ -11,10 +11,12 @@ from widgets.annotationsWidget import AnnotationsScene
 from widgets.neuralWidget import NeuralScene, NeuralView
 from db.sessionWindow import SessionDockWidget
 from db.trialWindow import TrialDockWidget
-from db.schema_sqlalchemy import Animal, Camera, Investigator, Session, Trial
+from db.schema_sqlalchemy import Animal, Camera, Investigator, Session, Trial, new_session
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
+from db.configDialog import ConfigDialog
+from db.bentoConfig import BentoConfig
 # from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
 from os.path import sep
@@ -74,6 +76,8 @@ class Bento(QObject):
 
     def __init__(self):
         super().__init__()
+        self.config = BentoConfig()
+        goodConfig = self.config.read()
         self.time_start = Timecode('30.0', '0:0:0:1')
         self.time_end = Timecode('30.0', '23:59:59:29')
         self.current_time = self.time_start
@@ -100,8 +104,21 @@ class Bento(QObject):
         self.timeChanged.connect(self.mainWindow.updateTime)
         self.annotChanged.connect(self.mainWindow.updateAnnotLabel)
         self.set_time('0:0:0:0')
+        if not goodConfig:
+            self.edit_config()
+        try:
+            self.db_sessionMaker = new_session(
+                self.config.username(),
+                self.config.password(),
+                self.config.host(),
+                self.config.port())
+        except Exception as e:
+            print(f"Caught Exception {e}.  Probably config data invalid")
+            QMessageBox.about(self.mainWindow, "Error", f"Config data invalid.  {e}")
+            exit(-1)
         self.mainWindow.selectSession()
         self.player.start()
+
 
     def load_annotations(self, fn, sample_rate = 30.):
         print(f"Loading annotations from {fn}")
@@ -129,6 +146,10 @@ class Bento(QObject):
         print(f"Filter returned from file dialog was {filter}")
 
     # Database actions
+    @Slot()
+    def edit_config(self):
+        dialog = ConfigDialog(self)
+        dialog.exec_()
 
     @Slot()
     def edit_animal(self):

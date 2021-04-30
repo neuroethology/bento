@@ -5,8 +5,6 @@ from db.animalDialog_ui import Ui_AnimalDialog
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtWidgets import QDialog, QDialogButtonBox
 
-from db.schema_sqlalchemy import *
-
 class AnimalDialog(QDialog):
 
     quitting = Signal()
@@ -18,34 +16,34 @@ class AnimalDialog(QDialog):
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
 
-        self.DB_Session = new_session()
-        self.db_sess = self.DB_Session()
+        self.db_sess = self.bento.db_sessionMaker()
         self.populateComboBox(False)
         self.ui.animalComboBox.currentIndexChanged.connect(self.showSelected)
         self.animal = Animal()
 
     def populateComboBox(self, preSelect):
         if preSelect:
-            selection = self.ui.investigatorComboBox.currentText()
-        self.ui.investigatorComboBox.clear()
-        self.ui.investigatorComboBox.addItem("new Investigator")
-        investigators = self.db_sess.query(Investigator).distinct().all()
-        self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
-        self.ui.investigatorComboBox.setEditable(False)
+            selection = self.ui.animalComboBox.currentText()
+        self.ui.animalComboBox.clear()
+        self.ui.animalComboBox.addItem("new Animal")
+        animals = self.db_sess.query(Animal).distinct().all()
+        self.ui.animalComboBox.addItems([elem.nickname for elem in animals])
+        self.ui.animalComboBox.setEditable(False)
         if preSelect:
-            self.ui.investigatorComboBox.setCurrentText(selection)
+            self.ui.animalComboBox.setCurrentText(selection)
 
     @Slot(object)
     def update(self, button, preSelect=True):
         print(f"update called with button {button}, preSelect {preSelect}")
         if (not button or self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Apply):
             print("processing update")
-            self.investigator.user_name = self.ui.usernameLineEdit.text()
-            self.investigator.last_name = self.ui.lastNameLineEdit.text()
-            self.investigator.first_name = self.ui.firstNameLineEdit.text()
-            self.investigator.institution = self.ui.institutionLineEdit.text()
-            self.investigator.e_mail = self.ui.eMailLineEdit.text()
-            self.db_sess.add(self.investigator)
+            #TODO: Need investigator
+            self.animal.animal_services_id = self.ui.asiLineEdit.text()
+            self.animal.dob = self.ui.lastNameLineEdit.text()
+            self.animal.sex = self.ui.firstNameLineEdit.text()
+            self.animal.genotype = self.ui.institutionLineEdit.text()
+            self.animal.nickname = self.ui.eMailLineEdit.text()
+            self.db_sess.add(self.animal)
             self.db_sess.commit()
             self.populateComboBox(preSelect)
         elif self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Discard:
@@ -55,13 +53,11 @@ class AnimalDialog(QDialog):
 
     @Slot()
     def accept(self):
-        print("accept called")
         self.update(None, False)
         super().accept()
 
     @Slot()
     def reject(self):
-        print("reject called")
         super().reject()
 
     @Slot()

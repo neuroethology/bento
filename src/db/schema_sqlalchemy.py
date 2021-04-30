@@ -276,15 +276,15 @@ class Surgery(Base):
             self.procedure, self.follow_up_care )
         )
 
-config = {
-    'host': '192.168.1.10',
-    'port': '3307',
-    'user': 'datajoint',
-    'password': 'DataJoint4Bento!'
-    }
+# config = {
+#     'host': '192.168.1.10',
+#     'port': '3307',
+#     'user': 'datajoint',
+#     'password': 'DataJoint4Bento!'
+#     }
 
-def new_session():
-    bento_engine = create_engine(f"mysql+mysqldb://{config['user']}:{config['password']}@{config['host']}:{config['port']}/bento")
+def new_session(username, password, host, port):
+    bento_engine = create_engine(f"mysql+mysqldb://{username}:{password}@{host}:{port}/bento")
     return sessionmaker(bind=bento_engine)
 
 def create_tables(session):

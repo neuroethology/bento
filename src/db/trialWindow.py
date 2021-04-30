@@ -1,13 +1,12 @@
 # trialWindow.py
 
-from annot.annot import Annotations
 from db.schema_sqlalchemy import VideoData
 from db.trialWindow_ui import Ui_TrialDockWidget
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import Qt
 from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
 
-from db.schema_sqlalchemy import *
+from db.schema_sqlalchemy import Trial, Annotations
 from widgets.tableModel import TableModel
 
 class TrialDockWidget(QDockWidget):
@@ -22,8 +21,6 @@ class TrialDockWidget(QDockWidget):
         self.ui.setupUi(self)
         self.ui.loadTrialPushButton.clicked.connect(self.loadTrial)
         self.quitting.connect(self.bento.quit)
-
-        self.DB_Session = new_session()
 
         if bento.session:
             header = ['id', 'trial num', 'stimulus']
@@ -54,7 +51,7 @@ class TrialDockWidget(QDockWidget):
         if current_trial_row >= 0:
             trial_id = self.ui.trialTableView.currentIndex().siblingAtColumn(0).data()
             header = ['id', 'view', 'file path']
-            db_session = self.DB_Session()
+            db_session = self.bento.db_sessionMaker()
             trial = db_session.query(Trial).filter(Trial.id == trial_id).one()
             data_list = [(
                 elem.id,
@@ -78,7 +75,7 @@ class TrialDockWidget(QDockWidget):
         if current_trial_row >= 0:
             trial_id = self.ui.trialTableView.currentIndex().siblingAtColumn(0).data()
             header = ['id', 'annotator name', 'method', 'file path']
-            db_session = self.DB_Session()
+            db_session = self.bento.db_sessionMaker()
             trial = db_session.query(Trial).filter(Trial.id == trial_id).one()
             data_list = [(
                 elem.id,
@@ -102,7 +99,7 @@ class TrialDockWidget(QDockWidget):
         if current_trial_row >= 0:
             trial_id = self.ui.trialTableView.currentIndex().siblingAtColumn(0).data()
             print(f"Load trial id {trial_id}")
-            db_sess = self.DB_Session()
+            db_sess = self.bento.db_sessionMaker()
             self.bento.trial = db_sess.query(Trial).filter(Trial.id == trial_id).one()
             videos = []
             for selection in self.ui.videoTableView.selectionModel().selectedRows():

@@ -3,7 +3,7 @@
 from db.sessionWindow_ui import Ui_SessionDockWidget
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
-from db.schema_sqlalchemy import *
+from db.schema_sqlalchemy import Investigator, Animal, Session
 from widgets.tableModel import TableModel
 
 class SessionDockWidget(QDockWidget):
@@ -20,14 +20,13 @@ class SessionDockWidget(QDockWidget):
         self.ui.loadPushButton.clicked.connect(self.loadSession)
         self.quitting.connect(self.bento.quit)
 
-        self.DB_Session = new_session()
-        db_session = self.DB_Session()
+        db_session = self.bento.db_sessionMaker()
         investigators = db_session.query(Investigator).distinct().all()
         self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
 
     @Slot()
     def search(self):
-        db_sess = self.DB_Session()
+        db_sess = self.bento.db_sessionMaker()
         query = db_sess.query(Session, Investigator, Animal).join(Investigator, Investigator.id == Session.investigator_id)
         query = query.join(Animal, Animal.id == Session.animal_id)
         investigator = self.ui.investigatorComboBox.currentText()
@@ -63,7 +62,7 @@ class SessionDockWidget(QDockWidget):
         if current_row >= 0:
             session_id = self.ui.sessionsTableView.currentIndex().siblingAtColumn(0).data()
             print(f"Load session id {session_id}")
-            db_sess = self.DB_Session()
+            db_sess = self.bento.db_sessionMaker()
             self.bento.session = db_sess.query(Session).filter(Session.id == session_id).one()
             self.bento.selectTrial()
             self.close()
