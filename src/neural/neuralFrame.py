@@ -50,6 +50,9 @@ class NeuralFrame(QFrame):
             self.ui.showAnnotationsCheckBox.checkState()
             )
         self.neuralSceneUpdated.emit()
+        self.ui.neuralView.synchronizeHScale()
+        # synchronize viewer times
+        self.updateTime(self.bento.time_start)
 
     def overlayAnnotations(self, annotationsScene):
         self.neuralScene.overlayAnnotations(annotationsScene, self.neuralScene)

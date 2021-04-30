@@ -120,6 +120,9 @@ class NeuralView(QGraphicsView):
         self.centerOn(pt)
         self.show()
 
+    def synchronizeHScale(self):
+        self.hScaleChanged.emit(self.transform().m11())
+
     def mousePressEvent(self, event):
         assert isinstance(event, QMouseEvent)
         assert self.bento
@@ -140,7 +143,7 @@ class NeuralView(QGraphicsView):
             t = QTransform(self.start_transform)
             t.scale(factor_x, factor_y)
             self.setTransformScaleV(t, min(64., max(self.min_scale_v, t.m22())))
-            self.hScaleChanged.emit(self.transform().m11())
+            self.synchronizeHScale()
         else:
             x = event.localPos().x() / self.scale_h
             start_x = self.start_x / self.scale_h
