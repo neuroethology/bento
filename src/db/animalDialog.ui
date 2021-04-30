@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>429</width>
-    <height>409</height>
+    <width>644</width>
+    <height>606</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -36,6 +36,37 @@
     </layout>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="animalHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="animalLabel">
+       <property name="text">
+        <string>Animal:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableView" name="animalTableView"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="nicknameHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="nicknameLabel">
+       <property name="text">
+        <string>Nickname: </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="nicknameLineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="asiHorizontalLayout">
      <item>
       <widget class="QLabel" name="asiLabel">
@@ -45,26 +76,33 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="asiLineEdit"/>
+      <widget class="QLineEdit" name="asiLineEdit">
+       <property name="inputMask">
+        <string>######</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="dobHorizontalLayout">
      <item>
-      <widget class="QLabel" name="label_4">
+      <widget class="QLabel" name="dobLabel">
        <property name="text">
         <string>Date of Birth: </string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QDateEdit" name="dateEdit">
+      <widget class="QDateEdit" name="dobDateEdit">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>1</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="displayFormat">
+        <string>yyyy-MM-dd</string>
        </property>
       </widget>
      </item>
@@ -89,6 +127,9 @@
        </property>
        <property name="text">
         <string>Male</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -135,39 +176,25 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="nicknameHorizontalLayout">
-     <item>
-      <widget class="QLabel" name="nicknameLabel">
-       <property name="text">
-        <string>Nickname: </string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="nicknameLineEdit"/>
-     </item>
-    </layout>
-   </item>
-   <item>
     <layout class="QHBoxLayout" name="surgeryHorizontalLayout">
      <item>
       <layout class="QVBoxLayout" name="surgeryVerticalLayout">
        <item>
-        <widget class="QLabel" name="label">
+        <widget class="QLabel" name="surgeryLabel">
          <property name="text">
           <string>Surgical Log: </string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="addSurgeryPushButton">
          <property name="text">
           <string>Add ...</string>
          </property>
         </widget>
        </item>
        <item>
-        <spacer name="verticalSpacer">
+        <spacer name="surgeryVerticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -182,7 +209,7 @@
       </layout>
      </item>
      <item>
-      <widget class="QTableView" name="tableView"/>
+      <widget class="QTableView" name="surgeryTableView"/>
      </item>
     </layout>
    </item>

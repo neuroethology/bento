@@ -12,9 +12,9 @@ import enum
 Base = declarative_base()
 
 class SexEnum(enum.Enum):
-    M = 1
-    F = 2
-    U = 3
+    M = "Male"
+    F = "Female"
+    U = "Unknown"
 
 class Animal(Base):
     """ mapper for the animal table """
@@ -249,10 +249,10 @@ class Trial(Base):
         )
 
 class LateralityEnum(enum.Enum):
-    Nothing = 0
-    Left = 1
-    Right = 2
-    Bilateral = 3
+    Nothing = ""
+    Left = "Left"
+    Right = "Right"
+    Bilateral = "Bilateral"
 
 class Surgery(Base):
     """

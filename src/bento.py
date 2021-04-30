@@ -165,7 +165,6 @@ class Bento(QObject):
         """
         Edit or add a new camera type to the database
         """
-        print("edit_camera() called")
         dialog = CameraDialog(self)
         dialog.exec_()
 

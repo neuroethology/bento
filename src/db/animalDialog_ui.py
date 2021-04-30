@@ -20,7 +20,7 @@ class Ui_AnimalDialog(object):
     def setupUi(self, AnimalDialog):
         if AnimalDialog.objectName():
             AnimalDialog.setObjectName(u"AnimalDialog")
-        AnimalDialog.resize(429, 409)
+        AnimalDialog.resize(644, 606)
         self.verticalLayout = QVBoxLayout(AnimalDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.investigatorHorizontalLayout = QHBoxLayout()
@@ -43,6 +43,37 @@ class Ui_AnimalDialog(object):
 
         self.verticalLayout.addLayout(self.investigatorHorizontalLayout)
 
+        self.animalHorizontalLayout = QHBoxLayout()
+        self.animalHorizontalLayout.setObjectName(u"animalHorizontalLayout")
+        self.animalLabel = QLabel(AnimalDialog)
+        self.animalLabel.setObjectName(u"animalLabel")
+        self.animalLabel.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
+
+        self.animalHorizontalLayout.addWidget(self.animalLabel)
+
+        self.animalTableView = QTableView(AnimalDialog)
+        self.animalTableView.setObjectName(u"animalTableView")
+
+        self.animalHorizontalLayout.addWidget(self.animalTableView)
+
+
+        self.verticalLayout.addLayout(self.animalHorizontalLayout)
+
+        self.nicknameHorizontalLayout = QHBoxLayout()
+        self.nicknameHorizontalLayout.setObjectName(u"nicknameHorizontalLayout")
+        self.nicknameLabel = QLabel(AnimalDialog)
+        self.nicknameLabel.setObjectName(u"nicknameLabel")
+
+        self.nicknameHorizontalLayout.addWidget(self.nicknameLabel)
+
+        self.nicknameLineEdit = QLineEdit(AnimalDialog)
+        self.nicknameLineEdit.setObjectName(u"nicknameLineEdit")
+
+        self.nicknameHorizontalLayout.addWidget(self.nicknameLineEdit)
+
+
+        self.verticalLayout.addLayout(self.nicknameHorizontalLayout)
+
         self.asiHorizontalLayout = QHBoxLayout()
         self.asiHorizontalLayout.setObjectName(u"asiHorizontalLayout")
         self.asiLabel = QLabel(AnimalDialog)
@@ -60,20 +91,20 @@ class Ui_AnimalDialog(object):
 
         self.dobHorizontalLayout = QHBoxLayout()
         self.dobHorizontalLayout.setObjectName(u"dobHorizontalLayout")
-        self.label_4 = QLabel(AnimalDialog)
-        self.label_4.setObjectName(u"label_4")
+        self.dobLabel = QLabel(AnimalDialog)
+        self.dobLabel.setObjectName(u"dobLabel")
 
-        self.dobHorizontalLayout.addWidget(self.label_4)
+        self.dobHorizontalLayout.addWidget(self.dobLabel)
 
-        self.dateEdit = QDateEdit(AnimalDialog)
-        self.dateEdit.setObjectName(u"dateEdit")
+        self.dobDateEdit = QDateEdit(AnimalDialog)
+        self.dobDateEdit.setObjectName(u"dobDateEdit")
         sizePolicy1 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         sizePolicy1.setHorizontalStretch(1)
         sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.dateEdit.sizePolicy().hasHeightForWidth())
-        self.dateEdit.setSizePolicy(sizePolicy1)
+        sizePolicy1.setHeightForWidth(self.dobDateEdit.sizePolicy().hasHeightForWidth())
+        self.dobDateEdit.setSizePolicy(sizePolicy1)
 
-        self.dobHorizontalLayout.addWidget(self.dateEdit)
+        self.dobHorizontalLayout.addWidget(self.dobDateEdit)
 
 
         self.verticalLayout.addLayout(self.dobHorizontalLayout)
@@ -89,6 +120,7 @@ class Ui_AnimalDialog(object):
         self.maleRadioButton.setObjectName(u"maleRadioButton")
         sizePolicy1.setHeightForWidth(self.maleRadioButton.sizePolicy().hasHeightForWidth())
         self.maleRadioButton.setSizePolicy(sizePolicy1)
+        self.maleRadioButton.setChecked(True)
 
         self.sexHorizontalLayout.addWidget(self.maleRadioButton)
 
@@ -124,46 +156,31 @@ class Ui_AnimalDialog(object):
 
         self.verticalLayout.addLayout(self.genotypeHorizontalLayout)
 
-        self.nicknameHorizontalLayout = QHBoxLayout()
-        self.nicknameHorizontalLayout.setObjectName(u"nicknameHorizontalLayout")
-        self.nicknameLabel = QLabel(AnimalDialog)
-        self.nicknameLabel.setObjectName(u"nicknameLabel")
-
-        self.nicknameHorizontalLayout.addWidget(self.nicknameLabel)
-
-        self.nicknameLineEdit = QLineEdit(AnimalDialog)
-        self.nicknameLineEdit.setObjectName(u"nicknameLineEdit")
-
-        self.nicknameHorizontalLayout.addWidget(self.nicknameLineEdit)
-
-
-        self.verticalLayout.addLayout(self.nicknameHorizontalLayout)
-
         self.surgeryHorizontalLayout = QHBoxLayout()
         self.surgeryHorizontalLayout.setObjectName(u"surgeryHorizontalLayout")
         self.surgeryVerticalLayout = QVBoxLayout()
         self.surgeryVerticalLayout.setObjectName(u"surgeryVerticalLayout")
-        self.label = QLabel(AnimalDialog)
-        self.label.setObjectName(u"label")
+        self.surgeryLabel = QLabel(AnimalDialog)
+        self.surgeryLabel.setObjectName(u"surgeryLabel")
 
-        self.surgeryVerticalLayout.addWidget(self.label)
+        self.surgeryVerticalLayout.addWidget(self.surgeryLabel)
 
-        self.pushButton = QPushButton(AnimalDialog)
-        self.pushButton.setObjectName(u"pushButton")
+        self.addSurgeryPushButton = QPushButton(AnimalDialog)
+        self.addSurgeryPushButton.setObjectName(u"addSurgeryPushButton")
 
-        self.surgeryVerticalLayout.addWidget(self.pushButton)
+        self.surgeryVerticalLayout.addWidget(self.addSurgeryPushButton)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.surgeryVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
-        self.surgeryVerticalLayout.addItem(self.verticalSpacer)
+        self.surgeryVerticalLayout.addItem(self.surgeryVerticalSpacer)
 
 
         self.surgeryHorizontalLayout.addLayout(self.surgeryVerticalLayout)
 
-        self.tableView = QTableView(AnimalDialog)
-        self.tableView.setObjectName(u"tableView")
+        self.surgeryTableView = QTableView(AnimalDialog)
+        self.surgeryTableView.setObjectName(u"surgeryTableView")
 
-        self.surgeryHorizontalLayout.addWidget(self.tableView)
+        self.surgeryHorizontalLayout.addWidget(self.surgeryTableView)
 
 
         self.verticalLayout.addLayout(self.surgeryHorizontalLayout)
@@ -187,15 +204,18 @@ class Ui_AnimalDialog(object):
     def retranslateUi(self, AnimalDialog):
         AnimalDialog.setWindowTitle(QCoreApplication.translate("AnimalDialog", u"Animal", None))
         self.investigatorLabel.setText(QCoreApplication.translate("AnimalDialog", u"Investigator: ", None))
+        self.animalLabel.setText(QCoreApplication.translate("AnimalDialog", u"Animal:", None))
+        self.nicknameLabel.setText(QCoreApplication.translate("AnimalDialog", u"Nickname: ", None))
         self.asiLabel.setText(QCoreApplication.translate("AnimalDialog", u"Animal Services ID: ", None))
-        self.label_4.setText(QCoreApplication.translate("AnimalDialog", u"Date of Birth: ", None))
+        self.asiLineEdit.setInputMask(QCoreApplication.translate("AnimalDialog", u"######", None))
+        self.dobLabel.setText(QCoreApplication.translate("AnimalDialog", u"Date of Birth: ", None))
+        self.dobDateEdit.setDisplayFormat(QCoreApplication.translate("AnimalDialog", u"yyyy-MM-dd", None))
         self.sexLabel.setText(QCoreApplication.translate("AnimalDialog", u"Sex: ", None))
         self.maleRadioButton.setText(QCoreApplication.translate("AnimalDialog", u"Male", None))
         self.femaleRadioButton.setText(QCoreApplication.translate("AnimalDialog", u"Female", None))
         self.unknownRadioButton.setText(QCoreApplication.translate("AnimalDialog", u"Unknown", None))
         self.genotypeLabel.setText(QCoreApplication.translate("AnimalDialog", u"Genotype: ", None))
-        self.nicknameLabel.setText(QCoreApplication.translate("AnimalDialog", u"Nickname: ", None))
-        self.label.setText(QCoreApplication.translate("AnimalDialog", u"Surgical Log: ", None))
-        self.pushButton.setText(QCoreApplication.translate("AnimalDialog", u"Add ...", None))
+        self.surgeryLabel.setText(QCoreApplication.translate("AnimalDialog", u"Surgical Log: ", None))
+        self.addSurgeryPushButton.setText(QCoreApplication.translate("AnimalDialog", u"Add ...", None))
     # retranslateUi
 
