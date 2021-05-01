@@ -36,7 +36,9 @@ class InvestigatorDialog(QDialog):
 
     @Slot(object)
     def update(self, button, preSelect=True):
-        if (not button or self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Apply):
+        buttonRole = self.ui.buttonBox.buttonRole(button)
+        if (buttonRole == QDialogButtonBox.AcceptRole or
+            buttonRole == QDialogButtonBox.ApplyRole):
             self.investigator.user_name = self.ui.usernameLineEdit.text()
             self.investigator.last_name = self.ui.lastNameLineEdit.text()
             self.investigator.first_name = self.ui.firstNameLineEdit.text()
@@ -45,14 +47,14 @@ class InvestigatorDialog(QDialog):
             self.db_sess.add(self.investigator)
             self.db_sess.commit()
             self.populateComboBox(preSelect)
-        elif self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Discard:
+        elif buttonRole == QDialogButtonBox.DestructiveRole:
             self.reject()
         else:
             print("returning without any action")
 
     @Slot()
     def accept(self):
-        self.update(None, False)
+        self.update(self.ui.buttonBox.button(QDialogButtonBox.Ok), False)
         super().accept()
 
     @Slot()

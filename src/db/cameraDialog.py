@@ -36,7 +36,9 @@ class CameraDialog(QDialog):
 
     @Slot(object)
     def update(self, button, preSelect=True):
-        if (not button or self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Apply):
+        buttonRole = self.ui.buttonBox.buttonRole(button)
+        if (buttonRole == QDialogButtonBox.AcceptRole or
+            buttonRole == QDialogButtonBox.ApplyRole):
             self.camera.name = self.ui.nameLineEdit.text()
             self.camera.model = self.ui.modelLineEdit.text()
             self.camera.lens = self.ui.lensLineEdit.text()
@@ -44,14 +46,14 @@ class CameraDialog(QDialog):
             self.db_sess.add(self.camera)
             self.db_sess.commit()
             self.populateComboBox(preSelect)
-        elif self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Discard:
+        elif buttonRole == QDialogButtonBox.DestructiveRole:
             self.reject()
         else:
             print("returning without any action")
 
     @Slot()
     def accept(self):
-        self.update(None, False)
+        self.update(self.ui.buttonBox.button(QDialogButtonBox.Ok), False)
         super().accept()
 
     @Slot()

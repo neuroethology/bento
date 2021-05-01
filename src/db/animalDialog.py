@@ -68,6 +68,7 @@ class AnimalDialog(QDialog):
         investigator= self.db_sess.query(Investigator).filter(Investigator.user_name == username).distinct().one()
         self.investigator_id = investigator.id
         self.populateAnimalTable(self.investigator_id)
+        self.ui.animalTableView.selectRow(0)
 
     def clearFields(self):
         self.ui.nicknameLineEdit.clear()
@@ -134,13 +135,14 @@ class AnimalDialog(QDialog):
 
     @Slot(object)
     def update(self, button):
-        print(f"update called with button {button}")
-        if (not button or self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Apply):
-            print("processing update")
+        buttonRole = self.ui.buttonBox.buttonRole(button)
+        if (buttonRole == QDialogButtonBox.AcceptRole or
+            buttonRole == QDialogButtonBox.ApplyRole):
             if not self.investigator_id:
                 print("No valid investigator.  Doing nothing.")
                 return
             self.animal.investigator_id = self.investigator_id
+            self.animal.nickname = self.ui.nicknameLineEdit.text()
             self.animal.animal_services_id = int(self.ui.asiLineEdit.text())
             self.animal.dob = self.ui.dobDateEdit.date().toPython()
             if self.ui.maleRadioButton.isChecked():
@@ -150,19 +152,18 @@ class AnimalDialog(QDialog):
             else:
                 self.animal.sex = SexEnum.U
             self.animal.genotype = self.ui.genotypeLineEdit.text()
-            self.animal.nickname = self.ui.eMailLineEdit.text()
             self.db_sess.add(self.animal)
             self.db_sess.commit()
             self.populateAnimalTable(self.investigator_id)
 
-        elif self.ui.buttonBox.standardButton(button) == QDialogButtonBox.Discard:
+        elif buttonRole == QDialogButtonBox.DestructiveRole:
             self.reject()
         else:
             print("returning without any action")
 
     @Slot()
     def accept(self):
-        self.update(None, False)
+        self.update(self.ui.buttonBox.button(QDialogButtonBox.Ok))
         super().accept()
 
     @Slot()
