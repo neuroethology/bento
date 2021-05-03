@@ -40,6 +40,10 @@ class MainWindow(QMainWindow):
         self.fileMenu = self.menuBar.addMenu("File")
         self.saveAnnotationsAction = self.fileMenu.addAction("Save Annotations...")
         self.saveAnnotationsAction.triggered.connect(bento.save_annotations)
+        self.importTrialsAction = self.fileMenu.addAction("Import Trials...")
+        self.importTrialsAction.triggered.connect(bento.import_trials)
+        self.importAnimalsAction = self.fileMenu.addAction("Import Animals (Tomomi)...")
+        self.importAnimalsAction.triggered.connect(bento.import_animals_tomomi)
 
         self.dbMenu = self.menuBar.addMenu("Database")
         self.newTrialAction = self.dbMenu.addAction("Trial...")
@@ -55,6 +59,8 @@ class MainWindow(QMainWindow):
         self.separatorAction = self.dbMenu.addSeparator()
         self.configAction = self.dbMenu.addAction("Host Config...")
         self.configAction.triggered.connect(bento.edit_config)
+        self.createDBAction = self.dbMenu.addAction("Create Database")
+        self.createDBAction.triggered.connect(bento.create_db)
 
         self.bento = bento
 

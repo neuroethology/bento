@@ -48,7 +48,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QTableView" name="animalTableView"/>
+      <widget class="QTableView" name="animalTableView">
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>true</bool>
+       </attribute>
+      </widget>
      </item>
     </layout>
    </item>
@@ -209,7 +213,11 @@
       </layout>
      </item>
      <item>
-      <widget class="QTableView" name="surgeryTableView"/>
+      <widget class="QTableView" name="surgeryTableView">
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>true</bool>
+       </attribute>
+      </widget>
      </item>
     </layout>
    </item>

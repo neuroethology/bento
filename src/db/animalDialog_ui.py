@@ -53,6 +53,7 @@ class Ui_AnimalDialog(object):
 
         self.animalTableView = QTableView(AnimalDialog)
         self.animalTableView.setObjectName(u"animalTableView")
+        self.animalTableView.horizontalHeader().setStretchLastSection(True)
 
         self.animalHorizontalLayout.addWidget(self.animalTableView)
 
@@ -179,6 +180,7 @@ class Ui_AnimalDialog(object):
 
         self.surgeryTableView = QTableView(AnimalDialog)
         self.surgeryTableView.setObjectName(u"surgeryTableView")
+        self.surgeryTableView.horizontalHeader().setStretchLastSection(True)
 
         self.surgeryHorizontalLayout.addWidget(self.surgeryTableView)
 

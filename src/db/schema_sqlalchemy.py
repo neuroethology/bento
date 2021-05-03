@@ -262,7 +262,7 @@ class Surgery(Base):
 
     animal_id = Column(Integer, ForeignKey('animal.id'), primary_key=True)
     investigator_id = Column(Integer, ForeignKey('investigator.id'), primary_key=True)
-    date = Column(Date)
+    date = Column(Date, primary_key=True)
     implant_side = Column(Enum(LateralityEnum), default=LateralityEnum.Nothing)
     injection_side = Column(Enum(LateralityEnum), default=LateralityEnum.Nothing)
     procedure = Column(String(128))

@@ -11,7 +11,7 @@ from widgets.annotationsWidget import AnnotationsScene
 from widgets.neuralWidget import NeuralScene, NeuralView
 from db.sessionWindow import SessionDockWidget
 from db.trialWindow import TrialDockWidget
-from db.schema_sqlalchemy import Animal, Camera, Investigator, Session, Trial, new_session
+from db.schema_sqlalchemy import Animal, Camera, Investigator, Session, Trial, new_session, create_tables
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
@@ -156,7 +156,6 @@ class Bento(QObject):
         """
         Edit or add a new animal to the database associated with the selected investigator
         """
-        print("edit_animal() called")
         dialog = AnimalDialog(self)
         dialog.exec_()
 
@@ -190,10 +189,24 @@ class Bento(QObject):
         Add a new experiment trial associated with the current session
         """
         if not isinstance(self.session, Session):
-            QMessageBox.about(self.selectTrialWindow, "Error", "Please select a Session"
+            QMessageBox.about(self.selectTrialWindow, "Error", "Please select or create a Session"
                 "before trying to create a Trial")
         else:
             print(f"new_trial() called for session {self.session}")
+
+    @Slot()
+    def create_db(self):
+        sess = db.sessionMaker()
+        create_tables(sess)
+
+    @Slot()
+    def import_trials(self):
+        pass
+
+    @Slot()
+    def import_animals_tomomi(self):
+        pass
+
 
     # State-related methods
 

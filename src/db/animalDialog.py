@@ -2,6 +2,7 @@
 
 from db.schema_sqlalchemy import Animal, Investigator, SexEnum, Surgery
 from db.animalDialog_ui import Ui_AnimalDialog
+from db.surgeryDialog import SurgeryDialog
 from PySide2.QtCore import Qt, QDate, Signal, Slot
 from PySide2.QtWidgets import QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView
 
@@ -35,6 +36,7 @@ class AnimalDialog(QDialog):
             self.investigator_id = None
         self.ui.investigatorComboBox.currentIndexChanged.connect(self.investigatorChanged)
         self.animal = Animal()
+        self.ui.addSurgeryPushButton.clicked.connect(self.addSurgeryAction)
 
     def populateAnimalTable(self, investigator_id):
         results = self.db_sess.query(Animal).filter(Animal.investigator_id == investigator_id).all()
@@ -73,7 +75,7 @@ class AnimalDialog(QDialog):
     def clearFields(self):
         self.ui.nicknameLineEdit.clear()
         self.ui.asiLineEdit.clear()
-        self.ui.dobDateEdit.clearMinimumDate()
+        self.ui.dobDateEdit.setDate(datetime.date.today())
         self.ui.unknownRadioButton.click()
         self.ui.genotypeLineEdit.clear()
         oldModel = self.ui.surgeryTableView.selectionModel()
@@ -102,36 +104,40 @@ class AnimalDialog(QDialog):
             else:
                 self.ui.unknownRadioButton.click()
             self.ui.genotypeLineEdit.setText(self.animal.genotype)
-            self.populateSurgeryLog()
+            self.populateSurgeryLog(animal_id)
         else:
             self.animal = Animal()
             self.clearFields()
 
-    def populateSurgeryLog(self):
-        if self.animal:
-            results = self.db_sess.query(Surgery).filter(Surgery.animal_id == self.animal.id).all()
-            header = ['Date', 'Implant Side', 'Injection Side', 'Procedure', 'Anesthesia', 'Follow-up Care']
-            data_list = [(
-                elem.date.isoformat(),
-                elem.implant_side.value,
-                elem.injection_side.value,
-                elem.procedure,
-                elem.anesthesia,
-                elem.follow_up_care
-                ) for elem in results]
-            oldModel = self.ui.surgeryTableView.selectionModel()
-            model = TableModel(self, data_list, header)
-            self.ui.surgeryTableView.setModel(model)
-            self.ui.surgeryTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-            self.ui.surgeryTableView.resizeColumnsToContents()
-            self.ui.surgeryTableView.setSortingEnabled(False)
-            self.ui.surgeryTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
-            self.ui.surgeryTableView.setAutoScroll(False)
-            selectionModel = self.ui.surgeryTableView.selectionModel()
-            selectionModel.selectionChanged.connect(self.populateFields)
-            if oldModel:
-                oldModel.deleteLater()
+    def populateSurgeryLog(self, animal_id):
+        results = self.db_sess.query(Surgery).filter(Surgery.animal_id == animal_id).all()
+        header = ['Date', 'Implant Side', 'Injection Side', 'Procedure', 'Anesthesia', 'Follow-up Care']
+        data_list = [(
+            elem.date.isoformat(),
+            elem.implant_side.value,
+            elem.injection_side.value,
+            elem.procedure,
+            elem.anesthesia,
+            elem.follow_up_care
+            ) for elem in results]
+        oldModel = self.ui.surgeryTableView.selectionModel()
+        model = TableModel(self, data_list, header)
+        self.ui.surgeryTableView.setModel(model)
+        self.ui.surgeryTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui.surgeryTableView.resizeColumnsToContents()
+        self.ui.surgeryTableView.setSortingEnabled(False)
+        self.ui.surgeryTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.ui.surgeryTableView.setAutoScroll(False)
+        selectionModel = self.ui.surgeryTableView.selectionModel()
+        selectionModel.selectionChanged.connect(self.populateFields)
+        if oldModel:
+            oldModel.deleteLater()
 
+    @Slot()
+    def addSurgeryAction(self):
+        surgeryDialog = SurgeryDialog(self.bento, self.investigator_id, self.animal.id)
+        surgeryDialog.exec_()
+        self.populateSurgeryLog(self.animal.id)
 
     @Slot(object)
     def update(self, button):
@@ -154,6 +160,7 @@ class AnimalDialog(QDialog):
             self.animal.genotype = self.ui.genotypeLineEdit.text()
             self.db_sess.add(self.animal)
             self.db_sess.commit()
+            self.db_sess.flush()
             self.populateAnimalTable(self.investigator_id)
 
         elif buttonRole == QDialogButtonBox.DestructiveRole:
