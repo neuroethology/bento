@@ -1,6 +1,5 @@
 # investigatorDialog.py
 
-from db.schema_sqlalchemy import Investigator
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtWidgets import QDialog, QDialogButtonBox

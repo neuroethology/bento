@@ -17,6 +17,7 @@ class BentoConfig(object):
         self._port = "3307"
         self.bento_dir = expanduser("~") + sep + '.bento' + sep
         self.config_path = self.bento_dir + 'config.json'
+        self._investigator_id = None
 
     def write(self):
         if not exists(self.config_path):
@@ -26,7 +27,8 @@ class BentoConfig(object):
                 'username': self._username,
                 'password': self._password,
                 'host': self._host,
-                'port': self._port
+                'port': self._port,
+                'investigator': self._investigator_id
             }
             json.dump(config, file)
 
@@ -38,6 +40,7 @@ class BentoConfig(object):
             self._password = config.get('password') # still encrypted
             self._host = config.get('host')
             self._port = config.get('port')
+            self._investigator_id = config.get('investigator')
             return True
         else:
             return False
@@ -68,3 +71,9 @@ class BentoConfig(object):
 
     def setPort(self, port):
         self._port = port
+
+    def investigator_id(self):
+        return self._investigator_id
+
+    def set_investigator_id(self, investigator_id):
+        self._investigator_id = investigator_id

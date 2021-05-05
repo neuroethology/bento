@@ -16,6 +16,8 @@ from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
 from db.configDialog import ConfigDialog
+from db.newSessionDialog import NewSessionDialog
+from db.setInvestigatorDialog import SetInvestigatorDialog
 from db.bentoConfig import BentoConfig
 # from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
@@ -81,6 +83,7 @@ class Bento(QObject):
         self.time_start = Timecode('30.0', '0:0:0:1')
         self.time_end = Timecode('30.0', '23:59:59:29')
         self.current_time = self.time_start
+        self.investigator_id = None
         self.active_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
         self.pending_bout = None
@@ -116,9 +119,15 @@ class Bento(QObject):
             print(f"Caught Exception {e}.  Probably config data invalid")
             QMessageBox.about(self.mainWindow, "Error", f"Config data invalid.  {e}")
             exit(-1)
-        self.mainWindow.selectSession()
+        if not self.config.investigator_id():
+            self.set_investigator()
+        self.investigator_id = self.config.investigator_id()
         self.player.start()
 
+    def setInvestigatorId(self, investigator_id):
+        self.investigator_id = investigator_id
+        self.config.set_investigator_id(investigator_id)
+        self.config.write()
 
     def load_annotations(self, fn, sample_rate = 30.):
         print(f"Loading annotations from {fn}")
@@ -145,7 +154,23 @@ class Bento(QObject):
                 )
         print(f"Filter returned from file dialog was {filter}")
 
-    # Database actions
+    # File menu actions
+
+    @Slot()
+    def set_investigator(self):
+        dialog = SetInvestigatorDialog(self)
+        dialog.exec_()
+
+    @Slot()
+    def import_trials(self):
+        pass
+
+    @Slot()
+    def import_animals_tomomi(self):
+        pass
+
+    # Database menu actions
+
     @Slot()
     def edit_config(self):
         dialog = ConfigDialog(self)
@@ -181,7 +206,8 @@ class Bento(QObject):
         Add a new experiment session to the database
         associated with the selected investigator
         """
-        print("new_session() called")
+        dialog = NewSessionDialog(self, self.investigator_id)
+        dialog.exec_()
 
     @Slot()
     def new_trial(self):
@@ -189,23 +215,15 @@ class Bento(QObject):
         Add a new experiment trial associated with the current session
         """
         if not isinstance(self.session, Session):
-            QMessageBox.about(self.selectTrialWindow, "Error", "Please select or create a Session"
+            QMessageBox.about(self.mainWindow, "Error", "Please select or create a Session "
                 "before trying to create a Trial")
         else:
             print(f"new_trial() called for session {self.session}")
 
     @Slot()
     def create_db(self):
-        sess = db.sessionMaker()
+        sess = self.db_sessionMaker()
         create_tables(sess)
-
-    @Slot()
-    def import_trials(self):
-        pass
-
-    @Slot()
-    def import_animals_tomomi(self):
-        pass
 
 
     # State-related methods
