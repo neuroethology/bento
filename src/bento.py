@@ -16,12 +16,13 @@ from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
 from db.configDialog import ConfigDialog
-from db.newSessionDialog import NewSessionDialog
+from db.editSessionDialog import EditSessionDialog
 from db.setInvestigatorDialog import SetInvestigatorDialog
 from db.bentoConfig import BentoConfig
+from db.animal_surgery_xls import import_xls_file
 # from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
-from os.path import sep
+from os.path import expanduser, sep
 from utils import fix_path, padded_rectf
 import sys
 import time
@@ -89,8 +90,8 @@ class Bento(QObject):
         self.pending_bout = None
         with open('../color_profiles.txt','r') as f:
             self.behaviors.load(f)
-        self.session = None
-        self.trial = None
+        self.session_id = None
+        self.trial_id = None
         self.player = PlayerWorker(self)
         self.annotationsScene = AnnotationsScene()
         self.video_widgets = []
@@ -142,16 +143,20 @@ class Bento(QObject):
 
     @Slot()
     def save_annotations(self):
+        with self.db_sessionMaker() as db_sess:
+            base_directory = db_sess.query(Session).filter(Session.id == self.session_id).one().base_directory
         fileName, filter = QFileDialog.getSaveFileName(
             self.mainWindow,
             caption="Annotation File Name",
-            dir=self.session.base_directory)
+            dir=base_directory)
         with open(fileName, 'w') as file:
-            self.annotations.write_caltech(
-                file,
-                [video_data.file_path for video_data in self.trial.video_data],
-                self.trial.stimulus
-                )
+            with self.db_sessionMaker() as db_sess:
+                trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+                self.annotations.write_caltech(
+                    file,
+                    [video_data.file_path for video_data in trial.video_data],
+                    trial.stimulus
+                    )
         print(f"Filter returned from file dialog was {filter}")
 
     # File menu actions
@@ -167,7 +172,22 @@ class Bento(QObject):
 
     @Slot()
     def import_animals_tomomi(self):
-        pass
+        with self.db_sessionMaker() as db_sess:
+            investigator = db_sess.query(Investigator).where(Investigator.id == self.investigator_id).scalar()
+            if not investigator:
+                raise RuntimeError(f"Investigator not found for id {self.investigator_id}")
+            baseDir = expanduser("~")
+            if not baseDir.endswith(sep):
+                baseDir += sep
+            file_paths, _ = QFileDialog.getOpenFileNames(
+                self.mainWindow,
+                "Select animal record files to import",
+                baseDir,
+                "Seq files (*.xls)",
+                "Seq files (*.xls)")
+            if len(file_paths) > 0:
+                for file_path in file_paths:
+                    import_xls_file(file_path, db_sess, investigator)
 
     # Database menu actions
 
@@ -201,24 +221,13 @@ class Bento(QObject):
         dialog.exec_()
 
     @Slot()
-    def new_session(self):
+    def add_or_edit_session(self, session_id=None):
         """
         Add a new experiment session to the database
         associated with the selected investigator
         """
-        dialog = NewSessionDialog(self, self.investigator_id)
+        dialog = EditSessionDialog(self, self.investigator_id, session_id)
         dialog.exec_()
-
-    @Slot()
-    def new_trial(self):
-        """
-        Add a new experiment trial associated with the current session
-        """
-        if not isinstance(self.session, Session):
-            QMessageBox.about(self.mainWindow, "Error", "Please select or create a Session "
-                "before trying to create a Trial")
-        else:
-            print(f"new_trial() called for session {self.session}")
 
     @Slot()
     def create_db(self):
@@ -235,7 +244,7 @@ class Bento(QObject):
             for bout in bouts:
                 self.active_annotations.append((ch, bout))
         self.annotChanged.emit([(
-            c, 
+            c,
             bout.name(),
             bout.color())
             for (c, bout) in self.active_annotations])
@@ -248,7 +257,7 @@ class Bento(QObject):
             self.current_time = new_tc
             self.update_active_annotations()
             self.timeChanged.emit(self.current_time)
-    
+
     def change_time(self, increment: Timecode):
         self.set_time(self.current_time + increment)
 
@@ -258,7 +267,7 @@ class Bento(QObject):
     @Slot()
     def incrementTime(self):
         self.change_time(1)
-    
+
     @Slot()
     def decrementTime(self):
         self.change_time(-1)
@@ -278,7 +287,7 @@ class Bento(QObject):
     @Slot()
     def toEnd(self):
         self.set_time(self.time_end)
-    
+
     @Slot()
     def toNextEvent(self):
         next_event = self.time_end
@@ -288,7 +297,7 @@ class Bento(QObject):
             next_bout = self.annotations.channel(ch).get_next_start(self.current_time)
             next_event = min(next_event, next_bout.start())
         self.set_time(next_event)
-    
+
     @Slot()
     def toPrevEvent(self):
         prev_event = self.time_start
@@ -341,7 +350,7 @@ class Bento(QObject):
                 print(f"processHotKey: behavior {beh.get_name()} is already active")
                 pass
         self.pending_bout = Bout(self.current_time, self.current_time, beh)
-        print(f"processHotKey: pending_bout is now {self.pending_bout}")            
+        print(f"processHotKey: pending_bout is now {self.pending_bout}")
 
     @Slot()
     def quit(self):
@@ -372,46 +381,53 @@ class Bento(QObject):
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
         self.video_widgets.clear()
-        base_dir = self.session.base_directory + sep
-        for video_data in videos:
-            widget = self.newVideoWidget(fix_path(base_dir + video_data.file_path))
-            self.video_widgets.append(widget)
-            qr = widget.frameGeometry()
-            # qr.moveCenter(self.screen_center + spacing)
-            qr.moveCenter(self.screen_center)
-            widget.move(qr.topLeft())    #TODO: need to space multiple videos out
-            widget.show()
-        if annotation:
-            annot_path = fix_path(base_dir + annotation.file_path)
-            try:
-                self.load_annotations(annot_path, annotation.sample_rate)
-            except Exception as e:
-                QMessageBox.about(self.selectTrialWindow, "Error", f"Attempt to load annotations from {annot_path} "
-                    f"failed with error {str(e)}")
-                for widget in self.video_widgets:
-                    widget.close() 
-                self.video_widgets.clear()
-                return False
-            self.annotationsSceneUpdated.emit()
-        if loadPose:
-            if self.trial.pose_data:
-                print(f"Load pose from {self.trial.pose_data[0].file_path}")
-            else:
-                print("No pose data in trial.")
-        if loadNeural:
-            if self.trial.neural_data:
-                neuralWidget = self.newNeuralWidget(self.trial.neural_data[0], base_dir)
-                self.neural_widgets.append(neuralWidget)
-                if self.annotationsScene:
-                    neuralWidget.overlayAnnotations(self.annotationsScene)
-                neuralWidget.show()
-            else:
-                print("No neural data in trial.")
-        if loadAudio:
-            if self.trial.audio_data:
-                print(f"Load audio from {self.trial.audio_data[0].file_path}")
-            else:
-                print("No audio data in trial.")
+        with self.db_sessionMaker() as db_sess:
+            session = db_sess.query(Session).filter(Session.id == self.session_id).one()
+            base_directory = session.base_directory
+            base_dir = base_directory + sep
+            for video_data in videos:
+                widget = self.newVideoWidget(fix_path(base_dir + video_data.file_path))
+                self.video_widgets.append(widget)
+                qr = widget.frameGeometry()
+                # qr.moveCenter(self.screen_center + spacing)
+                qr.moveCenter(self.screen_center)
+                widget.move(qr.topLeft())    #TODO: need to space multiple videos out
+                widget.show()
+            if annotation:
+                annot_path = fix_path(base_dir + annotation.file_path)
+                try:
+                    self.load_annotations(annot_path, annotation.sample_rate)
+                except Exception as e:
+                    QMessageBox.about(self.selectTrialWindow, "Error", f"Attempt to load annotations from {annot_path} "
+                        f"failed with error {str(e)}")
+                    for widget in self.video_widgets:
+                        widget.close()
+                    self.video_widgets.clear()
+                    return False
+                self.annotationsSceneUpdated.emit()
+            if loadPose:
+                print("Load pose data if any")
+                # if self.trial_id.pose_data:
+                #     print(f"Load pose from {self.trial_id.pose_data[0].file_path}")
+                # else:
+                #     print("No pose data in trial.")
+            if loadNeural:
+                with self.db_sessionMaker() as db_sess:
+                    trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+                    if trial.neural_data:
+                        neuralWidget = self.newNeuralWidget(trial.neural_data[0], base_dir)
+                        self.neural_widgets.append(neuralWidget)
+                        if self.annotationsScene:
+                            neuralWidget.overlayAnnotations(self.annotationsScene)
+                        neuralWidget.show()
+                    else:
+                        print("No neural data in trial.")
+            if loadAudio:
+                print("Load audio data if any")
+                # if self.trial_id.audio_data:
+                #     print(f"Load audio from {self.trial_id.audio_data[0].file_path}")
+                # else:
+                #     print("No audio data in trial.")
         # set the time to get all the new widgets in sync
         self.set_time(self.time_start)
         return True
@@ -421,7 +437,7 @@ class Bento(QObject):
     timeChanged = Signal(Timecode)
     annotChanged = Signal(list)
     annotationsSceneUpdated = Signal()
-    
+
 if __name__ == "__main__":
     # Create the Qt Application
     app = QApplication(sys.argv)

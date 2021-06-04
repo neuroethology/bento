@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>NewSessionDialog</class>
- <widget class="QDialog" name="NewSessionDialog">
+ <class>EditSessionDialog</class>
+ <widget class="QDialog" name="EditSessionDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,11 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>New Session</string>
+   <string>Add or Edit Session</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="3" column="0">
-    <layout class="QHBoxLayout" name="sessionNumHorizontalLayout">
+   <item row="2" column="0">
+    <layout class="QHBoxLayout" name="sessionDateHorizontalLayout">
      <item>
       <widget class="QLabel" name="sessionNumLabel">
        <property name="text">
@@ -26,18 +26,14 @@
      <item>
       <widget class="QLineEdit" name="sessionNumLineEdit">
        <property name="inputMask">
-        <string>######</string>
+        <string/>
        </property>
       </widget>
      </item>
-    </layout>
-   </item>
-   <item row="2" column="0">
-    <layout class="QHBoxLayout" name="dateHorizontalLayout">
      <item>
       <widget class="QLabel" name="dateLabel">
        <property name="text">
-        <string>Date: </string>
+        <string> Date: </string>
        </property>
       </widget>
      </item>
@@ -45,15 +41,31 @@
       <widget class="QDateEdit" name="dateEdit">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>1</horstretch>
+         <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="displayFormat">
+        <string>yyyy-MM-dd</string>
+       </property>
       </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
      </item>
     </layout>
    </item>
-   <item row="4" column="0">
+   <item row="3" column="0">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -96,6 +108,13 @@
      <item>
       <widget class="QLineEdit" name="baseDirLineEdit"/>
      </item>
+     <item>
+      <widget class="QPushButton" name="selectBaseDirPushButton">
+       <property name="text">
+        <string>Select...</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>
@@ -105,7 +124,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>NewSessionDialog</receiver>
+   <receiver>EditSessionDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -121,7 +140,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>NewSessionDialog</receiver>
+   <receiver>EditSessionDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

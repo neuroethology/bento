@@ -49,10 +49,6 @@ class MainWindow(QMainWindow):
         self.importAnimalsAction.triggered.connect(bento.import_animals_tomomi)
 
         self.dbMenu = self.menuBar.addMenu("Database")
-        self.newTrialAction = self.dbMenu.addAction("Trial...")
-        self.newTrialAction.triggered.connect(bento.new_trial)
-        self.newSessionAction = self.dbMenu.addAction("Session...")
-        self.newSessionAction.triggered.connect(bento.new_session)
         self.animalAction = self.dbMenu.addAction("Animal...")
         self.animalAction.triggered.connect(bento.edit_animal)
         self.investigatorAction = self.dbMenu.addAction("Investigator...")

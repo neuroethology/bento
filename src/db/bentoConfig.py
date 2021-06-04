@@ -20,6 +20,7 @@ class BentoConfig(object):
         self._investigator_id = None
 
     def write(self):
+        print(f"BentoConfig.write: writing to path {self.config_path}")
         if not exists(self.config_path):
             makedirs(self.bento_dir, exist_ok=True)
         with open(self.config_path, 'w') as file:
@@ -76,4 +77,5 @@ class BentoConfig(object):
         return self._investigator_id
 
     def set_investigator_id(self, investigator_id):
+        print(f"set_investigator_id: setting to {investigator_id}")
         self._investigator_id = investigator_id

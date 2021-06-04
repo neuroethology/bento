@@ -1,10 +1,11 @@
 # trialWindow.py
 
-from db.schema_sqlalchemy import VideoData
+from db.schema_sqlalchemy import VideoData, Session
 from db.trialWindow_ui import Ui_TrialDockWidget
+from db.editTrialDialog import EditTrialDialog
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import Qt
-from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
+from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
 
 from db.schema_sqlalchemy import Trial, Annotations
 from widgets.tableModel import TableModel
@@ -20,15 +21,26 @@ class TrialDockWidget(QDockWidget):
         self.ui = Ui_TrialDockWidget()
         self.ui.setupUi(self)
         self.ui.loadTrialPushButton.clicked.connect(self.loadTrial)
+        self.ui.newTrialPushButton.clicked.connect(self.addOrEditTrial)
         self.quitting.connect(self.bento.quit)
 
-        if bento.session:
-            header = ['id', 'trial num', 'stimulus']
-            data_list = [(
-                elem.id,
-                elem.trial_num,
-                elem.stimulus
-                ) for elem in bento.session.trials]
+        self.current_trial_id = None
+        self.populateTrials()
+        selectionModel = self.ui.trialTableView.selectionModel()
+        selectionModel.selectionChanged.connect(self.populateVideos)
+        selectionModel.selectionChanged.connect(self.populateAnnotations)
+
+    @Slot()
+    def populateTrials(self):
+        if self.bento.session_id:
+            with self.bento.db_sessionMaker() as db_sess:
+                session = db_sess.query(Session).where(Session.id == self.bento.session_id).one()
+                header = ['id', 'trial num', 'stimulus']
+                data_list = [(
+                    elem.id,
+                    elem.trial_num,
+                    elem.stimulus
+                    ) for elem in session.trials]
             model = TableModel(self, data_list, header)
             self.ui.trialTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
             self.ui.trialTableView.setModel(model)
@@ -41,23 +53,19 @@ class TrialDockWidget(QDockWidget):
 
             self.ui.loadNeuralCheckBox.setCheckState(Qt.Checked)
 
-            selectionModel = self.ui.trialTableView.selectionModel()
-            selectionModel.selectionChanged.connect(self.populateVideos)
-            selectionModel.selectionChanged.connect(self.populateAnnotations)
-
     @Slot()
     def populateVideos(self):
-        current_trial_row = self.ui.trialTableView.currentIndex().row()
-        if current_trial_row >= 0:
-            trial_id = self.ui.trialTableView.currentIndex().siblingAtColumn(0).data()
+        selectionModel = self.ui.trialTableView.selectionModel()
+        if selectionModel.hasSelection():
+            trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
             header = ['id', 'view', 'file path']
-            db_session = self.bento.db_sessionMaker()
-            trial = db_session.query(Trial).filter(Trial.id == trial_id).one()
-            data_list = [(
-                elem.id,
-                elem.camera.position,
-                elem.file_path
-                ) for elem in trial.video_data]
+            with self.bento.db_sessionMaker() as db_session:
+                trial = db_session.query(Trial).where(Trial.id == trial_id).one()
+                data_list = [(
+                    elem.id,
+                    elem.camera.position,
+                    elem.file_path
+                    ) for elem in trial.video_data]
             model = TableModel(self, data_list, header)
             self.ui.videoTableView.setModel(model)
             self.ui.videoTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -71,18 +79,18 @@ class TrialDockWidget(QDockWidget):
 
     @Slot()
     def populateAnnotations(self):
-        current_trial_row = self.ui.trialTableView.currentIndex().row()
-        if current_trial_row >= 0:
-            trial_id = self.ui.trialTableView.currentIndex().siblingAtColumn(0).data()
+        selectionModel = self.ui.trialTableView.selectionModel()
+        if selectionModel.hasSelection():
+            trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
             header = ['id', 'annotator name', 'method', 'file path']
-            db_session = self.bento.db_sessionMaker()
-            trial = db_session.query(Trial).filter(Trial.id == trial_id).one()
-            data_list = [(
-                elem.id,
-                elem.annotator_name,
-                elem.method,
-                elem.file_path
-                ) for elem in trial.annotations]
+            with self.bento.db_sessionMaker() as db_session:
+                trial = db_session.query(Trial).where(Trial.id == trial_id).one()
+                data_list = [(
+                    elem.id,
+                    elem.annotator_name,
+                    elem.method,
+                    elem.file_path
+                    ) for elem in trial.annotations]
             model = TableModel(self, data_list, header)
             self.ui.annotationTableView.setModel(model)
             self.ui.annotationTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -95,18 +103,21 @@ class TrialDockWidget(QDockWidget):
 
     @Slot()
     def loadTrial(self):
-        current_trial_row = self.ui.trialTableView.currentIndex().row()
-        if current_trial_row >= 0:
-            trial_id = self.ui.trialTableView.currentIndex().siblingAtColumn(0).data()
+        selectionModel = self.ui.trialTableView.selectionModel()
+        if selectionModel.hasSelection():
+            if len(selectionModel.selectedRows()) > 1:
+                QMessageBox.about(self, "Error", "More than one Trial is selected!")
+                return
+            trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
             print(f"Load trial id {trial_id}")
-            db_sess = self.bento.db_sessionMaker()
-            self.bento.trial = db_sess.query(Trial).filter(Trial.id == trial_id).one()
             videos = []
-            for selection in self.ui.videoTableView.selectionModel().selectedRows():
-                videos.append(db_sess.query(VideoData).filter(VideoData.id == selection.siblingAtColumn(0).data()).one())
-            annotation = db_sess.query(Annotations).filter(
-                Annotations.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
-                ).one()
+            with self.bento.db_sessionMaker() as db_session:
+                self.bento.trial_id = db_session.query(Trial).where(Trial.id == trial_id).one().id
+                for selection in self.ui.videoTableView.selectionModel().selectedRows():
+                    videos.append(db_session.query(VideoData).where(VideoData.id == selection.siblingAtColumn(0).data()).one())
+                annotation = db_session.query(Annotations).where(
+                    Annotations.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
+                    ).one()
             loadPose = self.ui.loadPoseCheckBox.isChecked()
             loadNeural = self.ui.loadNeuralCheckBox.isChecked()
             loadAudio = self.ui.loadAudioCheckBox.isChecked()
@@ -114,4 +125,28 @@ class TrialDockWidget(QDockWidget):
                 self.bento.selectTrialWindow.close()
         else:
             print("Nothing selected!")
+
+    @Slot()
+    def addOrEditTrial(self):
+        """
+        Open the editTrial Dialog
+        """
+        selectionModel = self.ui.trialTableView.selectionModel()
+        if selectionModel.hasSelection():
+            if len(selectionModel.selectedRows()) > 1:
+                QMessageBox.about(self, "Error", "More than one Trial is selected!")
+                return
+            self.current_trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
+
+        self.add_or_edit_trial(self.current_trial_id)
+
+    @Slot()
+    def add_or_edit_trial(self, trial_id=None):
+        """
+        Add a new experiment trial to the database
+        associated with the selected session
+        """
+        dialog = EditTrialDialog(self.bento, self.bento.session_id, trial_id)
+        dialog.trialsChanged.connect(self.populateTrials)
+        dialog.exec_()
 

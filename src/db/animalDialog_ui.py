@@ -209,7 +209,7 @@ class Ui_AnimalDialog(object):
         self.animalLabel.setText(QCoreApplication.translate("AnimalDialog", u"Animal:", None))
         self.nicknameLabel.setText(QCoreApplication.translate("AnimalDialog", u"Nickname: ", None))
         self.asiLabel.setText(QCoreApplication.translate("AnimalDialog", u"Animal Services ID: ", None))
-        self.asiLineEdit.setInputMask(QCoreApplication.translate("AnimalDialog", u"######", None))
+        self.asiLineEdit.setInputMask("")
         self.dobLabel.setText(QCoreApplication.translate("AnimalDialog", u"Date of Birth: ", None))
         self.dobDateEdit.setDisplayFormat(QCoreApplication.translate("AnimalDialog", u"yyyy-MM-dd", None))
         self.sexLabel.setText(QCoreApplication.translate("AnimalDialog", u"Sex: ", None))

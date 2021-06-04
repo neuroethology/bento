@@ -3,8 +3,9 @@
 The SQLAlchemy-style python class representation of the Bento SQL schema.
 """
 
+from typing import KeysView
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String, Time, create_engine
+from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String, Time, create_engine, func
 from sqlalchemy.orm import relationship, sessionmaker
 from datetime import date
 import enum
@@ -78,11 +79,45 @@ class NeuralData(Base):
     start_frame = Column(Integer)
     stop_frame = Column(Integer)
     trial = Column(Integer, ForeignKey('trial.id'))   # 'Trial.trial_id' is quoted because it's a forward reference
+    keys = ['id', 'file_path', 'sample_rate', 'format', 'start_time', 'start_frame', 'stop_frame', 'trial_id']
+
+    def __init__(self, d=None, db_sess=None):
+        super().__init__()
+        if d and db_sess:
+            self.fromDict(d, db_sess)
 
     def __repr__(self):
         return "<NeuralData(file_path='%s', sample_rate='%f', format='%s', start_time='%f', start_frame='%d', stop_frame='%d')>" % (
             self.file_path, self.sample_rate, self.format, self.start_time, self.start_frame, self.stop_frame
         )
+
+    def header(self):
+        return self.keys
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'file_path': self.file_path,
+            'sample_rate': self.sample_rate,
+            'format': self.format,
+            'start_time': self.start_time,
+            'start_frame': self.start_frame,
+            'stop_frame': self.stop_frame,
+            'trial_id': self.trial
+        }
+
+    def fromDict(self, d, db_sess):
+        if not set(d.keys()).issuperset(set(self.keys)):
+            raise RuntimeError("Dict provided has incorrect or incomplete contents")
+        if 'id' in d.keys() and d['id']:
+            self.id = d['id']
+        self.file_path = d['file_path']
+        self.sample_rate = d['sample_rate']
+        self.format = d['format']
+        self.start_time = d['start_time']
+        self.start_frame = d['start_frame']
+        self.stop_frame = d['stop_frame']
+        self.trial = d['trial_id']
 
 class VideoData(Base):
     """
@@ -94,17 +129,51 @@ class VideoData(Base):
     file_path = Column(String(512))
     sample_rate = Column(Float)
     start_time = Column(Float)   # needs to be convertible to timecode
-    # start_frame = Column(Integer)
-    # stop_frame = Column(Integer)
     camera_id = Column(Integer, ForeignKey('camera.id'))
     camera = relationship('Camera')
     trial = Column(Integer, ForeignKey('trial.id'))
     pose_data = relationship('PoseData')
+    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera', 'trial_id']
 
+    def __init__(self, d=None, db_sess=None):
+        super().__init__()
+        if d and db_sess:
+            self.fromDict(d, db_sess)
+    
     def __repr__(self):
         return "<VideoData(file_path='%s', sample_rate='%s', start_time='%s')>" % (
             self.file_path, self.sample_rate, self.start_time
         )
+
+    def header(self):
+        return self.keys
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'file_path': self.file_path,
+            'sample_rate': self.sample_rate,
+            'start_time': self.start_time,
+            'camera': self.camera.position,
+            'trial_id': self.trial
+            #TODO: camera?  pose_data?
+        }
+
+    def fromDict(self, d, db_sess):
+        if not set(d.keys()).issuperset(set(self.keys)):
+            raise RuntimeError("Dict provided has incorrect or incomplete contents")
+        camera = db_sess.query(Camera).where(func.lower(Camera.position) == func.lower(d['camera'])).scalar()
+        if not camera:
+            raise RuntimeError(f"No camera with position {d['camera']}")
+        if 'id' in d.keys() and d['id']:
+            self.id = d['id']
+        self.file_path = d['file_path']
+        self.sample_rate = d['sample_rate']
+        self.start_time = d['start_time']
+        self.camera_id = camera.id
+        self.camera = camera
+        self.trial = d['trial_id']
+        #TODO: pose_data?
 
 class Annotations(Base):
     """
@@ -122,7 +191,14 @@ class Annotations(Base):
     annotator_name = Column(String(128))
     method = Column(String(128))   # e.g. manual, MARS v1_8
     trial = Column(Integer, ForeignKey('trial.id'))
+    keys = ['id', 'file_path', 'sample_rate', 'format', 'start_time', 'start_frame',
+            'stop_frame', 'annotator_name', 'method', 'trial_id']
 
+    def __init__(self, d=None, db_sess=None):
+        super().__init__()
+        if d and db_sess:
+            self.fromDict(d, db_sess)
+    
     def __repr__(self):
         return ( "<Annotations(file_path='%s', sample_rate='%s', format='%s',"
             " start_time='%s', start_frame='%s', stop_frame='%s',"
@@ -131,6 +207,38 @@ class Annotations(Base):
             self.start_time, self.start_frame, self.stop_frame,
             self.annotator_name, self.method )
         )
+
+    def header(self):
+        return self.keys
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'file_path': self.file_path,
+            'sample_rate': self.sample_rate,
+            'format': self.format,
+            'start_time': self.start_time,
+            'start_frame': self.start_time,
+            'stop_frame': self.stop_frame,
+            'annotator_name': self.annotator_name,
+            'method': self.method,
+            'trial_id': self.trial
+        }
+
+    def fromDict(self, d, db_sess):
+        if not set(d.keys()).issuperset(set(self.keys)):
+            raise RuntimeError("Dict provided has incorrect or incomplete contents")
+        if 'id' in d.keys() and d['id']:
+            self.id = d['id']
+        self.file_path = d['file_path']
+        self.sample_rate = d['sample_rate']
+        self.format = d['format']
+        self.start_time = d['start_time']
+        self.start_frame = d['start_frame']
+        self.stop_frame = d['stop_frame']
+        self.annotator_name = d['annotator_name']
+        self.method = d['method']
+        self.trial = d['trial_id']
 
 class AudioData(Base):
     """
@@ -143,8 +251,14 @@ class AudioData(Base):
     sample_rate = Column(Float)
     start_time = Column(Float)   # needs to be convertible to timecode
     processed_audio_file_path = Column(String(512))
-    annotation_id = Column(Integer, ForeignKey('annotations.id'))
+    annotations_id = Column(Integer, ForeignKey('annotations.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
+    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'processed_audio_file_path', 'annotations_id', 'trial_id']
+
+    def __init__(self, d=None, db_sess=None):
+        super().__init__()
+        if d and db_sess:
+            self.fromDict(d, db_sess)
 
     def __repr__(self):
         return ( "<AudioData(file_path='%s', sample_rate='%s', start_time='%s',"
@@ -152,6 +266,32 @@ class AudioData(Base):
             self.file_path, self.sample_rate, self.start_time,
             self.start_frame, self.stop_time, self.processed_audio_file_path )
         )
+
+    def header(self):
+        return self.keys
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'file_path': self.file_path,
+            'sample_rate': self.sample_rate,
+            'start_time': self.start_time,
+            'processed_audio_file_path': self.processed_audio_file_path,
+            'annotations_id': self.annotations_id,
+            'trial_id': self.trial
+        }
+
+    def fromDict(self, d, db_sess):
+        if not set(d.keys()).issuperset(set(self.keys)):
+            raise RuntimeError("Dict provided has incorrect or incomplete contents")
+        if 'id' in d.keys() and d['id']:
+            self.id = d['id']
+        self.file_path = d['file_path']
+        self.sample_rate = d['sample_rate']
+        self.start_time = d['start_time']
+        self.processed_audio_file_path = d['processed_audio_file_path']
+        self.annotations_id = d['annotations_id']
+        self.trial = d['trial_id']
 
 class PoseData(Base):
     """
@@ -166,6 +306,12 @@ class PoseData(Base):
     format = Column(String(128), nullable=False)
     video = Column(Integer, ForeignKey('video_data.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
+    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'format', 'video_id', 'trial_id']
+
+    def __init__(self, d=None, db_sess=None):
+        super().__init__()
+        if d and db_sess:
+            self.fromDict(d, db_sess)
 
     def __repr__(self):
         return ( "<PoseData(file_path='%s', sample_rate='%s', start_time='%s',"
@@ -173,6 +319,32 @@ class PoseData(Base):
             self.file_path, self.sample_rate, self.start_time,
             self.start_frame, self.stop_frame, self.format )
         )
+
+    def header(self):
+        return self.keys
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'file_path': self.file_path,
+            'sample_rate': self.sample_rate,
+            'start_time': self.start_time,
+            'format': self.format,
+            'video_id': self.video,
+            'trial_id': self.trial
+        }
+
+    def fromDict(self, d, db_sess):
+        if not set(d.keys()).issuperset(set(self.keys)):
+            raise RuntimeError("Dict provided has incorrect or incomplete contents")
+        if 'id' in d.keys() and d['id']:
+            self.id = d['id']
+        self.file_path = d['file_path']
+        self.sample_rate = d['sample_rate']
+        self.start_time = d['start_time']
+        self.format = d['format']
+        self.video = d['annotations_id']
+        self.trial = d['trial_id']
 
 class OtherData(Base):
     """
@@ -188,6 +360,12 @@ class OtherData(Base):
     stop_frame = Column(Integer)
     format = Column(String(128))
     trial = Column(Integer, ForeignKey('trial.id'))
+    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'start_frame', 'stop_frame', 'format', 'trial_id']
+
+    def __init__(self, d=None, db_sess=None):
+        super().__init__()
+        if d and db_sess:
+            self.fromDict(d, db_sess)
 
     def __repr__(self):
         return ( "<OtherData(file_path='%s', sample_rate='%s', start_time='%s',"
@@ -195,6 +373,34 @@ class OtherData(Base):
             self.file_path, self.sample_rate, self.start_time,
             self.start_time, self.stop_frame, self.format )
         )
+
+    def header(self):
+        return self.keys
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'file_path': self.file_path,
+            'sample_rate': self.sample_rate,
+            'start_time': self.start_time,
+            'start_frame': self.start_frame,
+            'stop_frame': self.stop_frame,
+            'format': self.format,
+            'trial_id': self.trial
+        }
+
+    def fromDict(self, d, db_sess):
+        if not set(d.keys()).issuperset(set(self.keys)):
+            raise RuntimeError("Dict provided has incorrect or incomplete contents")
+        if 'id' in d.keys() and d['id']:
+            self.id = d['id']
+        self.file_path = d['file_path']
+        self.sample_rate = d['sample_rate']
+        self.start_time = d['start_time']
+        self.start_frame = d['start_frame']
+        self.stop_frame = d['stop_frame']
+        self.format = d['format']
+        self.trial = d['trial_id']
 
 class Session(Base):
     """
@@ -244,8 +450,8 @@ class Trial(Base):
         cascade='all, delete, delete-orphan')
 
     def __repr__(self):
-        return "<Trial(session_id='%d', trial_num='%d', stimulus='%s', base_directory='%s')>" % (
-            ( self.session_id, self.trial_num, self.stimulus, self.base_directory )
+        return "<Trial(session_id='%d', trial_num='%d', stimulus='%s'" % (
+            ( self.session_id, self.trial_num, self.stimulus )
         )
 
 class LateralityEnum(enum.Enum):

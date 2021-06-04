@@ -20,53 +20,16 @@ class Ui_SessionDockWidget(object):
     def setupUi(self, SessionDockWidget):
         if SessionDockWidget.objectName():
             SessionDockWidget.setObjectName(u"SessionDockWidget")
-        SessionDockWidget.resize(801, 678)
+        SessionDockWidget.resize(787, 678)
         self.experimentDockWidgetContents = QWidget()
         self.experimentDockWidgetContents.setObjectName(u"experimentDockWidgetContents")
-        self.gridLayout = QGridLayout(self.experimentDockWidgetContents)
-        self.gridLayout.setObjectName(u"gridLayout")
-        self.dateRangeGridLayout = QGridLayout()
-        self.dateRangeGridLayout.setObjectName(u"dateRangeGridLayout")
-        self.endCalendarWidget = QCalendarWidget(self.experimentDockWidgetContents)
-        self.endCalendarWidget.setObjectName(u"endCalendarWidget")
-        self.endCalendarWidget.setMinimumSize(QSize(379, 173))
-
-        self.dateRangeGridLayout.addWidget(self.endCalendarWidget, 2, 0, 1, 1)
-
-        self.trialDateStartLabel = QLabel(self.experimentDockWidgetContents)
-        self.trialDateStartLabel.setObjectName(u"trialDateStartLabel")
-        self.trialDateStartLabel.setAlignment(Qt.AlignCenter)
-
-        self.dateRangeGridLayout.addWidget(self.trialDateStartLabel, 1, 0, 1, 1)
-
-        self.useDateRangeCheckBox = QCheckBox(self.experimentDockWidgetContents)
-        self.useDateRangeCheckBox.setObjectName(u"useDateRangeCheckBox")
-
-        self.dateRangeGridLayout.addWidget(self.useDateRangeCheckBox, 0, 0, 1, 1)
-
-        self.startCalendarWidget = QCalendarWidget(self.experimentDockWidgetContents)
-        self.startCalendarWidget.setObjectName(u"startCalendarWidget")
-        self.startCalendarWidget.setMinimumSize(QSize(375, 263))
-
-        self.dateRangeGridLayout.addWidget(self.startCalendarWidget, 2, 1, 1, 1)
-
-        self.trialDateEndLabel = QLabel(self.experimentDockWidgetContents)
-        self.trialDateEndLabel.setObjectName(u"trialDateEndLabel")
-        self.trialDateEndLabel.setAlignment(Qt.AlignCenter)
-
-        self.dateRangeGridLayout.addWidget(self.trialDateEndLabel, 1, 1, 1, 1)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.dateRangeGridLayout.addItem(self.horizontalSpacer_2, 2, 2, 1, 1)
-
-
-        self.gridLayout.addLayout(self.dateRangeGridLayout, 2, 0, 1, 2)
-
+        self.verticalLayout = QVBoxLayout(self.experimentDockWidgetContents)
+        self.verticalLayout.setObjectName(u"verticalLayout")
         self.investigatorHorizontalLayout = QHBoxLayout()
         self.investigatorHorizontalLayout.setObjectName(u"investigatorHorizontalLayout")
         self.useInvestigatorCheckBox = QCheckBox(self.experimentDockWidgetContents)
         self.useInvestigatorCheckBox.setObjectName(u"useInvestigatorCheckBox")
+        self.useInvestigatorCheckBox.setChecked(True)
 
         self.investigatorHorizontalLayout.addWidget(self.useInvestigatorCheckBox)
 
@@ -80,7 +43,43 @@ class Ui_SessionDockWidget(object):
         self.investigatorHorizontalLayout.addItem(self.horizontalSpacer)
 
 
-        self.gridLayout.addLayout(self.investigatorHorizontalLayout, 0, 0, 1, 2)
+        self.verticalLayout.addLayout(self.investigatorHorizontalLayout)
+
+        self.dateRangeHorizontalLayout = QHBoxLayout()
+        self.dateRangeHorizontalLayout.setObjectName(u"dateRangeHorizontalLayout")
+        self.useDateRangeCheckBox = QCheckBox(self.experimentDockWidgetContents)
+        self.useDateRangeCheckBox.setObjectName(u"useDateRangeCheckBox")
+
+        self.dateRangeHorizontalLayout.addWidget(self.useDateRangeCheckBox)
+
+        self.startDateEdit = QDateEdit(self.experimentDockWidgetContents)
+        self.startDateEdit.setObjectName(u"startDateEdit")
+
+        self.dateRangeHorizontalLayout.addWidget(self.startDateEdit)
+
+        self.dateRangeToLabel = QLabel(self.experimentDockWidgetContents)
+        self.dateRangeToLabel.setObjectName(u"dateRangeToLabel")
+
+        self.dateRangeHorizontalLayout.addWidget(self.dateRangeToLabel)
+
+        self.endDateEdit = QDateEdit(self.experimentDockWidgetContents)
+        self.endDateEdit.setObjectName(u"endDateEdit")
+
+        self.dateRangeHorizontalLayout.addWidget(self.endDateEdit)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.dateRangeHorizontalLayout.addItem(self.horizontalSpacer_2)
+
+
+        self.verticalLayout.addLayout(self.dateRangeHorizontalLayout)
+
+        self.sessionsTableView = QTableView(self.experimentDockWidgetContents)
+        self.sessionsTableView.setObjectName(u"sessionsTableView")
+        self.sessionsTableView.horizontalHeader().setDefaultSectionSize(60)
+        self.sessionsTableView.horizontalHeader().setStretchLastSection(True)
+
+        self.verticalLayout.addWidget(self.sessionsTableView)
 
         self.pushButtonsHorizontalLayout = QHBoxLayout()
         self.pushButtonsHorizontalLayout.setObjectName(u"pushButtonsHorizontalLayout")
@@ -89,10 +88,10 @@ class Ui_SessionDockWidget(object):
 
         self.pushButtonsHorizontalLayout.addWidget(self.searchPushButton)
 
-        self.newSessionPushButton = QPushButton(self.experimentDockWidgetContents)
-        self.newSessionPushButton.setObjectName(u"newSessionPushButton")
+        self.addOrEditSessionPushButton = QPushButton(self.experimentDockWidgetContents)
+        self.addOrEditSessionPushButton.setObjectName(u"addOrEditSessionPushButton")
 
-        self.pushButtonsHorizontalLayout.addWidget(self.newSessionPushButton)
+        self.pushButtonsHorizontalLayout.addWidget(self.addOrEditSessionPushButton)
 
         self.loadPushButton = QPushButton(self.experimentDockWidgetContents)
         self.loadPushButton.setObjectName(u"loadPushButton")
@@ -100,16 +99,8 @@ class Ui_SessionDockWidget(object):
         self.pushButtonsHorizontalLayout.addWidget(self.loadPushButton)
 
 
-        self.gridLayout.addLayout(self.pushButtonsHorizontalLayout, 5, 1, 1, 1)
+        self.verticalLayout.addLayout(self.pushButtonsHorizontalLayout)
 
-        self.sessionsTableView = QTableView(self.experimentDockWidgetContents)
-        self.sessionsTableView.setObjectName(u"sessionsTableView")
-        self.sessionsTableView.horizontalHeader().setDefaultSectionSize(60)
-        self.sessionsTableView.horizontalHeader().setStretchLastSection(True)
-
-        self.gridLayout.addWidget(self.sessionsTableView, 4, 0, 1, 2)
-
-        self.gridLayout.setRowStretch(4, 1)
         SessionDockWidget.setWidget(self.experimentDockWidgetContents)
 
         self.retranslateUi(SessionDockWidget)
@@ -119,12 +110,13 @@ class Ui_SessionDockWidget(object):
 
     def retranslateUi(self, SessionDockWidget):
         SessionDockWidget.setWindowTitle(QCoreApplication.translate("SessionDockWidget", u"Session Search Window", None))
-        self.trialDateStartLabel.setText(QCoreApplication.translate("SessionDockWidget", u"Start", None))
-        self.useDateRangeCheckBox.setText(QCoreApplication.translate("SessionDockWidget", u"Filter by Trial Date Range:", None))
-        self.trialDateEndLabel.setText(QCoreApplication.translate("SessionDockWidget", u"End", None))
         self.useInvestigatorCheckBox.setText(QCoreApplication.translate("SessionDockWidget", u"Filter by Investigator:", None))
+        self.useDateRangeCheckBox.setText(QCoreApplication.translate("SessionDockWidget", u"Filter by Trial Date Range from: ", None))
+        self.startDateEdit.setDisplayFormat(QCoreApplication.translate("SessionDockWidget", u"yyyy-MM-dd", None))
+        self.dateRangeToLabel.setText(QCoreApplication.translate("SessionDockWidget", u" to: ", None))
+        self.endDateEdit.setDisplayFormat(QCoreApplication.translate("SessionDockWidget", u"yyyy-MM-dd", None))
         self.searchPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Search", None))
-        self.newSessionPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"New Session...", None))
+        self.addOrEditSessionPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Add or Edit Session...", None))
         self.loadPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Load Session", None))
     # retranslateUi
 

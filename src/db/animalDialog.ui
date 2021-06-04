@@ -82,7 +82,7 @@
      <item>
       <widget class="QLineEdit" name="asiLineEdit">
        <property name="inputMask">
-        <string>######</string>
+        <string/>
        </property>
       </widget>
      </item>

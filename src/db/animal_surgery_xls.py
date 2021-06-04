@@ -6,7 +6,7 @@ into Python Bento's database, using SQLAlchemy and xlrd.
 """
 
 import xlrd
-from db.schema_sqlalchemy import *
+from db.schema_sqlalchemy import new_session, Investigator, Animal, LateralityEnum, SexEnum, Surgery
 from os.path import abspath
 
 def check_value(field, fieldname, value):
@@ -112,7 +112,7 @@ def import_row(investigator, xls_sheet, row, session):
     session.add(surgery)
     session.commit()
 
-def import_xls_file(file_path, session, investigator):
+def import_xls_file(file_path, db_session, investigator):
     abs_path = abspath(file_path)
     xls = xlrd.open_workbook(abs_path)
     sheet = xls.sheets()[0]
@@ -120,14 +120,14 @@ def import_xls_file(file_path, session, investigator):
     for row in range(1, sheet.nrows):
         if sheet.cell_type(row, 6) != xlrd.XL_CELL_NUMBER:
             continue
-        import_row(investigator, sheet, row, session)
+        import_row(investigator, sheet, row, db_session)
 
 def do_import(investigator_name, rel_path):
-    Session = new_session()
-    sess = Session()
-    investigators = sess.query(Investigator).filter(Investigator.user_name == investigator_name).all()
+    db_sessionMaker = new_session()
+    db_sess = db_sessionMaker()
+    investigators = db_sess.query(Investigator).filter(Investigator.user_name == investigator_name).all()
     assert len(investigators) == 1
     investigator = investigators[0]
 
-    import_xls_file(rel_path, sess, investigator)
+    import_xls_file(rel_path, db_sess, investigator)
 

@@ -3,7 +3,8 @@
 from db.schema_sqlalchemy import Animal, Investigator, SexEnum, Surgery
 from db.animalDialog_ui import Ui_AnimalDialog
 from db.surgeryDialog import SurgeryDialog
-from PySide2.QtCore import Qt, QDate, Signal, Slot
+from PySide2.QtCore import Signal, Slot
+from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView
 
 from widgets.tableModel import TableModel
@@ -19,6 +20,7 @@ class AnimalDialog(QDialog):
         self.ui = Ui_AnimalDialog()
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
+        self.ui.asiLineEdit.setValidator(QIntValidator())
 
         self.db_sess = self.bento.db_sessionMaker()
         username = self.bento.config.username()

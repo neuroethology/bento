@@ -20,40 +20,38 @@ class SurgeryDialog(QDialog):
         self.ui.dateEdit.setDate(date.today())
         self.quitting.connect(self.bento.quit)
 
-        self.db_sess = self.bento.db_sessionMaker()
         self.investigator_id = investigator_id
         self.animal_id = animal_id
-        self.surgery = Surgery()
 
     @Slot()
     def accept(self):
-        self.surgery.animal_id = self.animal_id
-        self.surgery.investigator_id = self.investigator_id
-        self.surgery.date = self.ui.dateEdit.date().toPython()
-        if self.ui.leftImplantRadioButton.isChecked():
-            implant_side = LateralityEnum.Left
-        elif self.ui.rightImplantRadioButton.isChecked():
-            implant_side = LateralityEnum.Right
-        elif self.ui.bilatImplantRadioButton.isChecked():
-            implant_side = LateralityEnum.Bilateral
-        else:
-            implant_side = LateralityEnum.Nothing
-        self.surgery.implant_side = implant_side
-        if self.ui.leftInjectionRadioButton.isChecked():
-            injection_side = LateralityEnum.Left
-        elif self.ui.rightInjectionRadioButton.isChecked():
-            injection_side = LateralityEnum.Right
-        elif self.ui.bilatInjectionRadioButton.isChecked():
-            injection_side = LateralityEnum.Bilateral
-        else:
-            injection_side = LateralityEnum.Nothing
-        self.surgery.injection_side = injection_side
-        self.surgery.procedure = self.ui.procedureLineEdit.text()
-        self.surgery.anesthesia = self.ui.anesthesiaLineEdit.text()
-        self.surgery.follow_up_care = self.ui.followUpLineEdit.text()
-        self.db_sess.add(self.surgery)
-        self.db_sess.commit()
-        self.db_sess.flush()
+        with self.bento.db_sessionMaker().begin() as db_sess:
+            surgery = Surgery()
+            surgery.animal_id = self.animal_id
+            surgery.investigator_id = self.investigator_id
+            surgery.date = self.ui.dateEdit.date().toPython()
+            if self.ui.leftImplantRadioButton.isChecked():
+                implant_side = LateralityEnum.Left
+            elif self.ui.rightImplantRadioButton.isChecked():
+                implant_side = LateralityEnum.Right
+            elif self.ui.bilatImplantRadioButton.isChecked():
+                implant_side = LateralityEnum.Bilateral
+            else:
+                implant_side = LateralityEnum.Nothing
+            surgery.implant_side = implant_side
+            if self.ui.leftInjectionRadioButton.isChecked():
+                injection_side = LateralityEnum.Left
+            elif self.ui.rightInjectionRadioButton.isChecked():
+                injection_side = LateralityEnum.Right
+            elif self.ui.bilatInjectionRadioButton.isChecked():
+                injection_side = LateralityEnum.Bilateral
+            else:
+                injection_side = LateralityEnum.Nothing
+            surgery.injection_side = injection_side
+            surgery.procedure = self.ui.procedureLineEdit.text()
+            surgery.anesthesia = self.ui.anesthesiaLineEdit.text()
+            surgery.follow_up_care = self.ui.followUpLineEdit.text()
+            db_sess.add(surgery)
         super().accept()
 
     @Slot()

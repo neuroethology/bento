@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EditTrialDialog</class>
+ <widget class="QDialog" name="EditTrialDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>774</width>
+    <height>728</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Add or Edit Trial</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="generalInfoHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="trialNumLabel">
+       <property name="minimumSize">
+        <size>
+         <width>103</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Trial Num: </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="trialNumLineEdit"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="stimulusLabel">
+       <property name="text">
+        <string>Stimulus: </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="stimulusLineEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="videosHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="videosLabel">
+       <property name="minimumSize">
+        <size>
+         <width>103</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Video Files: </string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableView" name="videosFileTableView"/>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="videosSearchVerticalLayout">
+       <item>
+        <widget class="QPushButton" name="videosSearchPushButton">
+         <property name="text">
+          <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="videosSearchVerticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="annotationsHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="annotationsLabel">
+       <property name="text">
+        <string>Annotation Files: </string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableView" name="annotationsTableView"/>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="annotationsSearchVerticalLayout">
+       <item>
+        <widget class="QPushButton" name="annotationsSearchPushButton">
+         <property name="text">
+          <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="annotationsSearchVerticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="posesHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="posesLabel">
+       <property name="minimumSize">
+        <size>
+         <width>103</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Pose Files: </string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableView" name="posesTableView"/>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="posesSearchVerticalLayout">
+       <item>
+        <widget class="QPushButton" name="posesSearchPushButton">
+         <property name="text">
+          <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="posesSearchVerticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="neuralsHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="neuralsLabel">
+       <property name="minimumSize">
+        <size>
+         <width>103</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Neural Files: </string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableView" name="neuralsTableView"/>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="neuralsSearchVerticalLayout">
+       <item>
+        <widget class="QPushButton" name="neuralsSearchPushButton">
+         <property name="text">
+          <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="neuralsSearchVerticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="audiosHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="audiosLabel">
+       <property name="minimumSize">
+        <size>
+         <width>103</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Audio Files: </string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTreeView" name="audiosTreeView"/>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="audiosSearchVerticalLayout">
+       <item>
+        <widget class="QPushButton" name="audiosSearchPushButton">
+         <property name="text">
+          <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="audiosSearchVerticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="othersHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="othersLabel">
+       <property name="minimumSize">
+        <size>
+         <width>103</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Other Files: </string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableView" name="othersTableView"/>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="othersSearchVerticalLayout">
+       <item>
+        <widget class="QPushButton" name="othersSearchPushButton">
+         <property name="text">
+          <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="othersSearchVerticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>EditTrialDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>EditTrialDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
