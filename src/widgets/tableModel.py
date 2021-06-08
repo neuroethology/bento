@@ -9,7 +9,7 @@ class TableModel(QAbstractTableModel):
         super().__init__(parent, *args)
         self.mylist = mylist
         self.header = header
-            
+
     def rowCount(self, parent):
         return len(self.mylist)
     def columnCount(self, parent):
@@ -40,10 +40,15 @@ class TableModel(QAbstractTableModel):
         print(f"appendData: adding {newData}")
         rows = len(self.mylist)
         columns = len(self.header)
+        new_rows = len(newData)
+        first_new_index = self.index(rows, 0)
+        last_new_index = self.index(rows + new_rows, columns-1)
+        self.beginInsertRows(QModelIndex(), rows, rows + new_rows)
         self.mylist.append(newData)
+        self.endInsertRows()
         self.dataChanged.emit(
-            self.index(0, 0),
-            self.index(rows+1, columns-1),
+            first_new_index,
+            last_new_index,
             [Qt.DisplayRole])
     def getIterator(self):
         return TableModelIterator(self.mylist)
@@ -89,7 +94,7 @@ class TableModelIterator():
     def __iter__(self):
         self.ix = 0
         return self
-    
+
     def __next__(self):
         if self.ix >= len(self.mylist):
             raise StopIteration

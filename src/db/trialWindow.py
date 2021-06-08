@@ -137,6 +137,8 @@ class TrialDockWidget(QDockWidget):
                 QMessageBox.about(self, "Error", "More than one Trial is selected!")
                 return
             self.current_trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
+        else:
+            self.current_trial_id = None
 
         self.add_or_edit_trial(self.current_trial_id)
 

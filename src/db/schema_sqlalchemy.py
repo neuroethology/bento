@@ -49,7 +49,7 @@ class Investigator(Base):
         return "<Investigator(user_name='%s', last_name='%s', first_name='%s', institution='%s', e_mail='%s')>" % (
             self.user_name, self.last_name, self.first_name, self.institution, self.e_mail
         )
-    
+
 class Camera(Base):
     """ mapper for the camera table """
     __tablename__ = 'camera'
@@ -139,7 +139,7 @@ class VideoData(Base):
         super().__init__()
         if d and db_sess:
             self.fromDict(d, db_sess)
-    
+
     def __repr__(self):
         return "<VideoData(file_path='%s', sample_rate='%s', start_time='%s')>" % (
             self.file_path, self.sample_rate, self.start_time
@@ -198,7 +198,7 @@ class Annotations(Base):
         super().__init__()
         if d and db_sess:
             self.fromDict(d, db_sess)
-    
+
     def __repr__(self):
         return ( "<Annotations(file_path='%s', sample_rate='%s', format='%s',"
             " start_time='%s', start_frame='%s', stop_frame='%s',"
@@ -406,7 +406,7 @@ class Session(Base):
     """
     Mapper for session table
     """
-    
+
     __tablename__ = 'session'
     id = Column(Integer, primary_key=True)
     animal_id = Column(Integer, ForeignKey('animal.id'), nullable=False)

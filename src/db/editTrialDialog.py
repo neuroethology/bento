@@ -5,12 +5,15 @@ from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import QIntValidator
-from PySide2.QtWidgets import QDialog, QFileDialog, QComboBox, QHeaderView
+from PySide2.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
 from widgets.tableModel import EditableTableModel
 from timecode import Timecode
-from os.path import expanduser, abspath, dirname, isdir, sep
+from os.path import expanduser, getmtime, sep
 from datetime import date, datetime
 from video.seqIo import seqIo_reader
+import pymatreader as pmr
+import warnings
+# from caiman.utils.utils import load_dict_from_hdf5
 
 class EditTrialDialog(QDialog):
 
@@ -25,7 +28,9 @@ class EditTrialDialog(QDialog):
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
         self.ui.videosSearchPushButton.clicked.connect(self.addVideoFiles)
+        self.ui.neuralsSearchPushButton.clicked.connect(self.addNeuralFiles)
         self.ui.trialNumLineEdit.setValidator(QIntValidator())
+        self.video_data = None
 
         self.trial_id = trial_id
         if trial_id:
@@ -40,6 +45,7 @@ class EditTrialDialog(QDialog):
                 self.ui.trialNumLineEdit.setText(str(trial.trial_num))
                 self.ui.stimulusLineEdit.setText(trial.stimulus)
         self.populateVideosTableView(True)
+        self.populateNeuralsTableView(True)
 
     @Slot()
     def populateTrialNum(self):
@@ -82,7 +88,7 @@ class EditTrialDialog(QDialog):
                 # The above call raises RuntimeError if the signal is not connected,
                 # which we can safely ignore.
                 pass
-    
+
     def addVideoFile(self, file_path, baseDir, available_cameras):
         """
         available_cameras is a tuple (id, position)
@@ -95,7 +101,7 @@ class EditTrialDialog(QDialog):
             print(f"Error trying to open video file {file_path}")
             raise
 
-        sample_rate = reader.header['fps']
+        sample_rate = float(reader.header['fps'])
         ts = reader.getTs(1)[0]
         reader.close()
         dt = datetime.fromtimestamp(ts)
@@ -105,19 +111,17 @@ class EditTrialDialog(QDialog):
         if file_path.startswith(baseDir):
             file_path = file_path[len(baseDir):]
 
-        camera_position = None
+        this_camera = None
         for camera in available_cameras:
-            if file_path.lower().find(camera[1].lower()) >= 0:
-                camera_position = camera[1]
-                camera_id = camera[0]
+            if file_path.lower().find(camera[0].lower()) >= 0:
+                this_camera = camera[0]
                 break
         item = {
             'id': None,
             'file_path': file_path,
             'sample_rate': sample_rate,
             'start_time': start_time,
-            'camera': camera_position,
-            'camera_id': camera_id,
+            'camera': this_camera,
             'trial_id': self.trial_id,
             #TODO: pose_data?
             'dirty': True
@@ -130,8 +134,11 @@ class EditTrialDialog(QDialog):
             print(f"addVideoFile: didn't find existing model; making a new one with {item}")
             header = VideoData().header()
             data_list = [item]
+            print(f"addVideoFile -- header: {header}, data_list: {data_list}")
             model = EditableTableModel(self, data_list, header)
             self.setVideoModel(model)
+            model.dataChanged.connect(self.ui.videosFileTableView.update)
+            self.video_data = item
 
     @Slot()
     def addVideoFiles(self):
@@ -141,7 +148,7 @@ class EditTrialDialog(QDialog):
             session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
             if session:
                 baseDir = session.base_directory
-            available_cameras = db_sess.execute(select([Camera.id, Camera.position])).all()
+            available_cameras = db_sess.execute(select(Camera.position)).all()
         if not baseDir:
             baseDir = expanduser("~")
         if not baseDir.endswith(sep):
@@ -179,7 +186,7 @@ class EditTrialDialog(QDialog):
     # Neural Data
 
     def setNeuralModel(self, model):
-        print("in setVideoModel")
+        print("in setNeuralModel")
         oldModel = self.ui.neuralsTableView.selectionModel()
         self.ui.neuralsTableView.setModel(model)
         self.ui.neuralsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -213,10 +220,28 @@ class EditTrialDialog(QDialog):
         """
         """
         print(f"Add neural file {file_path}")
+        with warnings.catch_warnings():
+            # suppress warning coming from checking the mat file contents
+            warnings.simplefilter('ignore', category=UserWarning)
+            mat = pmr.read_mat(file_path)
+        try:
+            data = mat['results']['C_raw']
+        except Exception as e:
+            QMessageBox.about(self, "File Read Error", f"Error reading neural data file {file_path}: {e}")
+            return
         # Get various data from neural file
-        dt = datetime.fromtimestamp(ts)
-        # set the video start time
-        start_time = Timecode(sample_rate, dt.time().isoformat()).float
+        # if the file is a h5 file, we can read it using caiman.utils, as below
+        # neural_dict = load_dict_from_hdf5(file_path)
+        # Otherwise, we can only guess from the video file info.
+        if isinstance(self.video_data, dict):
+            sample_rate = self.video_data['sample_rate']
+            start_time = self.video_data['start_time']
+        else:
+            sample_rate = 30.0
+            # get start time from file create time
+            start_time = datetime.fromtimestamp(getmtime(file_path))
+        start_frame = 1
+        stop_frame = data.shape[1]
 
         if file_path.startswith(baseDir):
             file_path = file_path[len(baseDir):]
@@ -227,18 +252,18 @@ class EditTrialDialog(QDialog):
             'sample_rate': sample_rate,
             'format': 'CNMFE', # by default
             'start_time': start_time,
-            'start_frame': 1,
+            'start_frame': start_frame,
             'stop_frame': stop_frame,
             'trial_id': self.trial_id,
             'dirty': True
         }
-        model = self.ui.videosFileTableView.model()
+        model = self.ui.neuralsTableView.model()
         if model:
-            print(f"addVideoFile: found existing model to append item {item} to")
+            print(f"addNeuralFile: found existing model to append item {item} to")
             model.appendData(item)
         else:
-            print(f"addVideoFile: didn't find existing model; making a new one with {item}")
-            header = VideoData().header()
+            print(f"addNeuralFile: didn't find existing model; making a new one with {item}")
+            header = NeuralData().header()
             data_list = [item]
             model = EditableTableModel(self, data_list, header)
             self.setNeuralModel(model)

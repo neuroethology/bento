@@ -36,7 +36,7 @@ class SessionDockWidget(QDockWidget):
         self.current_session_id = None
 
         self.search()
-        
+
 
     @Slot()
     def search(self):
@@ -98,5 +98,6 @@ class SessionDockWidget(QDockWidget):
         """
         Open the newSession Dialog
         """
+        if len(self.ui.sessionsTableView.selectedIndexes()) == 0:
+            self.current_session_id = None
         self.bento.add_or_edit_session(self.current_session_id)
-        
