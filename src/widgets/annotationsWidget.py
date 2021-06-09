@@ -30,7 +30,7 @@ class AnnotationsView(QGraphicsView):
 
     def set_bento(self, bento):
         self.bento = bento
-    
+
     @Slot(float)
     def updateScene(self):
         self.sample_rate = self.scene().sample_rate
@@ -58,7 +58,7 @@ class AnnotationsView(QGraphicsView):
                 t.m33()
             )
         self.setTransform(t, combine=False)
-    
+
     @Slot(float)
     def setHScale(self, hScale):
         self.scale_h = hScale
@@ -134,7 +134,7 @@ class AnnotationsView(QGraphicsView):
                     QPointF(now - offset, rect.bottom())
                 )
                 offset += self.ticksScale
-        
+
 class AnnotationsScene(QGraphicsScene):
     """
     AnnotationsScene is a class to contain annotation bouts for display in an
@@ -152,7 +152,7 @@ class AnnotationsScene(QGraphicsScene):
         self.sample_rate = sample_rate
         self.chan_map = {}
         self.loaded = False
-    
+
     def addBout(self, bout, chan):
         """
         Add a bout to the scene according to its timecode and channel name or number.
@@ -160,12 +160,14 @@ class AnnotationsScene(QGraphicsScene):
         if isinstance(chan, int):
             chan_num = chan
         elif isinstance(chan, str):
+            if chan not in self.chan_map.keys():
+                self.chan_map[chan] = len(self.chan_map.keys()) # add the new channel
             chan_num = self.chan_map[chan]
         else:
             raise RuntimeError(f"addBout: expected int or str, but got {type(chan)}")
         color = bout.color
         self.addRect(bout.start().float, float(chan_num), bout.len().float, 1., QPen(QBrush(), 0, s=Qt.NoPen), QBrush(color()))
-    
+
     def loadAnnotations(self, annotations, activeChannels, sample_rate):
         self.setSampleRate(sample_rate)
         self.height = float(len(activeChannels))

@@ -22,6 +22,7 @@ from db.bentoConfig import BentoConfig
 from db.animal_surgery_xls import import_xls_file
 # from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
+from channelDialog import ChannelDialog
 from os.path import expanduser, sep
 from utils import fix_path, padded_rectf
 import sys
@@ -140,6 +141,21 @@ class Bento(QObject):
         self.time_start = self.annotations.time_start()
         self.time_end = self.annotations.time_end()
         self.set_time(self.time_start)
+
+    @Slot()
+    def newChannel(self):
+        dialog = ChannelDialog(self)
+        dialog.exec_()
+
+    @Slot()
+    def addChannel(self, chanName):
+        if chanName not in self.annotations.channel_names():
+            self.annotations.addEmptyChannel(chanName)
+            self.mainWindow.addChannelToCombo(chanName)
+
+    @Slot()
+    def setActiveChannel(self, chanName):
+        self.active_channels = [chanName]
 
     @Slot()
     def save_annotations(self):

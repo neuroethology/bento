@@ -13,6 +13,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self, bento):
         super().__init__()
+
+        self.bento = bento
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.ui.stepButton.clicked.connect(bento.incrementTime)
@@ -33,6 +35,9 @@ class MainWindow(QMainWindow):
         self.ui.annotationsView.set_bento(bento)
         self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
+        self.populateChannelsCombo()
+        self.ui.channelComboBox.currentTextChanged.connect(bento.setActiveChannel)
+        self.ui.newChannelPushButton.clicked.connect(bento.newChannel)
 
         # menus
         self.menuBar = QMenuBar(self)
@@ -60,8 +65,6 @@ class MainWindow(QMainWindow):
         self.configAction.triggered.connect(bento.edit_config)
         self.createDBAction = self.dbMenu.addAction("Create Database")
         self.createDBAction.triggered.connect(bento.create_db)
-
-        self.bento = bento
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
@@ -107,3 +110,11 @@ class MainWindow(QMainWindow):
     def selectSession(self):
         self.bento.sessionWindow = SessionDockWidget(self.bento)
         self.bento.sessionWindow.show()
+
+    def addChannelToCombo(self, chanName):
+        self.ui.channelComboBox.addItem(chanName)
+        self.ui.channelComboBox.setCurrentText(chanName)
+
+    def populateChannelsCombo(self):
+        for chanName in self.bento.annotations.channel_names():
+            self.ui.channelComboBox.addItem(chanName)

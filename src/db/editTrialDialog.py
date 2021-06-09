@@ -53,13 +53,10 @@ class EditTrialDialog(QDialog):
         with self.bento.db_sessionMaker() as db_sess:
             maxTrial = db_sess.query(func.max(Trial.trial_num)).filter(Trial.session_id == self.session_id).scalar()
         self.ui.trialNumLineEdit.setText(str(maxTrial + 1 if isinstance(maxTrial, int) else 1))
-        print(f'trialNumLineEdit text is "{self.ui.trialNumLineEdit.text()}"')
-
 
     # Video Data
 
     def setVideoModel(self, model):
-        print("in setVideoModel")
         oldModel = self.ui.videosFileTableView.selectionModel()
         self.ui.videosFileTableView.setModel(model)
         self.ui.videosFileTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -137,7 +134,6 @@ class EditTrialDialog(QDialog):
             print(f"addVideoFile -- header: {header}, data_list: {data_list}")
             model = EditableTableModel(self, data_list, header)
             self.setVideoModel(model)
-            model.dataChanged.connect(self.ui.videosFileTableView.update)
             self.video_data = item
 
     @Slot()
@@ -166,16 +162,13 @@ class EditTrialDialog(QDialog):
     def updateVideoData(self, trial, db_sess):
         model = self.ui.videosFileTableView.model()
         for ix, entry in enumerate(model.getIterator()):
-            print(f"updateVideos: ix = {ix}, entry = {entry}")
             tableIndex = model.createIndex(ix, 0)
             if model.isDirty(tableIndex):
                 print(f"item at row {ix} is dirty")
                 if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
-                    print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
                     trial.video_data[ix].fromDict(entry, db_sess)
                 else:
                     # new item
-                    print(f"No existing db entry for index {ix}; create a new item")
                     item = VideoData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
                     db_sess.add(item)
                     trial.video_data.append(item)
@@ -186,7 +179,6 @@ class EditTrialDialog(QDialog):
     # Neural Data
 
     def setNeuralModel(self, model):
-        print("in setNeuralModel")
         oldModel = self.ui.neuralsTableView.selectionModel()
         self.ui.neuralsTableView.setModel(model)
         self.ui.neuralsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)

@@ -111,20 +111,21 @@ class TrialDockWidget(QDockWidget):
             trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
             print(f"Load trial id {trial_id}")
             videos = []
-            with self.bento.db_sessionMaker() as db_session:
-                self.bento.trial_id = db_session.query(Trial).where(Trial.id == trial_id).one().id
-                for selection in self.ui.videoTableView.selectionModel().selectedRows():
-                    videos.append(db_session.query(VideoData).where(VideoData.id == selection.siblingAtColumn(0).data()).one())
-                annotation = db_session.query(Annotations).where(
-                    Annotations.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
-                    ).one()
+            if self.ui.videoTableView.selectionModel().hasSelection():
+                with self.bento.db_sessionMaker() as db_session:
+                    self.bento.trial_id = db_session.query(Trial).where(Trial.id == trial_id).one().id
+                    for selection in self.ui.videoTableView.selectionModel().selectedRows():
+                        videos.append(db_session.query(VideoData).where(VideoData.id == selection.siblingAtColumn(0).data()).one())
+                    annotation = db_session.query(Annotations).where(
+                        Annotations.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
+                        ).scalar()
             loadPose = self.ui.loadPoseCheckBox.isChecked()
             loadNeural = self.ui.loadNeuralCheckBox.isChecked()
             loadAudio = self.ui.loadAudioCheckBox.isChecked()
             if self.bento.loadTrial(videos, annotation, loadPose, loadNeural, loadAudio):
                 self.bento.selectTrialWindow.close()
         else:
-            print("Nothing selected!")
+            print("No trial selected!")
 
     @Slot()
     def addOrEditTrial(self):

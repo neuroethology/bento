@@ -12,7 +12,7 @@ class Bout(object):
         self._start = start
         self._end = end
         self._behavior = behavior
-    
+
     def __lt__(self, b):
         if type(b) is tc.Timecode:
             return self._start.float < b.float
@@ -43,7 +43,7 @@ class Bout(object):
 
     def set_end(self, end):
         self._end = end
-    
+
     def len(self):
         return self._end - self._start + tc.Timecode(self._start.framerate, frames=1)
 
@@ -85,7 +85,7 @@ class Channel(object):
             self._bouts_by_end.add(b)
         else:
             raise TypeError("Can only append Bout to Channel")
-    
+
     def __add__(self, b):
         self.append(b)
 
@@ -119,12 +119,12 @@ class Channel(object):
         get all bouts that span time t
         """
         return [bout for bout in self._bouts_by_start
-            if bout.start().float <= t.float and bout.end().float >= t.float] 
+            if bout.start().float <= t.float and bout.end().float >= t.float]
 
     def __iter__(self):
         return iter(self._bouts_by_start)
 
-    
+
 class Annotations(object):
     """
     """
@@ -318,6 +318,10 @@ class Annotations(object):
     def channel(self, ch: str) -> Channel:
         return self._channels[ch]
 
+    def addEmptyChannel(self, ch: str):
+        if ch not in self.channel_names():
+            self._channels[ch] = Channel()
+
     def add_bout(self, bout, channel):
         self._channels[channel].append(bout)
         if bout.end() > self._time_end:
@@ -327,9 +331,9 @@ class Annotations(object):
         if not self._time_start or not self._frame_rate:
             return tc.Timecode('30.0', '0:0:0:0')
         return tc.Timecode(self._frame_rate, frames=self._time_start)
-    
+
     def time_end(self):
         if not self._time_end or not self._frame_rate:
             return tc.Timecode('30.0', '23:59:59:29')
         return tc.Timecode(self._frame_rate, frames=self._time_end)
-    
+
