@@ -112,9 +112,19 @@ class MainWindow(QMainWindow):
         self.bento.sessionWindow.show()
 
     def addChannelToCombo(self, chanName):
+        if isinstance(chanName, list):
+            for item in chanName:
+                self.addChannelToCombo(item)
+            return
+        if not isinstance(chanName, str):
+            raise RuntimeError("addChannelToCombo can only accept a string or list of strings")
         self.ui.channelComboBox.addItem(chanName)
         self.ui.channelComboBox.setCurrentText(chanName)
 
     def populateChannelsCombo(self):
         for chanName in self.bento.annotations.channel_names():
             self.ui.channelComboBox.addItem(chanName)
+
+    @Slot(str)
+    def selectChannelByName(self, chanName):
+        self.ui.channelComboBox.setCurrentText(chanName)

@@ -29,7 +29,7 @@ def import_common_info(xls_sheet, directory):
         else:
             print(f"Path specified for base_directory, {cell_0_0.value}, does not exist; using default")
 
-    common_data['base_directory'] = base_dir 
+    common_data['base_directory'] = base_dir
     common_data['neural_framerate'] = float(xls_sheet.cell_value(0, 2))
     common_data['annotation_framerate'] = float(xls_sheet.cell_value(0, 4))
     common_data['multiple_neural_trials_per_file'] = bool(xls_sheet.cell_value(0, 6))
@@ -111,7 +111,7 @@ def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_
 
         db_session.add_all(poses)
         db_session.commit()
-    
+
     # import neural (calcium imaging) data
     neural_string = xls_sheet.cell_value(row, 4)
     neural_names = neural_string.split(';')
@@ -138,7 +138,7 @@ def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_
         neural.start_time = videos[0].start_time # for now
 
         neurals.append(neural)
-    
+
     # import annotation data
     annotation_string = xls_sheet.cell_value(row, 9)
     annotation_names = annotation_string.split(';')
@@ -213,7 +213,7 @@ def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_
     db_session.add(trial)
     db_session.commit()
 
-def import_xls_file(file_path, db_session, investigator):
+def import_bento_xls_file(file_path, db_session, investigator):
     abs_path = abspath(file_path)
     base_dir = dirname(abs_path)
 
@@ -234,5 +234,5 @@ def do_import(investigator_name, rel_path):
     assert len(investigators) == 1
     investigator = investigators[0]
 
-    import_xls_file(rel_path, sess, investigator)
+    import_bento_xls_file(rel_path, sess, investigator)
 

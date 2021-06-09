@@ -56,7 +56,7 @@ def import_row(investigator, xls_sheet, row, session):
         22: Anesthetic (imported as "anesthesia")
         23: Analgesic (impoted as "followup_care")
     """
-    
+
     animal_id = int(xls_sheet.cell_value(row, 6))
     print(f"Importing animal and surgery on row {row}, animal id {animal_id}")
 
@@ -112,7 +112,7 @@ def import_row(investigator, xls_sheet, row, session):
     session.add(surgery)
     session.commit()
 
-def import_xls_file(file_path, db_session, investigator):
+def import_animal_xls_file(file_path, db_session, investigator):
     abs_path = abspath(file_path)
     xls = xlrd.open_workbook(abs_path)
     sheet = xls.sheets()[0]
@@ -129,5 +129,5 @@ def do_import(investigator_name, rel_path):
     assert len(investigators) == 1
     investigator = investigators[0]
 
-    import_xls_file(rel_path, db_sess, investigator)
+    import_animal_xls_file(rel_path, db_sess, investigator)
 

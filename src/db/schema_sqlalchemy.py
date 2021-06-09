@@ -251,9 +251,10 @@ class AudioData(Base):
     sample_rate = Column(Float)
     start_time = Column(Float)   # needs to be convertible to timecode
     processed_audio_file_path = Column(String(512))
-    annotations_id = Column(Integer, ForeignKey('annotations.id'))
+    # annotations_id = Column(Integer, ForeignKey('annotations.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'processed_audio_file_path', 'annotations_id', 'trial_id']
+    # keys = ['id', 'file_path', 'sample_rate', 'start_time', 'processed_audio_file_path', 'annotations_id', 'trial_id']
+    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'processed_audio_file_path', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -277,7 +278,7 @@ class AudioData(Base):
             'sample_rate': self.sample_rate,
             'start_time': self.start_time,
             'processed_audio_file_path': self.processed_audio_file_path,
-            'annotations_id': self.annotations_id,
+            # 'annotations_id': self.annotations_id,
             'trial_id': self.trial
         }
 
@@ -290,7 +291,7 @@ class AudioData(Base):
         self.sample_rate = d['sample_rate']
         self.start_time = d['start_time']
         self.processed_audio_file_path = d['processed_audio_file_path']
-        self.annotations_id = d['annotations_id']
+        # self.annotations_id = d['annotations_id']
         self.trial = d['trial_id']
 
 class PoseData(Base):
@@ -343,7 +344,7 @@ class PoseData(Base):
         self.sample_rate = d['sample_rate']
         self.start_time = d['start_time']
         self.format = d['format']
-        self.video = d['annotations_id']
+        self.video = d['video_id']
         self.trial = d['trial_id']
 
 class OtherData(Base):

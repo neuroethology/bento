@@ -19,7 +19,8 @@ from db.configDialog import ConfigDialog
 from db.editSessionDialog import EditSessionDialog
 from db.setInvestigatorDialog import SetInvestigatorDialog
 from db.bentoConfig import BentoConfig
-from db.animal_surgery_xls import import_xls_file
+from db.animal_surgery_xls import import_animal_xls_file
+from db.bento_xls import import_bento_xls_file
 # from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
 from channelDialog import ChannelDialog
@@ -108,6 +109,7 @@ class Bento(QObject):
         self.annotationsSceneUpdated.connect(self.mainWindow.ui.annotationsView.updateScene)
         self.timeChanged.connect(self.mainWindow.updateTime)
         self.annotChanged.connect(self.mainWindow.updateAnnotLabel)
+        self.active_channel_changed.connect(self.mainWindow.selectChannelByName)
         self.set_time('0:0:0:0')
         if not goodConfig:
             self.edit_config()
@@ -134,9 +136,12 @@ class Bento(QObject):
     def load_annotations(self, fn, sample_rate = 30.):
         print(f"Loading annotations from {fn}")
         self.annotations.read(fn)
-        self.active_channels = self.annotations.channel_names()
+        if self.annotations.channel_names():
+            self.mainWindow.addChannelToCombo(self.annotations.channel_names())
+            print(f"channel_names: {self.annotations.channel_names()}")
+            self.setActiveChannel(self.annotations.channel_names()[0])
         self.annotationsScene.setSampleRate(sample_rate)
-        self.annotationsScene.loadAnnotations(self.annotations, self.active_channels, sample_rate)
+        self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
         self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
         self.time_start = self.annotations.time_start()
         self.time_end = self.annotations.time_end()
@@ -156,6 +161,7 @@ class Bento(QObject):
     @Slot()
     def setActiveChannel(self, chanName):
         self.active_channels = [chanName]
+        self.active_channel_changed.emit(self.active_channels[0])
 
     @Slot()
     def save_annotations(self):
@@ -184,7 +190,22 @@ class Bento(QObject):
 
     @Slot()
     def import_trials(self):
-        pass
+        with self.db_sessionMaker() as db_sess:
+            investigator = db_sess.query(Investigator).where(Investigator.id == self.investigator_id).scalar()
+            if not investigator:
+                raise RuntimeError(f"Investigator not found for id {self.investigator_id}")
+            baseDir = expanduser("~")
+            if not baseDir.endswith(sep):
+                baseDir += sep
+            file_paths, _ = QFileDialog.getOpenFileNames(
+                self.mainWindow,
+                "Select MatLab bento session file(s) to import",
+                baseDir,
+                "Seq files (*.xls)",
+                "Seq files (*.xls)")
+            if len(file_paths) > 0:
+                for file_path in file_paths:
+                    import_bento_xls_file(file_path, db_sess, investigator)
 
     @Slot()
     def import_animals_tomomi(self):
@@ -203,7 +224,7 @@ class Bento(QObject):
                 "Seq files (*.xls)")
             if len(file_paths) > 0:
                 for file_path in file_paths:
-                    import_xls_file(file_path, db_sess, investigator)
+                    import_animal_xls_file(file_path, db_sess, investigator)
 
     # Database menu actions
 
@@ -453,6 +474,7 @@ class Bento(QObject):
     timeChanged = Signal(Timecode)
     annotChanged = Signal(list)
     annotationsSceneUpdated = Signal()
+    active_channel_changed = Signal(str)
 
 if __name__ == "__main__":
     # Create the Qt Application
