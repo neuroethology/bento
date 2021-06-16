@@ -93,7 +93,7 @@ class EditTrialDialog(QDialog):
         print(f"Add video file {file_path}")
         # Get various data from video file
         try:
-            reader = seqIo_reader(file_path)
+            reader = seqIo_reader(file_path, buildTable=False)
         except Exception:
             print(f"Error trying to open video file {file_path}")
             raise

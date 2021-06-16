@@ -1,7 +1,7 @@
 # bento.py
 
 from timecode import Timecode
-from PySide2.QtCore import Signal, Slot, QObject, QThread
+from PySide2.QtCore import Signal, Slot, QObject, QThread, QRectF, QMarginsF
 from PySide2.QtWidgets import QApplication, QFileDialog, QMenuBar, QMessageBox
 from annot.annot import Annotations, Bout
 from annot.behavior import Behaviors
@@ -133,18 +133,23 @@ class Bento(QObject):
         self.config.set_investigator_id(investigator_id)
         self.config.write()
 
-    def load_annotations(self, fn, sample_rate = 30.):
-        print(f"Loading annotations from {fn}")
-        self.annotations.read(fn)
-        if self.annotations.channel_names():
-            self.mainWindow.addChannelToCombo(self.annotations.channel_names())
-            print(f"channel_names: {self.annotations.channel_names()}")
-            self.setActiveChannel(self.annotations.channel_names()[0])
+    def load_or_init_annotations(self, fn, sample_rate = 30., running_time = None):
         self.annotationsScene.setSampleRate(sample_rate)
-        self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
-        self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
-        self.time_start = self.annotations.time_start()
-        self.time_end = self.annotations.time_end()
+        if isinstance(fn, str):
+            print(f"Loading annotations from {fn}")
+            self.annotations.read(fn)
+            if self.annotations.channel_names():
+                self.mainWindow.addChannelToCombo(self.annotations.channel_names())
+                print(f"channel_names: {self.annotations.channel_names()}")
+                self.setActiveChannel(self.annotations.channel_names()[0])
+            self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
+            self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
+            self.time_start = self.annotations.time_start()
+            self.time_end = self.annotations.time_end()
+        else:
+            print("Initializing new annotations")
+            self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 0.)))
+            self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
         self.set_time(self.time_start)
 
     @Slot()
@@ -157,6 +162,7 @@ class Bento(QObject):
         if chanName not in self.annotations.channel_names():
             self.annotations.addEmptyChannel(chanName)
             self.mainWindow.addChannelToCombo(chanName)
+            self.annotationsScene.setSceneRect(self.annotationsScene.sceneRect() + QMarginsF(0., 0., 0., 1.))
 
     @Slot()
     def setActiveChannel(self, chanName):
@@ -422,6 +428,9 @@ class Bento(QObject):
             session = db_sess.query(Session).filter(Session.id == self.session_id).one()
             base_directory = session.base_directory
             base_dir = base_directory + sep
+            runningTime = 0.
+            sample_rate = 30.0
+            sample_rate_set = False
             for video_data in videos:
                 widget = self.newVideoWidget(fix_path(base_dir + video_data.file_path))
                 self.video_widgets.append(widget)
@@ -430,18 +439,26 @@ class Bento(QObject):
                 qr.moveCenter(self.screen_center)
                 widget.move(qr.topLeft())    #TODO: need to space multiple videos out
                 widget.show()
+                runningTime = max(runningTime, widget.running_time())
+                if not sample_rate_set:
+                    sample_rate = widget.sample_rate()
+                    sample_rate_set = True
             if annotation:
                 annot_path = fix_path(base_dir + annotation.file_path)
-                try:
-                    self.load_annotations(annot_path, annotation.sample_rate)
-                except Exception as e:
-                    QMessageBox.about(self.selectTrialWindow, "Error", f"Attempt to load annotations from {annot_path} "
-                        f"failed with error {str(e)}")
-                    for widget in self.video_widgets:
-                        widget.close()
-                    self.video_widgets.clear()
-                    return False
-                self.annotationsSceneUpdated.emit()
+                sample_rate = annotation.sample_rate
+            else:
+                annot_path = None
+            self.load_or_init_annotations(annot_path, sample_rate, runningTime)
+            # try:
+            #     self.load_or_init_annotations(annot_path, sample_rate, runningTime)
+            # except Exception as e:
+            #     QMessageBox.about(self.selectTrialWindow, "Error", f"Attempt to load annotations from {annot_path} "
+            #         f"failed with error {str(e)}")
+            #     for widget in self.video_widgets:
+            #         widget.close()
+            #     self.video_widgets.clear()
+            #     return False
+            self.annotationsSceneUpdated.emit()
             if loadPose:
                 print("Load pose data if any")
                 # if self.trial_id.pose_data:

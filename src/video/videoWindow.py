@@ -15,7 +15,7 @@ class VideoScene(QGraphicsScene):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.annots = None
-    
+
     def setAnnots(self, annots):
         self.annots = annots
 
@@ -64,7 +64,7 @@ class VideoFrame(QFrame):
         self.pixmapItem = self.scene.addPixmap(self.pixmap)
         self.active_annots = []
         self.aspect_ratio = 1.
-    
+
     def resizeEvent(self, event):
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
@@ -91,6 +91,17 @@ class VideoFrame(QFrame):
         self.ui.videoView.resize(frame_width, frame_height)
         self.ui.videoView.fitInView(self.pixmapItem, aspectRatioMode=Qt.KeepAspectRatio)
 
+    def sample_rate(self):
+        if not self.reader:
+            return 30.0
+        else:
+            return self.reader.header['fps']
+
+    def running_time(self):
+        if not self.reader:
+            return 0.
+        return float(self.reader.header['fps'] * self.reader.header['numFrames'])
+
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
             if event.modifiers() & Qt.ShiftModifier:
@@ -116,7 +127,8 @@ class VideoFrame(QFrame):
     def updateFrame(self, t):
         if not self.reader:
             return
-        i = min(t.frames, self.reader.header['numFrames']-1)
+        myTc = Timecode(self.reader.header['fps'], start_seconds=t.float)
+        i = min(myTc.frames, self.reader.header['numFrames']-1)
         image, _ = self.reader.getFrame(i, decode=False)
         self.pixmap.loadFromData(image.tobytes())
         self.pixmapItem.setPixmap(self.pixmap)

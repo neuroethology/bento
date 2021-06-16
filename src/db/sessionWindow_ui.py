@@ -83,11 +83,6 @@ class Ui_SessionDockWidget(object):
 
         self.pushButtonsHorizontalLayout = QHBoxLayout()
         self.pushButtonsHorizontalLayout.setObjectName(u"pushButtonsHorizontalLayout")
-        self.searchPushButton = QPushButton(self.experimentDockWidgetContents)
-        self.searchPushButton.setObjectName(u"searchPushButton")
-
-        self.pushButtonsHorizontalLayout.addWidget(self.searchPushButton)
-
         self.addOrEditSessionPushButton = QPushButton(self.experimentDockWidgetContents)
         self.addOrEditSessionPushButton.setObjectName(u"addOrEditSessionPushButton")
 
@@ -115,7 +110,6 @@ class Ui_SessionDockWidget(object):
         self.startDateEdit.setDisplayFormat(QCoreApplication.translate("SessionDockWidget", u"yyyy-MM-dd", None))
         self.dateRangeToLabel.setText(QCoreApplication.translate("SessionDockWidget", u" to: ", None))
         self.endDateEdit.setDisplayFormat(QCoreApplication.translate("SessionDockWidget", u"yyyy-MM-dd", None))
-        self.searchPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Search", None))
         self.addOrEditSessionPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Add or Edit Session...", None))
         self.loadPushButton.setText(QCoreApplication.translate("SessionDockWidget", u"Load Session", None))
     # retranslateUi

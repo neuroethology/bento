@@ -3,7 +3,7 @@
 from db.schema_sqlalchemy import VideoData, Session
 from db.trialWindow_ui import Ui_TrialDockWidget
 from db.editTrialDialog import EditTrialDialog
-from PySide2.QtCore import Signal, Slot
+from PySide2.QtCore import Signal, Slot, QItemSelection
 from PySide2.QtGui import Qt
 from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
 
@@ -53,65 +53,76 @@ class TrialDockWidget(QDockWidget):
 
             self.ui.loadNeuralCheckBox.setCheckState(Qt.Checked)
 
-    @Slot()
-    def populateVideos(self):
-        selectionModel = self.ui.trialTableView.selectionModel()
-        if selectionModel.hasSelection():
-            trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
-            header = ['id', 'view', 'file path']
-            with self.bento.db_sessionMaker() as db_session:
-                trial = db_session.query(Trial).where(Trial.id == trial_id).one()
-                data_list = [(
-                    elem.id,
-                    elem.camera.position,
-                    elem.file_path
-                    ) for elem in trial.video_data]
+    @Slot(QItemSelection, QItemSelection)
+    def populateVideos(self, selected, deselected):
+        header = ['id', 'view', 'file path']
+        if selected.empty():
+            # clear table
+            model = TableModel(self, [], header)
+        else:
+            # populate with videos from the (first) selected trial
+            indexes = selected.first().indexes()
+            if len(indexes) > 0:
+                trial_id = indexes[0].siblingAtColumn(0).data()
+                with self.bento.db_sessionMaker() as db_session:
+                    trial = db_session.query(Trial).where(Trial.id == trial_id).one()
+                    data_list = [(
+                        elem.id,
+                        elem.camera.position,
+                        elem.file_path
+                        ) for elem in trial.video_data]
             model = TableModel(self, data_list, header)
-            self.ui.videoTableView.setModel(model)
-            self.ui.videoTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-            self.ui.videoTableView.resizeColumnsToContents()
-            self.ui.videoTableView.hideColumn(0)   # don't show the trial's ID field, but we need it for Load
-            self.ui.videoTableView.setSortingEnabled(True)
-            self.ui.videoTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
-            self.ui.videoTableView.setAutoScroll(False)
-            self.ui.videoTableView.sortByColumn(0)
-            self.ui.videoTableView.selectRow(0)
+        self.ui.videoTableView.setModel(model)
+        self.ui.videoTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui.videoTableView.resizeColumnsToContents()
+        self.ui.videoTableView.hideColumn(0)   # don't show the trial's ID field, but we need it for Load
+        self.ui.videoTableView.setSortingEnabled(True)
+        self.ui.videoTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.ui.videoTableView.setAutoScroll(False)
+        self.ui.videoTableView.sortByColumn(0)
+        self.ui.videoTableView.selectRow(0)
 
-    @Slot()
-    def populateAnnotations(self):
-        selectionModel = self.ui.trialTableView.selectionModel()
-        if selectionModel.hasSelection():
-            trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
-            header = ['id', 'annotator name', 'method', 'file path']
-            with self.bento.db_sessionMaker() as db_session:
-                trial = db_session.query(Trial).where(Trial.id == trial_id).one()
-                data_list = [(
-                    elem.id,
-                    elem.annotator_name,
-                    elem.method,
-                    elem.file_path
-                    ) for elem in trial.annotations]
+    @Slot(QItemSelection, QItemSelection)
+    def populateAnnotations(self, selected, deselected):
+        header = ['id', 'annotator name', 'method', 'file path']
+        if selected.empty():
+            # clear table
+            model = TableModel(self, [], header)
+        else:
+            # populate with annotations from the (first) selected trial
+            indexes = selected.first().indexes()
+            if len(indexes) > 0:
+                trial_id = indexes[0].siblingAtColumn(0).data()
+                with self.bento.db_sessionMaker() as db_session:
+                    trial = db_session.query(Trial).where(Trial.id == trial_id).one()
+                    data_list = [(
+                        elem.id,
+                        elem.annotator_name,
+                        elem.method,
+                        elem.file_path
+                        ) for elem in trial.annotations]
             model = TableModel(self, data_list, header)
-            self.ui.annotationTableView.setModel(model)
-            self.ui.annotationTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-            self.ui.annotationTableView.resizeColumnsToContents()
-            self.ui.annotationTableView.hideColumn(0)   # don't show the trial's ID field, but we need it for Load
-            self.ui.annotationTableView.setSortingEnabled(True)
-            self.ui.annotationTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
-            self.ui.annotationTableView.setAutoScroll(False)
-            self.ui.annotationTableView.selectRow(0)
+        self.ui.annotationTableView.setModel(model)
+        self.ui.annotationTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui.annotationTableView.resizeColumnsToContents()
+        self.ui.annotationTableView.hideColumn(0)   # don't show the trial's ID field, but we need it for Load
+        self.ui.annotationTableView.setSortingEnabled(True)
+        self.ui.annotationTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.ui.annotationTableView.setAutoScroll(False)
+        self.ui.annotationTableView.selectRow(0)
 
     @Slot()
     def loadTrial(self):
-        selectionModel = self.ui.trialTableView.selectionModel()
-        if selectionModel.hasSelection():
-            if len(selectionModel.selectedRows()) > 1:
+        trialSelectionModel = self.ui.trialTableView.selectionModel()
+        if trialSelectionModel and trialSelectionModel.hasSelection():
+            if len(trialSelectionModel.selectedRows()) > 1:
                 QMessageBox.about(self, "Error", "More than one Trial is selected!")
                 return
-            trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
+            trial_id = trialSelectionModel.selectedRows()[0].siblingAtColumn(0).data()
             print(f"Load trial id {trial_id}")
             videos = []
-            if self.ui.videoTableView.selectionModel().hasSelection():
+            videoSelectionModel = self.ui.videoTableView.selectionModel()
+            if videoSelectionModel and videoSelectionModel.hasSelection():
                 with self.bento.db_sessionMaker() as db_session:
                     self.bento.trial_id = db_session.query(Trial).where(Trial.id == trial_id).one().id
                     for selection in self.ui.videoTableView.selectionModel().selectedRows():

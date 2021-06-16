@@ -17,6 +17,7 @@ class EditSessionDialog(QDialog):
     def __init__(self, bento, investigator_id, session_id=None):
         super().__init__()
         self.bento = bento
+        self.session_id = session_id
         self.investigator_id = investigator_id
         self.ui = Ui_EditSessionDialog()
         self.ui.setupUi(self)
@@ -105,13 +106,18 @@ class EditSessionDialog(QDialog):
         if current_row >= 0:
             animal_id = self.ui.animalTableView.currentIndex().siblingAtColumn(0).data()
         with self.bento.db_sessionMaker().begin() as transaction:
-            session = Session()
+            if self.session_id:
+                session = transaction.session.query(Session).filter(Session.id == self.session_id).scalar()
+                if not session:
+                    raise RuntimeWarning(f"Session id {self.session_id} not found!")
+            else:
+                session = Session()
+                transaction.session.add(session)
             session.animal_id = animal_id
             session.investigator_id = self.investigator_id
             session.base_directory = self.ui.baseDirLineEdit.text()
             session.experiment_date = self.ui.dateEdit.date().toPython()
             session.session_num = int(self.ui.sessionNumLineEdit.text())
-            transaction.session.add(session)
         super().accept()
 
     @Slot()

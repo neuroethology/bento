@@ -18,9 +18,13 @@ class SessionDockWidget(QDockWidget):
         self.bento = bento
         self.ui = Ui_SessionDockWidget()
         self.ui.setupUi(self)
-        self.ui.searchPushButton.clicked.connect(self.search)
         self.ui.loadPushButton.clicked.connect(self.loadSession)
         self.ui.addOrEditSessionPushButton.clicked.connect(self.addOrEditSession)
+        self.ui.investigatorComboBox.currentTextChanged.connect(self.search)
+        self.ui.useInvestigatorCheckBox.clicked.connect(self.search)
+        self.ui.useDateRangeCheckBox.clicked.connect(self.search)
+        self.ui.startDateEdit.dateChanged.connect(self.search)
+        self.ui.endDateEdit.dateChanged.connect(self.search)
         self.quitting.connect(self.bento.quit)
 
         with self.bento.db_sessionMaker() as db_session:

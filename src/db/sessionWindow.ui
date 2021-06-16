@@ -103,13 +103,6 @@
     <item>
      <layout class="QHBoxLayout" name="pushButtonsHorizontalLayout">
       <item>
-       <widget class="QPushButton" name="searchPushButton">
-        <property name="text">
-         <string>Search</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QPushButton" name="addOrEditSessionPushButton">
         <property name="text">
          <string>Add or Edit Session...</string>

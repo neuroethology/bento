@@ -34,6 +34,7 @@ class MainWindow(QMainWindow):
         self.ui.oneXFrameRateButton.clicked.connect(bento.player.resetFrameRate)
         self.ui.annotationsView.set_bento(bento)
         self.ui.annotationsView.setScene(bento.annotationsScene)
+        bento.annotationsScene.sceneRectChanged.connect(self.ui.annotationsView.update)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
         self.populateChannelsCombo()
         self.ui.channelComboBox.currentTextChanged.connect(bento.setActiveChannel)

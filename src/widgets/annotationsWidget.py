@@ -167,6 +167,7 @@ class AnnotationsScene(QGraphicsScene):
             raise RuntimeError(f"addBout: expected int or str, but got {type(chan)}")
         color = bout.color
         self.addRect(bout.start().float, float(chan_num), bout.len().float, 1., QPen(QBrush(), 0, s=Qt.NoPen), QBrush(color()))
+        self.loaded = True
 
     def loadAnnotations(self, annotations, activeChannels, sample_rate):
         self.setSampleRate(sample_rate)
@@ -174,7 +175,6 @@ class AnnotationsScene(QGraphicsScene):
         for ix, chan in enumerate(activeChannels):
             self.chan_map[chan] = ix
             self.loadBouts(annotations.channel(chan),  ix)
-        self.loaded = True
 
     def loadBouts(self, channel, chan_num):
         print(f"Loading bouts for channel {chan_num}")
