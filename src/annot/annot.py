@@ -137,6 +137,7 @@ class Annotations(object):
         self._time_end = None
         self._frame_rate = None
         self._stimulus = None
+        self._format = None
         self.annotation_names = []
 
     def read(self, fn):
@@ -144,8 +145,10 @@ class Annotations(object):
             line = f.readline()
             line = line.strip().lower()
             if line.endswith("annotation file"):
+                self._format = 'Caltech'
                 self._read_caltech(f)
             elif line.startswith("scorevideo log"):
+                self._format = 'Ethovision'
                 self._read_ethovision(f)
             else:
                 print("Unsupported annotation file format")
@@ -337,3 +340,8 @@ class Annotations(object):
             return tc.Timecode('30.0', '23:59:59:29')
         return tc.Timecode(self._frame_rate, frames=self._time_end)
 
+    def frame_rate(self):
+        return self._frame_rate
+
+    def format(self):
+        return self._format

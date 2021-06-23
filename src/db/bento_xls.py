@@ -43,7 +43,7 @@ def import_common_info(xls_sheet, directory):
 def fix_path(path):
     return abspath(path.replace('\\', sep).replace('/', sep))
 
-def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_session):
+def import_row(investigator_id, xls_sheet, common_data, row, available_cameras, db_session):
     """
     Import a row of experiment data
     """
@@ -60,7 +60,7 @@ def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_
             for animal in animals:
                 print(animal)
         assert len(animals) == 1
-    animal = animals[0]
+    animal_id = animals[0].id
 
     # import videos
     video_string = xls_sheet.cell_value(row, 14)
@@ -104,7 +104,7 @@ def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_
             pose = PoseData()
             #TODO: need to match up pose file with video file (top <==> top, e.g.)
             pose.file_path = pose_name.strip()
-            pose.sample_rate = videos[0].sample_rate
+            pose.sample_rate = float(videos[0].sample_rate)
             pose.start_time = 0.0   # for now
             pose.format = ''        # MARS Top, MARS Front, DeepLabCut, SLEAP, Jellyfish, Cell Outlines (neuron A data)
             poses.append(pose)
@@ -119,8 +119,8 @@ def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_
     for neural_name in neural_names:
         neural = NeuralData()
         neural.file_path = neural_name.strip()
-        neural.sample_rate = xls_sheet.cell_value(row, 7) if xls_sheet.cell_value(row, 7) else common_data['neural_framerate']
-        offset = xls_sheet.cell_value(row, 14)
+        neural.sample_rate = float(xls_sheet.cell_value(row, 7)) if xls_sheet.cell_value(row, 7) else common_data['neural_framerate']
+        offset = float(xls_sheet.cell_value(row, 13))
         neural.format = 'CNMFE' # by default
         neural.start_frame = int(xls_sheet.cell_value(row, 5))
         neural.stop_frame = int(xls_sheet.cell_value(row, 6))
@@ -184,10 +184,9 @@ def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_
     trial.other_data = []
 
     # get the appropriate existing session, or create a new one
-    animal_id = animal.id
-    investigator_id = investigator.id
     session_num = int(xls_sheet.cell_value(row, 1))
-    query = db_session.query(Session).filter(Session.investigator_id == investigator_id)
+    query = db_session.query(Session)
+    query = query.filter(Session.investigator_id == investigator_id)
     query = query.filter(Session.animal_id == animal_id)
     query = query.filter(Session.session_num == session_num)
     query = query.filter(Session.experiment_date == experiment_date)
@@ -213,7 +212,7 @@ def import_row(investigator, xls_sheet, common_data, row, available_cameras, db_
     db_session.add(trial)
     db_session.commit()
 
-def import_bento_xls_file(file_path, db_session, investigator):
+def import_bento_xls_file(file_path, db_session, investigator_id):
     abs_path = abspath(file_path)
     base_dir = dirname(abs_path)
 
@@ -225,14 +224,14 @@ def import_bento_xls_file(file_path, db_session, investigator):
     available_cameras = db_session.query(Camera).all()
 
     for row in range(2, sheet.nrows):
-        import_row(investigator, sheet, common_data, row, available_cameras, db_session)
+        import_row(investigator_id, sheet, common_data, row, available_cameras, db_session)
 
 def do_import(investigator_name, rel_path):
     Session = new_session()
     sess = Session()
     investigators = sess.query(Investigator).filter(Investigator.user_name == investigator_name).all()
     assert len(investigators) == 1
-    investigator = investigators[0]
+    investigator_id = investigators[0].id
 
-    import_bento_xls_file(rel_path, sess, investigator)
+    import_bento_xls_file(rel_path, sess, investigator_id)
 

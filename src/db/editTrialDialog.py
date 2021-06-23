@@ -1,8 +1,9 @@
 # editTrialDialog.py
 
-from db.schema_sqlalchemy import Camera, Trial, Session, VideoData, NeuralData
+from db.schema_sqlalchemy import Camera, Trial, Session, VideoData, NeuralData, AnnotationsData, Investigator
 from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
+from annot.annot import Annotations
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
@@ -29,6 +30,7 @@ class EditTrialDialog(QDialog):
         self.quitting.connect(self.bento.quit)
         self.ui.videosSearchPushButton.clicked.connect(self.addVideoFiles)
         self.ui.neuralsSearchPushButton.clicked.connect(self.addNeuralFiles)
+        self.ui.annotationsSearchPushButton.clicked.connect(self.addAnnotationFiles)
         self.ui.trialNumLineEdit.setValidator(QIntValidator())
         self.video_data = None
 
@@ -46,6 +48,7 @@ class EditTrialDialog(QDialog):
                 self.ui.stimulusLineEdit.setText(trial.stimulus)
         self.populateVideosTableView(True)
         self.populateNeuralsTableView(True)
+        self.populateAnnotationsTableView(True)
 
     @Slot()
     def populateTrialNum(self):
@@ -302,6 +305,133 @@ class EditTrialDialog(QDialog):
             else:
                 print(f"item at row {ix} wasn't dirty, so did nothing")
 
+    # Annotations
+
+    def setAnnotationsModel(self, model):
+        oldModel = self.ui.annotationsTableView.selectionModel()
+        self.ui.annotationsTableView.setModel(model)
+        self.ui.annotationsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui.annotationsTableView.resizeColumnsToContents()
+        self.ui.annotationsTableView.hideColumn(0)   # don't show the ID field, but we need it for reference
+        self.ui.annotationsTableView.setSortingEnabled(False)
+        self.ui.annotationsTableView.setAutoScroll(False)
+        if oldModel:
+            oldModel.deleteLater()
+
+    def populateAnnotationsTableView(self, updateTrialNum):
+        with self.bento.db_sessionMaker() as db_sess:
+            results = db_sess.query(AnnotationsData).filter(AnnotationsData.trial == self.trial_id).all()
+            header = results[0].header()
+            data_list = [elem.toDict() for elem in results]
+        model = EditableTableModel(self, data_list, header)
+        self.setAnnotationsModel(model)
+
+        selectionModel = self.ui.annotationsTableView.selectionModel()
+        if updateTrialNum:
+            selectionModel.selectionChanged.connect(self.populateTrialNum)
+        else:
+            try:
+                selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+            except RuntimeError:
+                # The above call raises RuntimeError if the signal is not connected,
+                # which we can safely ignore.
+                pass
+
+    def addAnnotationFile(self, file_path, baseDir):
+        """
+        """
+        print(f"Add annotation file {file_path}")
+        annotations = Annotations(self.bento.behaviors)
+        try:
+            annotations.read(file_path)
+        except Exception as e:
+            QMessageBox.about(self, "File Read Error", f"Error reading annotations file {file_path}: {e}")
+            return
+        # Get various data from the annotations file
+        # if the file is a h5 file, we can read it using caiman.utils, as below
+        # neural_dict = load_dict_from_hdf5(file_path)
+        # Otherwise, we can only guess from the video file info.
+        if isinstance(annotations, Annotations):
+            sample_rate = annotations.sample_rate()
+        else:
+            sample_rate = 30.0
+
+        if file_path.startswith(baseDir):
+            file_path = file_path[len(baseDir):]
+
+        annotator_name = ""
+        if self.bento.investigator_id:
+            with self.bento.db_sessionMaker() as db_sess:
+                investigator = db_sess.query(Investigator).select(self.bento.investigator_id).scalar()
+                if investigator:
+                    annotator_name = investigator.user_name
+
+        item = {
+            'id': None,
+            'file_path': file_path,
+            'sample_rate': sample_rate,
+            'format': annotations.format(),
+            'start_time': annotations.time_start().float,
+            'start_frame': annotations.time_start().frame,
+            'stop_frame': annotations.time_end().frame,
+            'annotator_name': annotator_name,
+            'method': "manual",
+            'trial_id': self.trial_id,
+            'dirty': True
+        }
+        model = self.ui.annotationsTableView.model()
+        if model:
+            print(f"addAnnotationFile: found existing model to append item {item} to")
+            model.appendData(item)
+        else:
+            print(f"addNAnnotationFile: didn't find existing model; making a new one with {item}")
+            header = AnnotationsData().header()
+            data_list = [item]
+            model = EditableTableModel(self, data_list, header)
+            self.setAnnotationsModel(model)
+
+    def updateAnnotationsData(self, trial, db_sess):
+        model = self.ui.annotationsTableView.model()
+        for ix, entry in enumerate(model.getIterator()):
+            print(f"updateAnnotations ix = {ix}, entry = {entry}")
+            tableIndex = model.createIndex(ix, 0)
+            if model.isDirty(tableIndex):
+                print(f"item at row {ix} is dirty")
+                if ix < len(trial.annotations) and trial.annotations[ix].id == entry['id']:
+                    print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
+                    trial.annotations[ix].fromDict(entry, db_sess)
+                else:
+                    # new item
+                    print(f"No existing db entry for index {ix}; create a new item")
+                    item = AnnotationsData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
+                    db_sess.add(item)
+                    trial.annotations.append(item)
+                model.clearDirty(tableIndex)
+            else:
+                print(f"item at row {ix} wasn't dirty, so did nothing")
+
+    @Slot()
+    def addAnnotationFiles(self):
+        #TODO: How to delete annotation file references from the DB?
+        baseDir = None
+        with self.bento.db_sessionMaker() as db_sess:
+            session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
+            if session:
+                baseDir = session.base_directory
+        if not baseDir:
+            baseDir = expanduser("~")
+        if not baseDir.endswith(sep):
+            baseDir += sep
+        annotationFiles, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select Annotation Files to add to Trial",
+            baseDir,
+            "Caltech Annotation files (*.annot)",
+            "Caltech Annotation files (*.annot)")
+        if len(annotationFiles) > 0:
+            for file_path in annotationFiles:
+                self.addAnnotationFile(file_path, baseDir)
+
     @Slot()
     def accept(self):
         with self.bento.db_sessionMaker() as db_sess:
@@ -318,6 +448,7 @@ class EditTrialDialog(QDialog):
 
             self.updateVideoData(trial, db_sess)
             self.updateNeuralData(trial, db_sess)
+            self.updateAnnotationsData(trial, db_sess)
             db_sess.commit()
             self.trialsChanged.emit()
         super().accept()

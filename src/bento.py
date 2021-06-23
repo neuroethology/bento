@@ -90,12 +90,14 @@ class Bento(QObject):
         self.active_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
         self.pending_bout = None
-        with open('../color_profiles.txt','r') as f:
+        with open('/Users/drumph/Develop/bento/bento/color_profiles.txt','r') as f:
+        # with open('../color_profiles.txt','r') as f:
             self.behaviors.load(f)
         self.session_id = None
         self.trial_id = None
         self.player = PlayerWorker(self)
         self.annotationsScene = AnnotationsScene()
+        self.newAnnotations = False
         self.video_widgets = []
         self.neural_widgets = []
         self.annotations = Annotations(self.behaviors)
@@ -150,6 +152,7 @@ class Bento(QObject):
             print("Initializing new annotations")
             self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 0.)))
             self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
+            self.newAnnotations = True
         self.set_time(self.time_start)
 
     @Slot()
@@ -177,15 +180,20 @@ class Bento(QObject):
             self.mainWindow,
             caption="Annotation File Name",
             dir=base_directory)
-        with open(fileName, 'w') as file:
-            with self.db_sessionMaker() as db_sess:
-                trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+        with self.db_sessionMaker() as db_sess:
+            trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+            with open(fileName, 'w') as file:
                 self.annotations.write_caltech(
                     file,
                     [video_data.file_path for video_data in trial.video_data],
                     trial.stimulus
                     )
-        print(f"Filter returned from file dialog was {filter}")
+            if self.newAnnotations:
+                db_sess.add(self.annotations)
+                db_sess.commit()
+                trial.annotations.append(self.annotations)
+                db_sess.commit()
+                self.newAnnotations = False
 
     # File menu actions
 
@@ -211,7 +219,7 @@ class Bento(QObject):
                 "Seq files (*.xls)")
             if len(file_paths) > 0:
                 for file_path in file_paths:
-                    import_bento_xls_file(file_path, db_sess, investigator)
+                    import_bento_xls_file(file_path, db_sess, self.investigator_id)
 
     @Slot()
     def import_animals_tomomi(self):

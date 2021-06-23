@@ -17,18 +17,22 @@ class InvestigatorDialog(QDialog):
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
 
-        self.db_sess = self.bento.db_sessionMaker()
+        self.investigator_id = None
         self.populateComboBox(False)
         self.ui.investigatorComboBox.currentIndexChanged.connect(self.showSelected)
-        self.investigator = Investigator()
 
     def populateComboBox(self, preSelect):
         if preSelect:
             selection = self.ui.investigatorComboBox.currentText()
         self.ui.investigatorComboBox.clear()
         self.ui.investigatorComboBox.addItem("new Investigator")
-        investigators = self.db_sess.query(Investigator).distinct().all()
-        self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
+        with self.bento.db_sessionMaker() as db_sess:
+            try:
+                investigators = db_sess.query(Investigator).distinct().all()
+                self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
+            except Exception as e:
+                pass # no database yet?
+
         self.ui.investigatorComboBox.setEditable(False)
         if preSelect:
             self.ui.investigatorComboBox.setCurrentText(selection)
@@ -38,13 +42,15 @@ class InvestigatorDialog(QDialog):
         buttonRole = self.ui.buttonBox.buttonRole(button)
         if (buttonRole == QDialogButtonBox.AcceptRole or
             buttonRole == QDialogButtonBox.ApplyRole):
-            self.investigator.user_name = self.ui.usernameLineEdit.text()
-            self.investigator.last_name = self.ui.lastNameLineEdit.text()
-            self.investigator.first_name = self.ui.firstNameLineEdit.text()
-            self.investigator.institution = self.ui.institutionLineEdit.text()
-            self.investigator.e_mail = self.ui.eMailLineEdit.text()
-            self.db_sess.add(self.investigator)
-            self.db_sess.commit()
+            with self.bento.db_sessionMaker() as db_sess:
+                investigator = Investigator()
+                investigator.user_name = self.ui.usernameLineEdit.text()
+                investigator.last_name = self.ui.lastNameLineEdit.text()
+                investigator.first_name = self.ui.firstNameLineEdit.text()
+                investigator.institution = self.ui.institutionLineEdit.text()
+                investigator.e_mail = self.ui.eMailLineEdit.text()
+                db_sess.add(investigator)
+                db_sess.commit()
             self.populateComboBox(preSelect)
         elif buttonRole == QDialogButtonBox.DestructiveRole:
             self.reject()
@@ -63,19 +69,21 @@ class InvestigatorDialog(QDialog):
     @Slot()
     def showSelected(self):
         if self.ui.investigatorComboBox.currentIndex() == 0:
-            self.investigator = Investigator()
+            self.investigator_id = None
         else:
             investigator_username = self.ui.investigatorComboBox.currentText()
-            query = self.db_sess.query(Investigator)
-            result = query.filter(Investigator.user_name == investigator_username).all()
-            if len(result) > 0:
-                self.investigator = result[0]
-                self.ui.usernameLineEdit.setText(self.investigator.user_name)
-                self.ui.lastNameLineEdit.setText(self.investigator.last_name)
-                self.ui.firstNameLineEdit.setText(self.investigator.first_name)
-                self.ui.institutionLineEdit.setText(self.investigator.institution)
-                self.ui.eMailLineEdit.setText(self.investigator.e_mail)
-                return
+            with self.bento.db_sessionMaker() as db_sess:
+                query = db_sess.query(Investigator)
+                result = query.filter(Investigator.user_name == investigator_username).all()
+                if len(result) > 0:
+                    investigator = result[0]
+                    self.investigator_id = investigator.id
+                    self.ui.usernameLineEdit.setText(investigator.user_name)
+                    self.ui.lastNameLineEdit.setText(investigator.last_name)
+                    self.ui.firstNameLineEdit.setText(investigator.first_name)
+                    self.ui.institutionLineEdit.setText(investigator.institution)
+                    self.ui.eMailLineEdit.setText(investigator.e_mail)
+                    return
         self.ui.usernameLineEdit.clear()
         self.ui.lastNameLineEdit.clear()
         self.ui.firstNameLineEdit.clear()

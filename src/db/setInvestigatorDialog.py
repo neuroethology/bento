@@ -15,19 +15,27 @@ class SetInvestigatorDialog(QDialog):
         self.ui = Ui_SetInvestigatorDialog()
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
+        print("setting investigator_id to None")
+        self.investigator_id = None
 
         username = self.bento.config.username()
         with self.bento.db_sessionMaker() as db_sess:
-            query = db_sess.query(Investigator).distinct()
-            investigators = query.all()
-            investigator = query.filter(Investigator.user_name == username).scalar()
-            self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
-            self.ui.investigatorComboBox.setEditable(False)
-            if investigator:
-                self.investigator_id = investigator.id
-                self.ui.investigatorComboBox.setCurrentText(investigator.user_name)
-            else:
-                self.investigator_id = None
+            try:
+                query = db_sess.query(Investigator).distinct()
+                investigators = query.all()
+                investigator = query.filter(Investigator.user_name == username).scalar()
+                self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
+                self.ui.investigatorComboBox.setEditable(False)
+                if investigator:
+                    print(f"setting investigator_id to {investigator.id}")
+                    self.investigator_id = investigator.id
+                    self.ui.investigatorComboBox.setCurrentText(investigator.user_name)
+                elif len(investigators) > 0:
+                    self.investigator_id = investigators[0].id
+                    self.ui.investigatorComboBox.setCurrentText(investigators[0].user_name)
+            except Exception as e:
+                print(f"Caught exception {e}")
+                pass # no database yet?
         self.ui.investigatorComboBox.currentIndexChanged.connect(self.investigatorChanged)
 
     @Slot()

@@ -175,7 +175,7 @@ class VideoData(Base):
         self.trial = d['trial_id']
         #TODO: pose_data?
 
-class Annotations(Base):
+class AnnotationsData(Base):
     """
     Mapper for annotations table
     """
@@ -200,7 +200,7 @@ class Annotations(Base):
             self.fromDict(d, db_sess)
 
     def __repr__(self):
-        return ( "<Annotations(file_path='%s', sample_rate='%s', format='%s',"
+        return ( "<AnnotationsData(file_path='%s', sample_rate='%s', format='%s',"
             " start_time='%s', start_frame='%s', stop_frame='%s',"
             " annotator_name='%s', method='%s')>" % (
             self.file_path, self.sample_rate, self.format,
@@ -445,7 +445,7 @@ class Trial(Base):
         cascade='all, delete, delete-orphan')
     pose_data = relationship('PoseData',
         cascade='all, delete, delete-orphan')
-    annotations = relationship('Annotations',
+    annotations = relationship('AnnotationsData',
         cascade='all, delete, delete-orphan')
     other_data = relationship('OtherData',
         cascade='all, delete, delete-orphan')
