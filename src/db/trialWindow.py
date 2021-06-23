@@ -7,7 +7,7 @@ from PySide2.QtCore import Signal, Slot, QItemSelection
 from PySide2.QtGui import Qt
 from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
 
-from db.schema_sqlalchemy import Trial, Annotations
+from db.schema_sqlalchemy import Trial, AnnotationsData
 from widgets.tableModel import TableModel
 
 class TrialDockWidget(QDockWidget):
@@ -127,8 +127,8 @@ class TrialDockWidget(QDockWidget):
                     self.bento.trial_id = db_session.query(Trial).where(Trial.id == trial_id).one().id
                     for selection in self.ui.videoTableView.selectionModel().selectedRows():
                         videos.append(db_session.query(VideoData).where(VideoData.id == selection.siblingAtColumn(0).data()).one())
-                    annotation = db_session.query(Annotations).where(
-                        Annotations.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
+                    annotation = db_session.query(AnnotationsData).where(
+                        AnnotationsData.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
                         ).scalar()
             loadPose = self.ui.loadPoseCheckBox.isChecked()
             loadNeural = self.ui.loadNeuralCheckBox.isChecked()

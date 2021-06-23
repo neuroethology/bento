@@ -90,8 +90,8 @@ class Bento(QObject):
         self.active_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
         self.pending_bout = None
-        with open('/Users/drumph/Develop/bento/bento/color_profiles.txt','r') as f:
-        # with open('../color_profiles.txt','r') as f:
+        # with open('/Users/drumph/Develop/bento/bento/color_profiles.txt','r') as f:
+        with open('../color_profiles.txt','r') as f:
             self.behaviors.load(f)
         self.session_id = None
         self.trial_id = None
