@@ -11,6 +11,7 @@ class BentoConfig(object):
     def __init__(self):
         self.key = b'AKGnrrxYhjanPOEZIP1PIc_17YRCsO-fBmTuQyEeLX0='
         self.cipher_suite = Fernet(self.key)
+        self._usePrivateDB = True
         self._username = getuser()
         self._password = ""
         self._host = ""
@@ -25,6 +26,7 @@ class BentoConfig(object):
             makedirs(self.bento_dir, exist_ok=True)
         with open(self.config_path, 'w') as file:
             config = {
+                'usePrivateDB': self._usePrivateDB,
                 'username': self._username,
                 'password': self._password,
                 'host': self._host,
@@ -37,6 +39,7 @@ class BentoConfig(object):
         if exists(self.config_path):
             with open(self.bento_dir + 'config.json') as file:
                 config = json.load(file)
+            self._usePrivateDB = config.get('usePrivateDB')
             self._username = config.get('username')
             self._password = config.get('password') # still encrypted
             self._host = config.get('host')
@@ -45,6 +48,12 @@ class BentoConfig(object):
             return True
         else:
             return False
+
+    def usePrivateDB(self):
+        return bool(self._usePrivateDB)
+
+    def setUsePrivateDB(self, val):
+        self._usePrivateDB = bool(val)
 
     def username(self):
         return self._username
@@ -57,7 +66,7 @@ class BentoConfig(object):
             return self.cipher_suite.decrypt(self._password.encode()).decode()
         except Exception:
             return ""
-        
+
     def setPassword(self, password):
         self._password = self.cipher_suite.encrypt(password.encode()).decode()
 
@@ -77,5 +86,4 @@ class BentoConfig(object):
         return self._investigator_id
 
     def set_investigator_id(self, investigator_id):
-        print(f"set_investigator_id: setting to {investigator_id}")
         self._investigator_id = investigator_id

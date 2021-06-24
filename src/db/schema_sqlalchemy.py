@@ -9,6 +9,7 @@ from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String, T
 from sqlalchemy.orm import relationship, sessionmaker
 from datetime import date
 import enum
+from os.path import expanduser, exists, sep
 
 Base = declarative_base()
 
@@ -483,16 +484,20 @@ class Surgery(Base):
             self.procedure, self.follow_up_care )
         )
 
-# config = {
-#     'host': '192.168.1.10',
-#     'port': '3307',
-#     'user': 'datajoint',
-#     'password': 'DataJoint4Bento!'
-#     }
-
-def new_session(username, password, host, port):
-    bento_engine = create_engine(f"mysql+mysqldb://{username}:{password}@{host}:{port}/bento")
-    return sessionmaker(bind=bento_engine)
+def new_session(username, password, host, port, use_personal_db=False):
+    need_to_create_tables = False
+    if use_personal_db:
+        bento_db_file = expanduser("~") + sep + '.bento' + sep + "bento.db"
+        if not exists(bento_db_file):
+            need_to_create_tables = True    # but only after SqlAlchemy creates the file
+        bento_engine = create_engine(f"sqlite:///" + bento_db_file)
+    else:
+        bento_engine = create_engine(f"mysql+mysqldb://{username}:{password}@{host}:{port}/bento")
+    db_sessionMaker = sessionmaker(bind=bento_engine)
+    if need_to_create_tables:
+        with db_sessionMaker() as db_sess:
+            create_tables(db_sess)
+    return db_sessionMaker
 
 def create_tables(session):
     Base.metadata.create_all(session.get_bind())

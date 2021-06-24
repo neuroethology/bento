@@ -20,9 +20,20 @@ class Ui_ConfigDialog(object):
     def setupUi(self, ConfigDialog):
         if ConfigDialog.objectName():
             ConfigDialog.setObjectName(u"ConfigDialog")
-        ConfigDialog.resize(400, 193)
+        ConfigDialog.resize(400, 216)
         self.verticalLayout = QVBoxLayout(ConfigDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.usePrivateDBHorizontalLayout = QHBoxLayout()
+        self.usePrivateDBHorizontalLayout.setObjectName(u"usePrivateDBHorizontalLayout")
+        self.usePrivateDBCheckBox = QCheckBox(ConfigDialog)
+        self.usePrivateDBCheckBox.setObjectName(u"usePrivateDBCheckBox")
+        self.usePrivateDBCheckBox.setChecked(True)
+
+        self.usePrivateDBHorizontalLayout.addWidget(self.usePrivateDBCheckBox)
+
+
+        self.verticalLayout.addLayout(self.usePrivateDBHorizontalLayout)
+
         self.usernameHorizontalLayout = QHBoxLayout()
         self.usernameHorizontalLayout.setObjectName(u"usernameHorizontalLayout")
         self.usernameLabel = QLabel(ConfigDialog)
@@ -100,6 +111,7 @@ class Ui_ConfigDialog(object):
 
     def retranslateUi(self, ConfigDialog):
         ConfigDialog.setWindowTitle(QCoreApplication.translate("ConfigDialog", u"Config", None))
+        self.usePrivateDBCheckBox.setText(QCoreApplication.translate("ConfigDialog", u" Use private database", None))
         self.usernameLabel.setText(QCoreApplication.translate("ConfigDialog", u"Username: ", None))
         self.passwordLabel.setText(QCoreApplication.translate("ConfigDialog", u"Password: ", None))
         self.hostLabel.setText(QCoreApplication.translate("ConfigDialog", u"Host name: ", None))

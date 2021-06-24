@@ -90,9 +90,17 @@ class Bento(QObject):
         self.active_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
         self.pending_bout = None
-        # with open('/Users/drumph/Develop/bento/bento/color_profiles.txt','r') as f:
-        with open('../color_profiles.txt','r') as f:
-            self.behaviors.load(f)
+        self.bento_dir = expanduser("~") + sep + ".bento" + sep
+        try:
+            with open(self.bento_dir + 'color_profiles.txt','r') as f:
+                self.behaviors.load(f)
+        except Exception as e:
+            pass
+            """ should do something like:
+            with open(self.bento_dir + 'color_profiles.txt', 'w') as f:
+                <initialize the file with some reasonal default behaviors/colors/hotkeys>
+            """
+
         self.session_id = None
         self.trial_id = None
         self.player = PlayerWorker(self)
@@ -120,7 +128,8 @@ class Bento(QObject):
                 self.config.username(),
                 self.config.password(),
                 self.config.host(),
-                self.config.port())
+                self.config.port(),
+                self.config.usePrivateDB)
         except Exception as e:
             print(f"Caught Exception {e}.  Probably config data invalid")
             QMessageBox.about(self.mainWindow, "Error", f"Config data invalid.  {e}")

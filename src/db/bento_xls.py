@@ -9,7 +9,8 @@ from db.schema_sqlalchemy import Session
 from sqlalchemy.sql.expression import null
 import xlrd
 import sqlalchemy as sa
-from db.schema_sqlalchemy import *
+from db.schema_sqlalchemy import (Animal, AnnotationsData, AudioData, Camera,
+    NeuralData, PoseData, Session, Trial, VideoData)
 from timecode import Timecode
 from datetime import datetime
 from video.seqIo import seqIo_reader
@@ -144,7 +145,7 @@ def import_row(investigator_id, xls_sheet, common_data, row, available_cameras, 
     annotation_names = annotation_string.split(';')
     annotations = []
     for annotation_name in annotation_names:
-        annotation = Annotations()
+        annotation = AnnotationsData()
         annotation.file_path = annotation_name.strip()
         annotation.sample_rate = float(xls_sheet.cell_value(row, 12)) if xls_sheet.cell(row, 12).ctype == xlrd.XL_CELL_NUMBER else videos[0].sample_rate
         annotation.start_time = videos[0].start_time + float(xls_sheet.cell_value(row, 13))  # for now
@@ -225,13 +226,4 @@ def import_bento_xls_file(file_path, db_session, investigator_id):
 
     for row in range(2, sheet.nrows):
         import_row(investigator_id, sheet, common_data, row, available_cameras, db_session)
-
-def do_import(investigator_name, rel_path):
-    Session = new_session()
-    sess = Session()
-    investigators = sess.query(Investigator).filter(Investigator.user_name == investigator_name).all()
-    assert len(investigators) == 1
-    investigator_id = investigators[0].id
-
-    import_bento_xls_file(rel_path, sess, investigator_id)
 
