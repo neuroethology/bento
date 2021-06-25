@@ -362,7 +362,7 @@ class EditTrialDialog(QDialog):
         annotator_name = ""
         if self.bento.investigator_id:
             with self.bento.db_sessionMaker() as db_sess:
-                investigator = db_sess.query(Investigator).select(self.bento.investigator_id).scalar()
+                investigator = db_sess.query(Investigator).filter(Investigator.id == self.bento.investigator_id).scalar()
                 if investigator:
                     annotator_name = investigator.user_name
 
@@ -372,8 +372,8 @@ class EditTrialDialog(QDialog):
             'sample_rate': sample_rate,
             'format': annotations.format(),
             'start_time': annotations.time_start().float,
-            'start_frame': annotations.time_start().frame,
-            'stop_frame': annotations.time_end().frame,
+            'start_frame': annotations.time_start().frame_number,
+            'stop_frame': annotations.time_end().frame_number,
             'annotator_name': annotator_name,
             'method': "manual",
             'trial_id': self.trial_id,

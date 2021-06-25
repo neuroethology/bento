@@ -135,7 +135,7 @@ class Annotations(object):
         self._movies = []
         self._time_start = None
         self._time_end = None
-        self._frame_rate = None
+        self._sample_rate = None
         self._stimulus = None
         self._format = None
         self.annotation_names = []
@@ -191,18 +191,18 @@ class Annotations(object):
                 items = line.split()
                 if len(items) > 3:
                     self._time_start = int(items[3])
-                    if self._time_end and self._frame_rate:
+                    if self._time_end and self._sample_rate:
                         found_timecode = True
             elif line.lower().startswith("annotation stop frame"):
                 items = line.split()
                 if len(items) > 3:
                     self._time_end = int(items[3])
-                    if self._time_start and self._frame_rate:
+                    if self._time_start and self._sample_rate:
                         found_timecode = True
             elif line.lower().startswith("annotation framerate"):
                 items = line.split()
                 if len(items) > 2:
-                    self._frame_rate = float(items[2])
+                    self._sample_rate = float(items[2])
                     if self._time_start and self._time_end:
                         found_timecode = True
             elif line.lower().startswith("list of channels"):
@@ -254,10 +254,10 @@ class Annotations(object):
                             is_float = '.' in items[0] or '.' in items[1] or '.' in items[2]
                             self.add_bout(
                                 Bout(
-                                    tc.Timecode(self._frame_rate, start_seconds=float(items[0])) if is_float
-                                        else tc.Timecode(self._frame_rate, frames=int(items[0])),
-                                    tc.Timecode(self._frame_rate, start_seconds=float(items[1])) if is_float
-                                        else tc.Timecode(self._frame_rate, frames=int(items[1])),
+                                    tc.Timecode(self._sample_rate, start_seconds=float(items[0])) if is_float
+                                        else tc.Timecode(self._sample_rate, frames=int(items[0])),
+                                    tc.Timecode(self._sample_rate, start_seconds=float(items[1])) if is_float
+                                        else tc.Timecode(self._sample_rate, frames=int(items[1])),
                                     getattr(self._behaviors, current_bout)),
                                 current_channel)
                         line = f.readline()
@@ -276,7 +276,7 @@ class Annotations(object):
         f.write(f"Stimulus name: {stimulus}\n")
         f.write(f"Annotation start frame: {self._time_start}\n")
         f.write(f"Annotation stop frame: {self._time_end}\n")
-        f.write(f"Annotation framerate: {self._frame_rate}\n")
+        f.write(f"Annotation framerate: {self._sample_rate}\n")
         f.write("\n")
 
         f.write("List of Channels:\n")
@@ -331,17 +331,17 @@ class Annotations(object):
             self._time_end = bout.end()
 
     def time_start(self):
-        if not self._time_start or not self._frame_rate:
+        if not self._time_start or not self._sample_rate:
             return tc.Timecode('30.0', '0:0:0:0')
-        return tc.Timecode(self._frame_rate, frames=self._time_start)
+        return tc.Timecode(self._sample_rate, frames=self._time_start)
 
     def time_end(self):
-        if not self._time_end or not self._frame_rate:
+        if not self._time_end or not self._sample_rate:
             return tc.Timecode('30.0', '23:59:59:29')
-        return tc.Timecode(self._frame_rate, frames=self._time_end)
+        return tc.Timecode(self._sample_rate, frames=self._time_end)
 
-    def frame_rate(self):
-        return self._frame_rate
+    def sample_rate(self):
+        return self._sample_rate
 
     def format(self):
         return self._format

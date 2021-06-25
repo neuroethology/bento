@@ -13,6 +13,7 @@ from datetime import date
 class EditSessionDialog(QDialog):
 
     quitting = Signal()
+    sessionChanged = Signal()
 
     def __init__(self, bento, investigator_id, session_id=None):
         super().__init__()
@@ -118,6 +119,7 @@ class EditSessionDialog(QDialog):
             session.base_directory = self.ui.baseDirLineEdit.text()
             session.experiment_date = self.ui.dateEdit.date().toPython()
             session.session_num = int(self.ui.sessionNumLineEdit.text())
+        self.sessionChanged.emit()
         super().accept()
 
     @Slot()

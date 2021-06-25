@@ -16,7 +16,6 @@ from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
 from db.configDialog import ConfigDialog
-from db.editSessionDialog import EditSessionDialog
 from db.setInvestigatorDialog import SetInvestigatorDialog
 from db.bentoConfig import BentoConfig
 from db.animal_surgery_xls import import_animal_xls_file
@@ -278,15 +277,6 @@ class Bento(QObject):
         Edit or add a new investigator to the database
         """
         dialog = InvestigatorDialog(self)
-        dialog.exec_()
-
-    @Slot()
-    def add_or_edit_session(self, session_id=None):
-        """
-        Add a new experiment session to the database
-        associated with the selected investigator
-        """
-        dialog = EditSessionDialog(self, self.investigator_id, session_id)
         dialog.exec_()
 
     @Slot()

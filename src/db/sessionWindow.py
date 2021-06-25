@@ -5,6 +5,7 @@ from PySide2.QtCore import Signal, Slot
 from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
 from db.schema_sqlalchemy import Investigator, Animal, Session
 from widgets.tableModel import TableModel
+from db.editSessionDialog import EditSessionDialog
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
@@ -20,11 +21,11 @@ class SessionDockWidget(QDockWidget):
         self.ui.setupUi(self)
         self.ui.loadPushButton.clicked.connect(self.loadSession)
         self.ui.addOrEditSessionPushButton.clicked.connect(self.addOrEditSession)
-        self.ui.investigatorComboBox.currentTextChanged.connect(self.search)
-        self.ui.useInvestigatorCheckBox.clicked.connect(self.search)
-        self.ui.useDateRangeCheckBox.clicked.connect(self.search)
-        self.ui.startDateEdit.dateChanged.connect(self.search)
-        self.ui.endDateEdit.dateChanged.connect(self.search)
+        self.ui.investigatorComboBox.currentTextChanged.connect(self.populateSessions)
+        self.ui.useInvestigatorCheckBox.clicked.connect(self.populateSessions)
+        self.ui.useDateRangeCheckBox.clicked.connect(self.populateSessions)
+        self.ui.startDateEdit.dateChanged.connect(self.populateSessions)
+        self.ui.endDateEdit.dateChanged.connect(self.populateSessions)
         self.quitting.connect(self.bento.quit)
 
         with self.bento.db_sessionMaker() as db_session:
@@ -39,11 +40,11 @@ class SessionDockWidget(QDockWidget):
         self.ui.endDateEdit.setDate(today)
         self.current_session_id = None
 
-        self.search()
+        self.populateSessions()
 
 
     @Slot()
-    def search(self):
+    def populateSessions(self):
         investigator = self.ui.investigatorComboBox.currentText()
         with self.bento.db_sessionMaker() as db_sess:
             query = db_sess.query(Session, Investigator, Animal).join(Investigator, Investigator.id == Session.investigator_id)
@@ -104,4 +105,6 @@ class SessionDockWidget(QDockWidget):
         """
         if len(self.ui.sessionsTableView.selectedIndexes()) == 0:
             self.current_session_id = None
-        self.bento.add_or_edit_session(self.current_session_id)
+        dialog = EditSessionDialog(self.bento, self.bento.investigator_id, self.current_session_id)
+        dialog.sessionChanged.connect(self.populateSessions)
+        dialog.exec_()
