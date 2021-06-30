@@ -17,7 +17,7 @@ class Behavior(object):
     def __init__(self, name: str, hot_key: str = '', color: QColor = None):
         super(Behavior, self).__init__()
         self.name = name
-        self.hot_key = hot_key
+        self.hot_key = '' if hot_key == '_' else hot_key
         self.color = color
         self.visible = True
 
@@ -39,6 +39,13 @@ class Behavior(object):
     def is_visible(self):
         return self.visible
 
+    def toDict(self):
+        return {
+            'hot_key': '_' if self.hot_key == '' else self.hot_key,
+            'color': self.color,
+            'name': self.name
+            }
+
 class Behaviors(object):
     """
     A set of behaviors, which represent "all" possible behaviors.
@@ -53,7 +60,8 @@ class Behaviors(object):
     def __init__(self):
         super(Behaviors, self).__init__()
         self._hot_keys = {}
-    
+        self._items = {}
+
     def load(self, f):
         line = f.readline()
         while line:
@@ -62,21 +70,43 @@ class Behaviors(object):
                 hot_key = ''
             else:
                 self._hot_keys[hot_key] = name
-            setattr(self, name, Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b))))
+            self._items[name] = Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b)))
+            # setattr(self, name, Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b))))
             line = f.readline()
-    
+
     def save(self, f):
-        for item in self.__dict__.keys():
-            beh = getattr(self, item)
+        for key in self._items.keys():
+            beh = self._items[key]
+        # for item in self.__dict__.keys():
+        #     beh = getattr(self, item)
             if beh.hot_key == '':
                 h = '_'
             else:
                 h = beh.hot_key
-            f.write(f"{h} {beh.name} {beh.color.redF()} {beh.color.greenF()} {beh.color.bluef()}" + os.linesep)
-    
+            f.write(f"{h} {beh.name} {beh.color.redF()} {beh.color.greenF()} {beh.color.blueF()}" + os.linesep)
+
     def from_hot_key(self, key):
         try:
             # print(f"available hot keys: {self._hot_keys}")
-            return getattr(self, self._hot_keys[key])
+            return self._items[self._hot_keys[key]]
+            # return getattr(self, self._hot_keys[key])
         except KeyError:
             return None
+
+    def len(self):
+        return len(self._items)
+
+    def header(self):
+        return ['hot_key', 'color', 'name']
+
+    def __iter__(self):
+        print(f'in Behaviors.__iter__(),')
+        return BehaviorsIterator(self)
+
+class BehaviorsIterator():
+    def __init__(self, behaviors):
+        self.behaviors = behaviors
+        self.keyIter = behaviors._items.__iter__()
+
+    def __next__(self):
+        return self.behaviors._items[self.keyIter.__next__()]

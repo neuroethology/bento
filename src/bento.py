@@ -19,6 +19,7 @@ from db.configDialog import ConfigDialog
 from db.setInvestigatorDialog import SetInvestigatorDialog
 from db.bentoConfig import BentoConfig
 from db.animal_surgery_xls import import_animal_xls_file
+from db.behaviorsDialog import BehaviorsDialog
 from db.bento_xls import import_bento_xls_file
 # from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
@@ -99,6 +100,8 @@ class Bento(QObject):
             with open(self.bento_dir + 'color_profiles.txt', 'w') as f:
                 <initialize the file with some reasonal default behaviors/colors/hotkeys>
             """
+        self.behaviorsDialog = BehaviorsDialog(self)
+        self.behaviorsDialog.show()
 
         self.session_id = None
         self.trial_id = None

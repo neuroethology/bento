@@ -122,6 +122,7 @@ class TrialDockWidget(QDockWidget):
             print(f"Load trial id {trial_id}")
             videos = []
             videoSelectionModel = self.ui.videoTableView.selectionModel()
+            annotation = None
             if videoSelectionModel and videoSelectionModel.hasSelection():
                 with self.bento.db_sessionMaker() as db_session:
                     self.bento.trial_id = db_session.query(Trial).where(Trial.id == trial_id).one().id

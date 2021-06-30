@@ -73,21 +73,22 @@ class EditTrialDialog(QDialog):
     def populateVideosTableView(self, updateTrialNum):
         with self.bento.db_sessionMaker() as db_sess:
             results = db_sess.query(VideoData).filter(VideoData.trial == self.trial_id).all()
-            header = results[0].header()
-            data_list = [elem.toDict() for elem in results]
-        model = EditableTableModel(self, data_list, header)
-        self.setVideoModel(model)
+            if results:
+                header = results[0].header()
+                data_list = [elem.toDict() for elem in results]
+                model = EditableTableModel(self, data_list, header)
+                self.setVideoModel(model)
 
-        selectionModel = self.ui.videosFileTableView.selectionModel()
-        if updateTrialNum:
-            selectionModel.selectionChanged.connect(self.populateTrialNum)
-        else:
-            try:
-                selectionModel.selectionChanged.disconnect(self.populateTrialNum)
-            except RuntimeError:
-                # The above call raises RuntimeError if the signal is not connected,
-                # which we can safely ignore.
-                pass
+                selectionModel = self.ui.videosFileTableView.selectionModel()
+                if updateTrialNum:
+                    selectionModel.selectionChanged.connect(self.populateTrialNum)
+                else:
+                    try:
+                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                    except RuntimeError:
+                        # The above call raises RuntimeError if the signal is not connected,
+                        # which we can safely ignore.
+                        pass
 
     def addVideoFile(self, file_path, baseDir, available_cameras):
         """
@@ -164,20 +165,23 @@ class EditTrialDialog(QDialog):
 
     def updateVideoData(self, trial, db_sess):
         model = self.ui.videosFileTableView.model()
-        for ix, entry in enumerate(model.getIterator()):
-            tableIndex = model.createIndex(ix, 0)
-            if model.isDirty(tableIndex):
-                print(f"item at row {ix} is dirty")
-                if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
-                    trial.video_data[ix].fromDict(entry, db_sess)
+        if model:
+            for ix, entry in enumerate(model.getIterator()):
+                tableIndex = model.createIndex(ix, 0)
+                if model.isDirty(tableIndex):
+                    print(f"item at row {ix} is dirty")
+                    if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
+                        trial.video_data[ix].fromDict(entry, db_sess)
+                    else:
+                        # new item
+                        item = VideoData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
+                        db_sess.add(item)
+                        trial.video_data.append(item)
+                    model.clearDirty(tableIndex)
                 else:
-                    # new item
-                    item = VideoData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
-                    db_sess.add(item)
-                    trial.video_data.append(item)
-                model.clearDirty(tableIndex)
-            else:
-                print(f"item at row {ix} wasn't dirty, so did nothing")
+                    print(f"item at row {ix} wasn't dirty, so did nothing")
+        else:
+            print("No video files listed, so nothing to do.")
 
     # Neural Data
 
@@ -195,21 +199,22 @@ class EditTrialDialog(QDialog):
     def populateNeuralsTableView(self, updateTrialNum):
         with self.bento.db_sessionMaker() as db_sess:
             results = db_sess.query(NeuralData).filter(NeuralData.trial == self.trial_id).all()
-            header = results[0].header()
-            data_list = [elem.toDict() for elem in results]
-        model = EditableTableModel(self, data_list, header)
-        self.setNeuralModel(model)
+            if results:
+                header = results[0].header()
+                data_list = [elem.toDict() for elem in results]
+                model = EditableTableModel(self, data_list, header)
+                self.setNeuralModel(model)
 
-        selectionModel = self.ui.neuralsTableView.selectionModel()
-        if updateTrialNum:
-            selectionModel.selectionChanged.connect(self.populateTrialNum)
-        else:
-            try:
-                selectionModel.selectionChanged.disconnect(self.populateTrialNum)
-            except RuntimeError:
-                # The above call raises RuntimeError if the signal is not connected,
-                # which we can safely ignore.
-                pass
+                selectionModel = self.ui.neuralsTableView.selectionModel()
+                if updateTrialNum:
+                    selectionModel.selectionChanged.connect(self.populateTrialNum)
+                else:
+                    try:
+                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                    except RuntimeError:
+                        # The above call raises RuntimeError if the signal is not connected,
+                        # which we can safely ignore.
+                        pass
 
     def addNeuralFile(self, file_path, baseDir):
         """
@@ -287,23 +292,26 @@ class EditTrialDialog(QDialog):
 
     def updateNeuralData(self, trial, db_sess):
         model = self.ui.neuralsTableView.model()
-        for ix, entry in enumerate(model.getIterator()):
-            print(f"updateNeural ix = {ix}, entry = {entry}")
-            tableIndex = model.createIndex(ix, 0)
-            if model.isDirty(tableIndex):
-                print(f"item at row {ix} is dirty")
-                if ix < len(trial.neural_data) and trial.neural_data[ix].id == entry['id']:
-                    print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
-                    trial.neural_data[ix].fromDict(entry, db_sess)
+        if model:
+            for ix, entry in enumerate(model.getIterator()):
+                print(f"updateNeural ix = {ix}, entry = {entry}")
+                tableIndex = model.createIndex(ix, 0)
+                if model.isDirty(tableIndex):
+                    print(f"item at row {ix} is dirty")
+                    if ix < len(trial.neural_data) and trial.neural_data[ix].id == entry['id']:
+                        print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
+                        trial.neural_data[ix].fromDict(entry, db_sess)
+                    else:
+                        # new item
+                        print(f"No existing db entry for index {ix}; create a new item")
+                        item = NeuralData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
+                        db_sess.add(item)
+                        trial.neural_data.append(item)
+                    model.clearDirty(tableIndex)
                 else:
-                    # new item
-                    print(f"No existing db entry for index {ix}; create a new item")
-                    item = NeuralData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
-                    db_sess.add(item)
-                    trial.neural_data.append(item)
-                model.clearDirty(tableIndex)
-            else:
-                print(f"item at row {ix} wasn't dirty, so did nothing")
+                    print(f"item at row {ix} wasn't dirty, so did nothing")
+        else:
+            print("No neural data listed, so nothing to do")
 
     # Annotations
 
@@ -321,21 +329,22 @@ class EditTrialDialog(QDialog):
     def populateAnnotationsTableView(self, updateTrialNum):
         with self.bento.db_sessionMaker() as db_sess:
             results = db_sess.query(AnnotationsData).filter(AnnotationsData.trial == self.trial_id).all()
-            header = results[0].header()
-            data_list = [elem.toDict() for elem in results]
-        model = EditableTableModel(self, data_list, header)
-        self.setAnnotationsModel(model)
+            if results:
+                header = results[0].header()
+                data_list = [elem.toDict() for elem in results]
+                model = EditableTableModel(self, data_list, header)
+                self.setAnnotationsModel(model)
 
-        selectionModel = self.ui.annotationsTableView.selectionModel()
-        if updateTrialNum:
-            selectionModel.selectionChanged.connect(self.populateTrialNum)
-        else:
-            try:
-                selectionModel.selectionChanged.disconnect(self.populateTrialNum)
-            except RuntimeError:
-                # The above call raises RuntimeError if the signal is not connected,
-                # which we can safely ignore.
-                pass
+                selectionModel = self.ui.annotationsTableView.selectionModel()
+                if updateTrialNum:
+                    selectionModel.selectionChanged.connect(self.populateTrialNum)
+                else:
+                    try:
+                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                    except RuntimeError:
+                        # The above call raises RuntimeError if the signal is not connected,
+                        # which we can safely ignore.
+                        pass
 
     def addAnnotationFile(self, file_path, baseDir):
         """
@@ -392,23 +401,26 @@ class EditTrialDialog(QDialog):
 
     def updateAnnotationsData(self, trial, db_sess):
         model = self.ui.annotationsTableView.model()
-        for ix, entry in enumerate(model.getIterator()):
-            print(f"updateAnnotations ix = {ix}, entry = {entry}")
-            tableIndex = model.createIndex(ix, 0)
-            if model.isDirty(tableIndex):
-                print(f"item at row {ix} is dirty")
-                if ix < len(trial.annotations) and trial.annotations[ix].id == entry['id']:
-                    print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
-                    trial.annotations[ix].fromDict(entry, db_sess)
+        if model:
+            for ix, entry in enumerate(model.getIterator()):
+                print(f"updateAnnotations ix = {ix}, entry = {entry}")
+                tableIndex = model.createIndex(ix, 0)
+                if model.isDirty(tableIndex):
+                    print(f"item at row {ix} is dirty")
+                    if ix < len(trial.annotations) and trial.annotations[ix].id == entry['id']:
+                        print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
+                        trial.annotations[ix].fromDict(entry, db_sess)
+                    else:
+                        # new item
+                        print(f"No existing db entry for index {ix}; create a new item")
+                        item = AnnotationsData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
+                        db_sess.add(item)
+                        trial.annotations.append(item)
+                    model.clearDirty(tableIndex)
                 else:
-                    # new item
-                    print(f"No existing db entry for index {ix}; create a new item")
-                    item = AnnotationsData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
-                    db_sess.add(item)
-                    trial.annotations.append(item)
-                model.clearDirty(tableIndex)
-            else:
-                print(f"item at row {ix} wasn't dirty, so did nothing")
+                    print(f"item at row {ix} wasn't dirty, so did nothing")
+        else:
+            print("No annotations listed, so nothing to do.")
 
     @Slot()
     def addAnnotationFiles(self):

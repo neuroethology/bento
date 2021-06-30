@@ -440,6 +440,7 @@ class seqIo_reader():
         else:
             info.numFrames=0
         if buildTable:
+            print("buildTable was True, so calling buildSeekTable()")
             self.buildSeekTable(False)
 
 
@@ -526,6 +527,7 @@ class seqIo_reader():
 
     def buildSeekTable(self,memoize=False):
         """Build a seek table containing the offset and frame size for every frame in the video."""
+        print("in seqIo_reader.buildSeekTable()")
         pickle_name = self.filename.strip(".seq") + ".seek"
         if memoize:
             if os.path.isfile(pickle_name):
@@ -596,7 +598,7 @@ class seqIo_reader():
 
     def getTs(self, n=None):
         if n==None: n=self.header['numFrames']
-        if self.seek_table is None:
+        if self.compressed and self.seek_table is None:
             self.buildSeekTable()
 
         ts = np.zeros((n))
