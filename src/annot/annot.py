@@ -2,7 +2,9 @@
 import timecode as tc
 from annot.behavior import Behavior
 from sortedcontainers import SortedKeyList
+from PySide2.QtCore import QRectF, Signal
 from PySide2.QtGui import QColor
+from PySide2.QtWidgets import QGraphicsItem
 
 class Bout(object):
     """
@@ -47,26 +49,37 @@ class Bout(object):
     def len(self):
         return self._end - self._start + tc.Timecode(self._start.framerate, frames=1)
 
+    def behavior(self):
+        return self._behavior
+
     def name(self):
         return self._behavior.get_name()
 
     def color(self):
         return self._behavior.get_color()
 
-    def is_visiblel(self):
+    def is_visible(self):
         return self._behavior.is_visible()
 
-class Channel(object):
+    def __repr__(self):
+        return f"Bout: start = {self.start()}, end = {self.end()}, behavior: {self.behavior()}"
+
+class Channel(QGraphicsItem):
     """
     """
 
+    contentChanged = Signal()
+
     def __init__(self, chan = None):
+        super().__init__()
         if not chan is None:
             self._bouts_by_start = chan._bouts_by_start
             self._bouts_by_end = chan._bouts_by_end
+            self._top = chan._top
         else:
             self._bouts_by_start = SortedKeyList(key=lambda bout: bout.start().float)
             self._bouts_by_end = SortedKeyList(key=lambda bout: bout.end().float)
+            self._top = 0.
         self.cur_ix = 0
         self.fakeFirstBout = Bout(
             tc.Timecode('30.0', '0:0:0:0'),
@@ -86,6 +99,11 @@ class Channel(object):
         else:
             raise TypeError("Can only append Bout to Channel")
 
+    def remove(self, b):
+        # can raise ValueError if b is not in the channel
+        self._bouts_by_start.remove(b)
+        self._bouts_by_end.remove(b)
+
     def __add__(self, b):
         self.append(b)
 
@@ -96,23 +114,31 @@ class Channel(object):
             return self.fakeLastBout
         return sortedlist[ix]
 
-    def get_next_start(self, t):
-        return self._get_next(t, self._bouts_by_start)
-
-    def get_next_end(self, t):
-        return self._get_next(t, self._bouts_by_end)
-
     def _get_prev(self, t, sortedlist):
         ix = sortedlist.bisect_key_left(t.float)
         if ix == 0:
             return self.fakeFirstBout
         return sortedlist[ix-1]
 
+    def _get_inner(self, t, sortedList, op):
+        visible = False
+        while not visible:
+            # no need to check for the end, because the fake first and last bouts are visible
+            bout = op(t, sortedList)
+            visible = bout.is_visible()
+        return bout
+
+    def get_next_start(self, t):
+        return self._get_inner(t, self._bouts_by_start, self._get_next)
+
+    def get_next_end(self, t):
+        return self._get_inner(t, self._bouts_by_end, self._get_next)
+
     def get_prev_start(self, t):
-        return self._get_prev(t, self._bouts_by_start)
+        return self._get_inner(t, self._bouts_by_start, self._get_prev)
 
     def get_prev_end(self, t):
-        return self._get_prev(t, self._bouts_by_end)
+        return self._get_inner(t, self._bouts_by_end, self._get_prev)
 
     def get_at(self, t):
         """
@@ -124,7 +150,40 @@ class Channel(object):
     def __iter__(self):
         return iter(self._bouts_by_start)
 
+    def irange(self, start_time, end_time):
+        if isinstance(start_time, tc.Timecode):
+            start_time = start_time.float
+        if isinstance(end_time, tc.Timecode):
+            end_time = end_time.float
+        if not isinstance(start_time, float):
+            raise TypeError(f"Can't handle start_time of type {type(start_time)}")
+        if not isinstance(end_time, float):
+            raise TypeError(f"Can't handle end_time of type {type(end_time)}")
+        return self._bouts_by_start.irange_key(start_time, end_time)
 
+    def top(self):
+        return self._top
+
+    def set_top(self, top):
+        self._top = top
+
+    def boundingRect(self):
+        width = self.fakeLastBout.end().float
+        return QRectF(0., self.top(), width, 1.)
+
+    def paint(self, painter, option, widget=None):
+        boundingRect = option.rect
+        in_range_bouts = self._bouts_by_start.irange_key(boundingRect.left(), boundingRect.right())
+        while True:
+            try:
+                bout = next(in_range_bouts)
+            except StopIteration:
+                break
+            if bout.is_visible():
+                painter.fillRect(
+                    QRectF(bout.start().float, self.top(), bout.len().float, 1.),
+                    bout.color()
+                    )
 class Annotations(object):
     """
     """
@@ -258,7 +317,7 @@ class Annotations(object):
                                         else tc.Timecode(self._sample_rate, frames=int(items[0])),
                                     tc.Timecode(self._sample_rate, start_seconds=float(items[1])) if is_float
                                         else tc.Timecode(self._sample_rate, frames=int(items[1])),
-                                    getattr(self._behaviors, current_bout)),
+                                    self._behaviors.get(current_bout)),
                                 current_channel)
                         line = f.readline()
             line = f.readline()

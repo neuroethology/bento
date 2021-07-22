@@ -93,7 +93,7 @@ class AnnotationsView(QGraphicsView):
 
     def maybeDrawPendingBout(self, painter, rect):
         bout = self.bento.pending_bout
-        if not bout:
+        if not bout or bout.behavior().name == self.bento.behaviors.getDeleteBehavior().name:
             return
         now = self.bento.get_time().float
         painter.setBrush(QBrush(bout.color()))
@@ -174,7 +174,11 @@ class AnnotationsScene(QGraphicsScene):
         self.height = float(len(activeChannels))
         for ix, chan in enumerate(activeChannels):
             self.chan_map[chan] = ix
-            self.loadBouts(annotations.channel(chan),  ix)
+            channel = annotations.channel(chan)
+            channel.set_top(float(ix))
+            self.addItem(channel)
+            # channel.contentChanged.connect(self.sceneChanged)
+            # self.loadBouts(annotations.channel(chan),  ix)
 
     def loadBouts(self, channel, chan_num):
         print(f"Loading bouts for channel {chan_num}")
@@ -183,3 +187,7 @@ class AnnotationsScene(QGraphicsScene):
 
     def setSampleRate(self, sample_rate):
         self.sample_rate = sample_rate
+
+    @Slot()
+    def sceneChanged(self):
+        print("scene chagned -- update views")

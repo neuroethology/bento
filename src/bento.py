@@ -1,10 +1,12 @@
 # bento.py
 
 from timecode import Timecode
-from PySide2.QtCore import Signal, Slot, QObject, QThread, QRectF, QMarginsF
-from PySide2.QtWidgets import QApplication, QFileDialog, QMenuBar, QMessageBox
+from PySide2.QtCore import Signal, Slot, QObject, QThread, QRectF, QMarginsF, Qt
+from PySide2.QtGui import QColor
+from PySide2.QtWidgets import (QApplication, QFileDialog, QMenuBar, QMessageBox,
+    QColorDialog, QItemEditorFactory, QItemEditorCreatorBase)
 from annot.annot import Annotations, Bout
-from annot.behavior import Behaviors
+from annot.behavior import Behavior, Behaviors
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
@@ -74,13 +76,26 @@ class PlayerWorker(QThread):
     def quit(self):
         self.running = False
 
+class ColorEditorCreator(QItemEditorCreatorBase):
+    def __init__(self):
+        super().__init__()
+
+    def createWidget(self, parent):
+        print("ColorEditorCreator.createWidget()")
+        return QColorDialog(parent=parent)
+
 class Bento(QObject):
     """
     Bento - class representing core machinery (no UI)
     """
-
     def __init__(self):
         super().__init__()
+        # factory = QItemEditorFactory.defaultFactory()
+        # factory = QItemEditorFactory()
+        # QColor_user_type = 67    # magic number from Stack Overflow
+        # colorEditorCreator = ColorEditorCreator()
+        # factory.registerEditor(QColor_user_type, colorEditorCreator)
+        # QItemEditorFactory.setDefaultFactory(factory)
         self.config = BentoConfig()
         goodConfig = self.config.read()
         self.time_start = Timecode('30.0', '0:0:0:1')
@@ -98,7 +113,7 @@ class Bento(QObject):
             pass
             """ should do something like:
             with open(self.bento_dir + 'color_profiles.txt', 'w') as f:
-                <initialize the file with some reasonal default behaviors/colors/hotkeys>
+                <initialize the file with some reasonable default behaviors/colors/hotkeys>
             """
         self.behaviorsDialog = BehaviorsDialog(self)
         self.behaviorsDialog.show()
@@ -361,37 +376,74 @@ class Bento(QObject):
             prev_event = max(prev_event, prev_bout.end())
         self.set_time(prev_event)
 
-    @Slot(int)
-    def processHotKey(self, key: int):
+    # @Slot(QObject.event)
+    def processHotKey(self, event: QObject.event):
         """
         processHotKey - start or finish a bout referenced by a hot key
         """
         # Which behavior does the key correspond to?
-        print(f"processHotKey: key = {chr(key).lower()}")
-        beh = self.behaviors.from_hot_key(chr(key).lower())
-        if not beh:
-            # that hot key is not defined; do nothing
-            print(f"processHotKey: didn't match a behavior, so doing nothing")
-            return
+        shift = bool(event.modifiers() & Qt.ShiftModifier)
+        delete_pending = (event.key() == Qt.Key_Backspace)
+        print(f"processHotKey: shift = {shift}, delete_pending = {delete_pending}")
+        if delete_pending:
+            beh = self.behaviors.getDeleteBehavior()
+        else:
+            key = chr(event.key())
+            key = key.upper() if shift else key.lower()
+            print(f"processHotKey: key = {key}")
+            beh = self.behaviors.from_hot_key(key)
+            if not beh:
+                # that hot key is not defined; do nothing
+                print(f"processHotKey: didn't match a behavior, so doing nothing")
+                return
+        print(f"processHotKey: beh.name = {beh.name}")
         # Is there a pending bout?
+        print(f"processHotKey: self.pending_bout = {self.pending_bout}")
         if self.pending_bout:
-            # if it's the same as the current hot key, end it here
-            if self.pending_bout.name() == beh.get_name():
-                if self.pending_bout.start() > self.current_time:
-                    # swap start and end before completing
-                    self.pending_bout.set_end(self.pending_bout.start())
-                    self.pending_bout.set_start(self.current_time)
-                    print("processHotKey: swapping start and end")
+            chan = self.active_channels[0]
+            if self.pending_bout.start() > self.current_time:
+                # swap start and end before completing
+                self.pending_bout.set_end(self.pending_bout.start())
+                self.pending_bout.set_start(self.current_time)
+                print("processHotKey: swapping start and end")
+            else:
+                self.pending_bout.set_end(self.current_time)
+            if delete_pending:
+                if self.pending_bout.behavior().name == self.behaviors.getDeleteBehavior().name:
+                    print("processHotKey: self.pending_bout == self.behaviors.getDeleteBehavior()")
+                    # remove all bouts between the pending_bout start time and the current time
+                    to_remove = []
+                    it = self.annotations.channel(chan).irange(self.pending_bout.start(), self.pending_bout.end())
+                    while True:
+                        try:
+                            item = next(it)
+                        except ValueError as e:
+                            print(f"Bout doesn't exist in active channel {chan}")
+                            continue
+                        except StopIteration:
+                            break
+                        print(f"adding {item} to to_remove list")
+                        to_remove.append(item)
+                    for item in to_remove:
+                        # don't do the removing inside the iterator above
+                        print(f"removing {item} from channel {chan}")
+                        self.annotations.channel(chan).remove(item)
+                    self.pending_bout = None
                 else:
-                    # typical case
-                    self.pending_bout.set_end(self.current_time)
+                    try:
+                        self.annotations.channel(chan).remove(self.pending_bout)
+                        self.pending_bout = None
+                    except ValueError as e:
+                        print(f"Bout doesn't exist in channel {chan}")
+                return
+            elif self.pending_bout.name() == beh.get_name():
+                # typical case
                 # insert the pending bout in the active channel
                 #TODO: need a way to specify the active channel, as distinct from visible channels
                 # for chan in self.active_channels:
-                chan = self.active_channels[0]
                 print(f"processHotKey: adding new bout to chan {chan}")
                 self.annotations.add_bout(self.pending_bout, chan)
-                self.annotationsScene.addBout(self.pending_bout, chan)
+                # self.annotationsScene.addBout(self.pending_bout, chan)
                 self.pending_bout = None
                 return
             else:
@@ -495,6 +547,10 @@ class Bento(QObject):
         # set the time to get all the new widgets in sync
         self.set_time(self.time_start)
         return True
+
+    @Slot()
+    def toggleBehaviorVisibility(self):
+        self.behaviorsDialog.toggleVisibility()
 
    # Signals
     quitting = Signal()
