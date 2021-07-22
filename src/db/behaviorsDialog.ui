@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>434</width>
-    <height>1107</height>
+    <width>583</width>
+    <height>1027</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,7 +15,17 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QTableView" name="behaviorsTableView"/>
+    <widget class="QCheckBox" name="hideInactiveBehaviorsCheckBox">
+     <property name="text">
+      <string>Hide inactive behaviors</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="BehaviorsTableView" name="behaviorsTableView"/>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -29,6 +39,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>BehaviorsTableView</class>
+   <extends>QTableView</extends>
+   <header>db.behaviorsTableView</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

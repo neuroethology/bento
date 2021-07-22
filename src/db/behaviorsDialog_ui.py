@@ -15,15 +15,23 @@ from PySide2.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont,
     QRadialGradient)
 from PySide2.QtWidgets import *
 
+from db.behaviorsTableView import BehaviorsTableView
+
 
 class Ui_BehaviorsDialog(object):
     def setupUi(self, BehaviorsDialog):
         if BehaviorsDialog.objectName():
             BehaviorsDialog.setObjectName(u"BehaviorsDialog")
-        BehaviorsDialog.resize(434, 1107)
+        BehaviorsDialog.resize(583, 1027)
         self.verticalLayout = QVBoxLayout(BehaviorsDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.behaviorsTableView = QTableView(BehaviorsDialog)
+        self.hideInactiveBehaviorsCheckBox = QCheckBox(BehaviorsDialog)
+        self.hideInactiveBehaviorsCheckBox.setObjectName(u"hideInactiveBehaviorsCheckBox")
+        self.hideInactiveBehaviorsCheckBox.setChecked(True)
+
+        self.verticalLayout.addWidget(self.hideInactiveBehaviorsCheckBox)
+
+        self.behaviorsTableView = BehaviorsTableView(BehaviorsDialog)
         self.behaviorsTableView.setObjectName(u"behaviorsTableView")
 
         self.verticalLayout.addWidget(self.behaviorsTableView)
@@ -45,5 +53,6 @@ class Ui_BehaviorsDialog(object):
 
     def retranslateUi(self, BehaviorsDialog):
         BehaviorsDialog.setWindowTitle(QCoreApplication.translate("BehaviorsDialog", u"Behaviors", None))
+        self.hideInactiveBehaviorsCheckBox.setText(QCoreApplication.translate("BehaviorsDialog", u"Hide inactive behaviors", None))
     # retranslateUi
 

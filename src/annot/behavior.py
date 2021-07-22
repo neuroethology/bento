@@ -21,6 +21,9 @@ class Behavior(object):
         self.color = color
         self.visible = True
 
+    def __repr__(self):
+        return f"Behavior: name={self.name}, hot_key={self.hot_key}, color={self.color}, visible={self.visible}"
+
     def set_hot_key(self, hot_key: str):
         self.hot_key = hot_key
 
@@ -61,6 +64,7 @@ class Behaviors(object):
         super(Behaviors, self).__init__()
         self._hot_keys = {}
         self._items = {}
+        self._delete_behavior = Behavior('_delete')
 
     def load(self, f):
         line = f.readline()
@@ -85,6 +89,9 @@ class Behaviors(object):
                 h = beh.hot_key
             f.write(f"{h} {beh.name} {beh.color.redF()} {beh.color.greenF()} {beh.color.blueF()}" + os.linesep)
 
+    def get(self, name):
+        return self._items[name]
+
     def from_hot_key(self, key):
         try:
             # print(f"available hot keys: {self._hot_keys}")
@@ -99,9 +106,14 @@ class Behaviors(object):
     def header(self):
         return ['hot_key', 'color', 'name']
 
+    def colorColumns(self):
+        return [1]
+
     def __iter__(self):
-        print(f'in Behaviors.__iter__(),')
         return BehaviorsIterator(self)
+
+    def getDeleteBehavior(self):
+        return self._delete_behavior
 
 class BehaviorsIterator():
     def __init__(self, behaviors):

@@ -67,6 +67,10 @@ class MainWindow(QMainWindow):
         self.createDBAction = self.dbMenu.addAction("Create Database")
         self.createDBAction.triggered.connect(bento.create_db)
 
+        self.windowsMenu = self.menuBar.addMenu("Windows")
+        self.toggleBehaviorVisibilityAction = self.windowsMenu.addAction("Show/Hide Behavior List")
+        self.toggleBehaviorVisibilityAction.triggered.connect(bento.toggleBehaviorVisibility)
+
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
             if event.modifiers() & Qt.ShiftModifier:
@@ -88,8 +92,9 @@ class MainWindow(QMainWindow):
                 self.bento.player.halveFrameRate()
             else:
                 self.bento.toNextEvent()
-        elif event.key() in range(Qt.Key_A, Qt.Key_Z):
-            self.bento.processHotKey(event.key())
+        elif (not (event.modifiers() & ~Qt.ShiftModifier)  # not a modifier other than shift
+         and (event.key() in range(Qt.Key_A, Qt.Key_Z) or event.key() == Qt.Key_Backspace)):
+            self.bento.processHotKey(event)
         elif event.key() == Qt.Key_Space and self.bento.player:
             self.bento.player.togglePlayer()
         event.accept()
