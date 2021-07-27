@@ -108,7 +108,6 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         if not self.filterActive or self.filterColumn == None:
             return True
         srcIdx = self.sourceModel().index(source_row, self.filterColumn)
-        proxyIdx = self.mapFromSource(srcIdx)
         if isinstance(srcIdx.data(), QCheckBox):
             return srcIdx.data().isChecked()
         else:
@@ -116,13 +115,10 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         return True
 
     def isDirty(self, index):
-        print(f"CheckboxFilterProxyModel.isDirty(): index = {index}")
         srcIndex = self.mapToSource(index)
-        print(f"sourceIndex = {srcIndex}")
         return self.sourceModel().isDirty(srcIndex)
 
     def sort(self, col, order):
-        print(f"sorting by column {col}")
         self.currentSortCol = col
         self.currentSortOrder = order
         super().sort(col, order)
@@ -213,24 +209,23 @@ class BehaviorsDialog(QDialog):
         print(f"Set filterRows to {bool(filterRows)}")
 
     def updateBehaviors(self):
-        model = self.ui.behaviorsTableView.model()
+        model = self.ui.behaviorsTableView.model().sourceModel()
         for ix, entry in enumerate(iter(model)):
             tableIndex = model.createIndex(ix, 0)
+            print(f"updateBehaviors: ix = {ix}")
             if model.isDirty(tableIndex):
                 print(f"item at row {ix} is dirty")
-                #TODO: update from table model back into bento's behaviors
-                """
-                if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
-                    trial.video_data[ix].fromDict(entry, db_sess)
-                else:
-                    # new item
-                    item = VideoData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
-                    db_sess.add(item)
-                    trial.video_data.append(item)
-                """
+                # TODO: update from table model back into bento's behaviors
+                # if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
+                #     trial.video_data[ix].fromDict(entry, db_sess)
+                # else:
+                #     # new item
+                #     item = VideoData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
+                #     db_sess.add(item)
+                #     trial.video_data.append(item)
                 model.clearDirty(tableIndex)
-            else:
-                print(f"item at row {ix} wasn't dirty, so did nothing")
+            # else:
+            #     print(f"item at row {ix} wasn't dirty, so did nothing")
 
     @Slot()
     def accept(self):

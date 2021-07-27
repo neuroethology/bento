@@ -55,7 +55,6 @@ class TableModel(QAbstractTableModel):
         self.layoutChanged.emit()
 
     def appendData(self, newData):
-        print(f"appendData: adding {newData}")
         rows = len(self.mylist)
         columns = len(self.header)
         new_rows = len(newData)
@@ -103,7 +102,6 @@ class EditableTableModel(TableModel):
 
     def isDirty(self, index):
         # has "dirty' key and its value is True
-        print(f"EditableTableModel.isDirty(): index = {index}")
         return 'dirty' in self.mylist[index.row()] and self.mylist[index.row()]['dirty']
 
     def setDirty(self, index):
@@ -114,7 +112,6 @@ class EditableTableModel(TableModel):
 
 class TableModelIterator():
     def __init__(self, mylist):
-        print("Creating TableModelIterator")
         self.mylist = mylist
         self.ix = 0
 
@@ -126,7 +123,6 @@ class TableModelIterator():
         if self.ix >= len(self.mylist):
             raise StopIteration
         item = self.mylist[self.ix]
-        print(f"TableModelIterator.__next__ called with ix {self.ix}, item is {item}")
         self.ix += 1
         return item
 
