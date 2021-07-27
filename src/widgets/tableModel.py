@@ -60,7 +60,7 @@ class TableModel(QAbstractTableModel):
         new_rows = len(newData)
         first_new_index = self.index(rows, 0)
         last_new_index = self.index(rows + new_rows, columns-1)
-        self.beginInsertRows(QModelIndex(), rows, rows + new_rows)
+        self.beginInsertRows(self.index(), rows, rows + new_rows)
         self.mylist.append(newData)
         self.endInsertRows()
         self.dataChanged.emit(
@@ -109,6 +109,18 @@ class EditableTableModel(TableModel):
 
     def clearDirty(self, index):
         self.mylist[index.row()]['dirty'] = False
+
+    def removeRowSet(self, rows):
+        l = list(rows)
+        l.sort()
+        for row in reversed(l): # reversed so that the removal process doesn't change later indices
+            self.beginRemoveRows(self.index(row, 0), row, row)
+            del self.mylist[row]
+            self.endRemoveRows()
+        self.dataChanged.emit(
+            self.index(0, 0),
+            self.index(len(self.mylist)-1, len(self.header)-1),
+            [Qt.DisplayRole])
 
 class TableModelIterator():
     def __init__(self, mylist):

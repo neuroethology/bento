@@ -93,7 +93,6 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
                 )
 
     def setFilterActive(self, active):
-        print(f"setFilterActive called with value {active}")
         active = bool(active)
         if active != self.filterActive:
             self.filterActive = active
@@ -110,6 +109,8 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         srcIdx = self.sourceModel().index(source_row, self.filterColumn)
         if isinstance(srcIdx.data(), QCheckBox):
             return srcIdx.data().isChecked()
+        elif srcIdx.data() is None:
+            return False
         else:
             print(f"Unexpected data type: {type(srcIdx.data())}")
         return True
@@ -128,6 +129,10 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         self.invalidateFilter()
         self.sort(self.currentSortCol, self.currentSortOrder)
         self.dataChanged.emit(self.mapFromSource(indexStart), self.mapFromSource(indexEnd))
+
+    def removeRowSet(self, rows):
+        srcRows = {self.mapToSource(self.index(row, 0)).row() for row in rows}
+        self.sourceModel().removeRowSet(srcRows)
 
 class CheckboxFilterProxyModelIterator():
     def __init__(self, model):
@@ -158,7 +163,7 @@ class BehaviorsDialog(QDialog):
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
 
-        self.base_model = self.createBehaviorsTableView()
+        self.base_model = self.createBehaviorsTableModel()
         self.proxy_model = CheckboxFilterProxyModel()
         self.proxy_model.setSourceModel(self.base_model)
         activeColumn = None
@@ -185,7 +190,7 @@ class BehaviorsDialog(QDialog):
         if oldModel:
             oldModel.deleteLater()
 
-    def createBehaviorsTableView(self):
+    def createBehaviorsTableModel(self):
         header = self.bento.behaviors.header()
         header.extend(["visible", "active"])
         data_list = []
@@ -206,7 +211,6 @@ class BehaviorsDialog(QDialog):
     @Slot(int)
     def updateRowVisibility(self, filterRows):
         self.proxy_model.setFilterActive(bool(filterRows))
-        print(f"Set filterRows to {bool(filterRows)}")
 
     def updateBehaviors(self):
         model = self.ui.behaviorsTableView.model().sourceModel()
@@ -226,6 +230,23 @@ class BehaviorsDialog(QDialog):
                 model.clearDirty(tableIndex)
             # else:
             #     print(f"item at row {ix} wasn't dirty, so did nothing")
+
+    def keyPressEvent(self, event):
+        """
+        Handle key press events in the dialog (but not individual items)
+        """
+        if event.key() in (Qt.Key_Delete, Qt.Key_Backspace):
+            self.deleteRows()
+            event.accept()
+
+    def deleteRows(self):
+        """
+        Delete all the selected rows from the model
+        """
+        model = self.ui.behaviorsTableView.model()
+        rows = {index.row() for index in self.ui.behaviorsTableView.selectedIndexes()}
+        model.removeRowSet(rows)
+        self.ui.behaviorsTableView.clearSelection()
 
     @Slot()
     def accept(self):
