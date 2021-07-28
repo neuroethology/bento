@@ -27,7 +27,7 @@ class Ui_BehaviorsDialog(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.hideInactiveBehaviorsCheckBox = QCheckBox(BehaviorsDialog)
         self.hideInactiveBehaviorsCheckBox.setObjectName(u"hideInactiveBehaviorsCheckBox")
-        self.hideInactiveBehaviorsCheckBox.setChecked(True)
+        self.hideInactiveBehaviorsCheckBox.setChecked(False)
 
         self.verticalLayout.addWidget(self.hideInactiveBehaviorsCheckBox)
 

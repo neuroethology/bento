@@ -200,7 +200,7 @@ class BehaviorsDialog(QDialog):
             visibilityCheckBox.setChecked(True)
             behaviorDict['visible'] = visibilityCheckBox
             activeCheckBox = QCheckBox("active")
-            activeCheckBox.setChecked(True)
+            activeCheckBox.setChecked(False)
             behaviorDict['active'] = activeCheckBox
             data_list.append(behaviorDict)
         model = CheckableTableModel(self, data_list, header)
