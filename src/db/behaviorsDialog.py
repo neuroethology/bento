@@ -4,17 +4,21 @@ from db.behaviorsDialog_ui import Ui_BehaviorsDialog
 from annot.behavior import Behavior, Behaviors
 from PySide2.QtCore import QModelIndex, QSortFilterProxyModel, Signal, Slot
 from PySide2.QtGui import Qt, QIntValidator
-from PySide2.QtWidgets import QCheckBox, QDialog, QHeaderView, QMessageBox, QTableView
+from PySide2.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QHeaderView, QMessageBox, QTableView
 from widgets.tableModel import EditableTableModel
 from os.path import expanduser, sep
 # from caiman.utils.utils import load_dict_from_hdf5
 
 class CheckableTableModel(EditableTableModel):
+    def isCheckboxColumn(self, index):
+        return (
+            self.header[index.column()].lower() == 'visible' or
+            self.header[index.column()].lower() == 'active'
+            )
+
     def flags(self, index):
         f = super().flags(index)
-        if (
-            self.header[index.column()].lower() == 'visible' or
-            self.header[index.column()].lower() == 'active'):
+        if self.isCheckboxColumn(index):
             return (f & ~Qt.ItemIsSelectable) | Qt.ItemIsUserCheckable
         return f
 
@@ -34,6 +38,8 @@ class CheckableTableModel(EditableTableModel):
                     return Qt.Checked
                 else:
                     return Qt.Unchecked
+        if self.isCheckboxColumn(index):
+            return None
         return super().data(index, role)
 
     def setData(self, index, value, role):
@@ -161,6 +167,7 @@ class BehaviorsDialog(QDialog):
         self.bento = bento
         self.ui = Ui_BehaviorsDialog()
         self.ui.setupUi(self)
+        self.ui.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         self.quitting.connect(self.bento.quit)
 
         self.base_model = self.createBehaviorsTableModel()
@@ -204,6 +211,7 @@ class BehaviorsDialog(QDialog):
             behaviorDict['active'] = activeCheckBox
             data_list.append(behaviorDict)
         model = CheckableTableModel(self, data_list, header)
+        model.setImmutable(header.index('name'))
         for column in self.bento.behaviors.colorColumns():
             model.setColorRoleColumn(column)
         return model
@@ -213,20 +221,28 @@ class BehaviorsDialog(QDialog):
         self.proxy_model.setFilterActive(bool(filterRows))
 
     def updateBehaviors(self):
+        """
+        Update Bento's active behaviors based on the changes made to "Active" checkboxes
+        in this dialog.  Remove annotations that use behaviors that are being made
+        inactive.
+        """
         model = self.ui.behaviorsTableView.model().sourceModel()
         for ix, entry in enumerate(iter(model)):
             tableIndex = model.createIndex(ix, 0)
-            print(f"updateBehaviors: ix = {ix}")
             if model.isDirty(tableIndex):
                 print(f"item at row {ix} is dirty")
-                # TODO: update from table model back into bento's behaviors
-                # if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
-                #     trial.video_data[ix].fromDict(entry, db_sess)
-                # else:
-                #     # new item
-                #     item = VideoData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
-                #     db_sess.add(item)
-                #     trial.video_data.append(item)
+                beh = self.bento.behaviors.get(entry['name'])
+                # update color and hotkey
+                beh.set_color(entry['color'])
+                beh.set_hot_key(entry['hot_key'])
+                # update visibility
+                beh.set_visible(entry['visible'].isChecked())
+                # update active
+                active = entry['active'].isChecked()
+                if not active:
+                    self.bento.annotations.delete_all_bouts(entry['name'])
+                beh.set_active(active)
+                # if the behavior is being made inactive, delete bouts using this behavior
                 model.clearDirty(tableIndex)
             # else:
             #     print(f"item at row {ix} wasn't dirty, so did nothing")
@@ -250,14 +266,21 @@ class BehaviorsDialog(QDialog):
 
     @Slot()
     def accept(self):
-        #TODO: update bento's behaviors here and save to file (or database?)
-        self.updateBehaviors()
+        self.bento.saveBehaviors()
         # super().accept()  # don't close the window on accept
 
     @Slot()
     def reject(self):
+        #TODO: Figure out a way to cancel updates.  Maybe an undo facility?
         pass
         # super().reject()  # don't close the window on reject (== discard, cancel)
+
+    @Slot()
+    def apply(self):
+        """
+        Update Bento's group of active behaviors per changes to the table in this dialog
+        """
+        self.updateBehaviors()
 
     @Slot()
     def toggleVisibility(self):

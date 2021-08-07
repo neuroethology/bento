@@ -484,6 +484,31 @@ class Surgery(Base):
             self.procedure, self.follow_up_care )
         )
 
+# class Behavior(Base):
+#     """
+#     Individual behavior definitions
+#     """
+#     __tablename__ = "behavior"
+
+#     id = Column(Integer, primary_key=True)
+#     name = Column(String(32))
+#     definition = Column(String(512))
+#     default_color_r = Column(Float)
+#     default_color_g = Column(Float)
+#     default_color_b = Column(Float)
+#     default_hotkey = Column(String(1))
+
+# class BehaviorCollection(Base):
+#     """
+#     Collection of behaviors
+#     """
+#     __tablename__ = "behavior_collection"
+
+#     id = Column(Integer, primary_key=True)
+#     behaviors = relationship('Behavior',
+#         cascade='all, delete, delete-orphan')
+
+
 def new_session(username, password, host, port, use_personal_db=False):
     need_to_create_tables = False
     if use_personal_db:

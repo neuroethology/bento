@@ -20,6 +20,7 @@ class Behavior(object):
         self.hot_key = '' if hot_key == '_' else hot_key
         self.color = color
         self.visible = True
+        self.active = False
 
     def __repr__(self):
         return f"Behavior: name={self.name}, hot_key={self.hot_key}, color={self.color}, visible={self.visible}"
@@ -30,6 +31,9 @@ class Behavior(object):
     def set_color(self, color: QColor):
         self.color = color
 
+    def set_active(self, active):
+        self.active = active
+
     def set_visible(self, visible):
         self.visible = visible
 
@@ -38,6 +42,9 @@ class Behavior(object):
 
     def get_color(self):
         return self.color
+
+    def is_active(self):
+        return self.active
 
     def is_visible(self):
         return self.visible
@@ -75,7 +82,6 @@ class Behaviors(object):
             else:
                 self._hot_keys[hot_key] = name
             self._items[name] = Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b)))
-            # setattr(self, name, Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b))))
             line = f.readline()
 
     def save(self, f):

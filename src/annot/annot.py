@@ -2,7 +2,7 @@
 import timecode as tc
 from annot.behavior import Behavior
 from sortedcontainers import SortedKeyList
-from PySide2.QtCore import QRectF, Signal
+from PySide2.QtCore import QObject, QRectF, Signal
 from PySide2.QtGui import QColor
 from PySide2.QtWidgets import QGraphicsItem
 
@@ -184,11 +184,24 @@ class Channel(QGraphicsItem):
                     QRectF(bout.start().float, self.top(), bout.len().float, 1.),
                     bout.color()
                     )
-class Annotations(object):
+
+    def delete_all_bouts(self, behavior_name):
+        to_delete = list()
+        for bout in iter(self):
+            if bout.name() == behavior_name:
+                to_delete.append(bout)
+        for bout in to_delete:
+            self.remove(bout)
+
+class Annotations(QObject):
     """
     """
 
+    # Signals
+    annotations_changed = Signal()
+
     def __init__(self, behaviors):
+        super().__init__()
         self._channels = {}
         self._behaviors = behaviors
         self._movies = []
@@ -280,6 +293,7 @@ class Annotations(object):
                     if not line:
                         break # blank line -- end of section
                     self.annotation_names.append(line)
+                    self._behaviors.get(line).set_active(True)
                     line = f.readline().strip()
                 found_annotation_names = True
             elif line.lower().startswith("ch"):
@@ -322,6 +336,7 @@ class Annotations(object):
                         line = f.readline()
             line = f.readline()
         print(f"Done reading Caltech annotation file {f.name}")
+        self.annotations_changed.emit()
 
     def write_caltech(self, f, video_files, stimulus):
         if not f.writable():
@@ -404,3 +419,7 @@ class Annotations(object):
 
     def format(self):
         return self._format
+
+    def delete_all_bouts(self, behavior_name):
+        for chan_name in self.channel_names():
+            self.channel(chan_name).delete_all_bouts(behavior_name)

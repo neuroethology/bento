@@ -20,7 +20,7 @@ class TableModel(QAbstractTableModel):
     def data(self, index, role):
         if not isinstance(index, QModelIndex) or not index.isValid():
             raise RuntimeError("Index is not valid")
-        if role not in (Qt.DisplayRole, Qt.BackgroundRole):
+        if role not in (Qt.DisplayRole, Qt.BackgroundRole, Qt.EditRole):
             return None
         row = self.mylist[index.row()]
         if isinstance(row, (tuple, list)):
@@ -31,8 +31,8 @@ class TableModel(QAbstractTableModel):
             raise RuntimeError(f"Can't handle indexing with data of type {type(row)}")
         if (index.column() in self.colorRoleColumns) and (role == Qt.BackgroundRole):
             return QColor(datum)
-        elif (index.column() not in self.colorRoleColumns) and (role == Qt.DisplayRole):
-            return datum
+        elif (index.column() not in self.colorRoleColumns) and (role in (Qt.DisplayRole, Qt.EditRole)):
+            return str(datum)
         else:
             return None
 
@@ -78,10 +78,21 @@ class TableModel(QAbstractTableModel):
         self.colorRoleColumns.discard(column)
 
 class EditableTableModel(TableModel):
+    """
+    Version of TableModel class that supports updating of the underlying data
+    """
+    def __init__(self, parent, mylist, header, *args):
+        super().__init__(parent, mylist, header, *args)
+        self.immutableColumns = set()
+
     def flags(self, index):
-        return super().flags(index) | Qt.ItemIsEditable
+        flags = super().flags(index)
+        if index.column() not in self.immutableColumns:
+            flags |= Qt.ItemIsEditable
+        return flags
 
     def setData(self, index, value, role=Qt.EditRole):
+        print(f"setData called with index ({index.row()}, {index.column()}), value {value}")
         if not isinstance(index, QModelIndex) or not index.isValid():
             raise RuntimeError("Index is not valid")
         if (len(self.mylist) < index.row()+1 or
@@ -91,10 +102,14 @@ class EditableTableModel(TableModel):
             raise RuntimeError("Index is out of range")
         row = self.mylist[index.row()]
         if isinstance(row, list):
+            print("(list)")
             row[index.column()] = value
         elif isinstance(row, dict):
+            key = self.header[index.column()]
+            print(f"(dict) key = {key}")
             row[self.header[index.column()]] = value
             row['dirty'] = True
+            print(f"row value: {row[key]}, mylist value: {self.mylist[index.row()][key]}")
         else:
             raise RuntimeError(f"Can't handle indexing with data of type {type(row)}")
         # self.dataChanged.emit()
@@ -109,6 +124,12 @@ class EditableTableModel(TableModel):
 
     def clearDirty(self, index):
         self.mylist[index.row()]['dirty'] = False
+
+    def isImmutable(self, index):
+        return index.column() in self.immutableColumns
+
+    def setImmutable(self, column):
+        self.immutableColumns.add(column)
 
     def removeRowSet(self, rows):
         l = list(rows)

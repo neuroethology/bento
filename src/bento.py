@@ -102,19 +102,11 @@ class Bento(QObject):
         self.time_end = Timecode('30.0', '23:59:59:29')
         self.current_time = self.time_start
         self.investigator_id = None
-        self.active_annotations = [] # tuples ('ch_key', bout)
+        self.current_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
         self.pending_bout = None
         self.bento_dir = expanduser("~") + sep + ".bento" + sep
-        try:
-            with open(self.bento_dir + 'color_profiles.txt','r') as f:
-                self.behaviors.load(f)
-        except Exception as e:
-            pass
-            """ should do something like:
-            with open(self.bento_dir + 'color_profiles.txt', 'w') as f:
-                <initialize the file with some reasonable default behaviors/colors/hotkeys>
-            """
+        self.loadBehaviors()
         self.behaviorsDialog = BehaviorsDialog(self)
         self.behaviorsDialog.show()
 
@@ -163,18 +155,24 @@ class Bento(QObject):
 
     def load_or_init_annotations(self, fn, sample_rate = 30., running_time = None):
         self.annotationsScene.setSampleRate(sample_rate)
-        if isinstance(fn, str):
-            print(f"Loading annotations from {fn}")
-            self.annotations.read(fn)
-            if self.annotations.channel_names():
-                self.mainWindow.addChannelToCombo(self.annotations.channel_names())
-                print(f"channel_names: {self.annotations.channel_names()}")
-                self.setActiveChannel(self.annotations.channel_names()[0])
-            self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
-            self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
-            self.time_start = self.annotations.time_start()
-            self.time_end = self.annotations.time_end()
-        else:
+        loaded = False
+        if isinstance(fn, str) and len(fn) > 0:
+            print(f"Try loading annotations from {fn}")
+            try:
+                self.annotations.read(fn)
+                if self.annotations.channel_names():
+                    self.mainWindow.addChannelToCombo(self.annotations.channel_names())
+                    print(f"channel_names: {self.annotations.channel_names()}")
+                    self.setActiveChannel(self.annotations.channel_names()[0])
+                self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
+                self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
+                self.time_start = self.annotations.time_start()
+                self.time_end = self.annotations.time_end()
+                loaded = True
+            except Exception as e:
+                pass
+                print(f"Attempt to load annotations from file {fn} failed with exception {e}")
+        if not loaded:
             print("Initializing new annotations")
             self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 0.)))
             self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
@@ -197,6 +195,28 @@ class Bento(QObject):
     def setActiveChannel(self, chanName):
         self.active_channels = [chanName]
         self.active_channel_changed.emit(self.active_channels[0])
+
+    def loadBehaviors(self):
+        profile_paths = [self.bento_dir, ""]
+        for path in profile_paths:
+            try:
+                fn = path + 'color_profiles.txt'
+                print(f"Trying to load behavior definitions from {fn}...")
+                with open(fn,'r') as f:
+                    self.behaviors.load(f)
+                print("  Success!")
+                break   # no exception, so success
+            except Exception as e:
+                continue
+
+    def saveBehaviors(self):
+        fn = self.bento_dir + "color_profiles.txt"
+        try:
+            with open(fn, 'w') as f:
+                self.behaviors.save(f)
+        except Exception as e:
+            print(f"Caught Exception {e}")
+            QMessageBox.about(self.mainWindow, "Error", f"Saving behaviors to {fn} failed.  {e}")
 
     @Slot()
     def save_annotations(self):
@@ -305,17 +325,17 @@ class Bento(QObject):
 
     # State-related methods
 
-    def update_active_annotations(self):
-        self.active_annotations.clear()
+    def update_current_annotations(self):
+        self.current_annotations.clear()
         for ch in self.active_channels:
             bouts = self.annotations.channel(ch).get_at(self.current_time)
             for bout in bouts:
-                self.active_annotations.append((ch, bout))
+                self.current_annotations.append((ch, bout))
         self.annotChanged.emit([(
             c,
             bout.name(),
             bout.color())
-            for (c, bout) in self.active_annotations])
+            for (c, bout) in self.current_annotations])
 
     def set_time(self, new_tc: Timecode):
         if not isinstance(new_tc, Timecode):
@@ -323,7 +343,7 @@ class Bento(QObject):
         new_tc = max(self.time_start, min(self.time_end, new_tc))
         if self.current_time != new_tc:
             self.current_time = new_tc
-            self.update_active_annotations()
+            self.update_current_annotations()
             self.timeChanged.emit(self.current_time)
 
     def change_time(self, increment: Timecode):
@@ -359,7 +379,7 @@ class Bento(QObject):
     @Slot()
     def toNextEvent(self):
         next_event = self.time_end
-        for (ch, bout) in self.active_annotations:
+        for (ch, bout) in self.current_annotations:
             next_event = min(next_event, bout.end() + 1)
         for ch in self.active_channels:
             next_bout = self.annotations.channel(ch).get_next_start(self.current_time)
@@ -369,7 +389,7 @@ class Bento(QObject):
     @Slot()
     def toPrevEvent(self):
         prev_event = self.time_start
-        for (ch, bout) in self.active_annotations:
+        for (ch, bout) in self.current_annotations:
             prev_event = max(prev_event, bout.start() - 1)
         for ch in self.active_channels:
             prev_bout = self.annotations.channel(ch).get_prev_end(self.current_time - 1)
@@ -449,7 +469,7 @@ class Bento(QObject):
             else:
                 self.pending_bout = None
         # Is that annotation active here?
-        for (c, bout) in self.active_annotations:
+        for (c, bout) in self.current_annotations:
             if bout.name() == beh.get_name():
                 # what to do to "toggle" it?
                 print(f"processHotKey: behavior {beh.get_name()} is already active")
