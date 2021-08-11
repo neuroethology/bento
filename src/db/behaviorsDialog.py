@@ -10,10 +10,16 @@ from os.path import expanduser, sep
 # from caiman.utils.utils import load_dict_from_hdf5
 
 class CheckableTableModel(EditableTableModel):
-    def isCheckboxColumn(self, index):
+    def isCheckboxColumn(self, param):
+        if isinstance(param, QModelIndex):
+            column = param.column()
+        elif isinstance(param, int):
+            column = param
+        else:
+            raise Exception(f"Can't handle parameter of type {type(param)} to isCheckboxColumn")
         return (
-            self.header[index.column()].lower() == 'visible' or
-            self.header[index.column()].lower() == 'active'
+            self.header[column] == 'visibilityCheckBox' or
+            self.header[column] == 'activeCheckBox'
             )
 
     def flags(self, index):
@@ -45,9 +51,7 @@ class CheckableTableModel(EditableTableModel):
     def setData(self, index, value, role):
         if not index.isValid():
             return False
-        if role == Qt.CheckStateRole and (
-            self.header[index.column()].lower() == 'visible' or
-            self.header[index.column()].lower() == 'active'):
+        if role == Qt.CheckStateRole and self.isCheckboxColumn(index):
             row = self.mylist[index.row()]
             if isinstance(row, list):
                 item = row[index.column()]
@@ -66,7 +70,7 @@ class CheckableTableModel(EditableTableModel):
         # can't sort "visible" or "active" columns
         self.currentSortCol = col
         self.currentSortOrder = order
-        if self.header[col].lower() == "visible" or self.header[col].lower() == "active":
+        if self.isCheckboxColumn(col):
             return
         return super().sort(col, order)
 
@@ -175,7 +179,7 @@ class BehaviorsDialog(QDialog):
         self.proxy_model.setSourceModel(self.base_model)
         activeColumn = None
         try:
-            activeColumn = self.base_model.header.index("active")
+            activeColumn = self.base_model.header.index("activeCheckBox")
         except ValueError:
             pass
         self.proxy_model.setFilterColumn(activeColumn)
@@ -199,16 +203,19 @@ class BehaviorsDialog(QDialog):
 
     def createBehaviorsTableModel(self):
         header = self.bento.behaviors.header()
-        header.extend(["visible", "active"])
+        header.extend(["visibilityCheckBox", "activeCheckBox"])
         data_list = []
         for behavior in self.bento.behaviors:
+            print(f"Creating table entry for {behavior}")
             behaviorDict = behavior.toDict()
             visibilityCheckBox = QCheckBox("visible")
-            visibilityCheckBox.setChecked(True)
-            behaviorDict['visible'] = visibilityCheckBox
+            visibilityCheckBox.setChecked(behaviorDict['visible'])
+            visibilityCheckBox.stateChanged.connect(behavior.set_active)
+            behaviorDict['visibilityCheckBox'] = visibilityCheckBox
             activeCheckBox = QCheckBox("active")
-            activeCheckBox.setChecked(False)
-            behaviorDict['active'] = activeCheckBox
+            activeCheckBox.setChecked(behaviorDict['active'])
+            activeCheckBox.stateChanged.connect(behavior.set_visible)
+            behaviorDict['activeCheckBox'] = activeCheckBox
             data_list.append(behaviorDict)
         model = CheckableTableModel(self, data_list, header)
         model.setImmutable(header.index('name'))
@@ -229,20 +236,22 @@ class BehaviorsDialog(QDialog):
         model = self.ui.behaviorsTableView.model().sourceModel()
         for ix, entry in enumerate(iter(model)):
             tableIndex = model.createIndex(ix, 0)
+            beh = self.bento.behaviors.get(entry['name'])
+            # update active
+            set_active = entry['activeCheckBox'].isChecked()
+            if beh.active() != set_active:
+                if not set_active:
+                    # if the behavior is being made inactive, delete bouts using this behavior
+                    self.bento.annotations.delete_all_bouts(entry['name'])
+                beh.active(set_active)
+            # update visibility
+            beh.set_visible(entry['visibilityCheckBox'].isChecked())
             if model.isDirty(tableIndex):
+                # there was a change in color or hot_key that needs to be tracked
                 print(f"item at row {ix} is dirty")
-                beh = self.bento.behaviors.get(entry['name'])
                 # update color and hotkey
                 beh.set_color(entry['color'])
                 beh.set_hot_key(entry['hot_key'])
-                # update visibility
-                beh.set_visible(entry['visible'].isChecked())
-                # update active
-                active = entry['active'].isChecked()
-                if not active:
-                    self.bento.annotations.delete_all_bouts(entry['name'])
-                beh.set_active(active)
-                # if the behavior is being made inactive, delete bouts using this behavior
                 model.clearDirty(tableIndex)
             # else:
             #     print(f"item at row {ix} wasn't dirty, so did nothing")

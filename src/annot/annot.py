@@ -199,6 +199,7 @@ class Annotations(QObject):
 
     # Signals
     annotations_changed = Signal()
+    active_annotations_changed = Signal()
 
     def __init__(self, behaviors):
         super().__init__()
@@ -234,6 +235,7 @@ class Annotations(QObject):
         found_all_channels = False
         found_all_annotations = False
         reading_channel = False
+        to_activate = []
         channel_names = []
         current_channel = None
         current_bout = None
@@ -292,8 +294,7 @@ class Annotations(QObject):
                     line = line.strip()
                     if not line:
                         break # blank line -- end of section
-                    self.annotation_names.append(line)
-                    self._behaviors.get(line).set_active(True)
+                    to_activate.append(line)
                     line = f.readline().strip()
                 found_annotation_names = True
             elif line.lower().startswith("ch"):
@@ -336,6 +337,7 @@ class Annotations(QObject):
                         line = f.readline()
             line = f.readline()
         print(f"Done reading Caltech annotation file {f.name}")
+        self.ensure_and_activate_behaviors(to_activate)
         self.annotations_changed.emit()
 
     def write_caltech(self, f, video_files, stimulus):
@@ -423,3 +425,13 @@ class Annotations(QObject):
     def delete_all_bouts(self, behavior_name):
         for chan_name in self.channel_names():
             self.channel(chan_name).delete_all_bouts(behavior_name)
+
+    def ensure_and_activate_behaviors(self, toActivate):
+        behaviorSetUpdated = False
+        for behavior in toActivate:
+            behaviorSetUpdated |= self._behaviors.addIfMissing(behavior)
+            self.annotation_names.append(behavior)
+            self._behaviors.get(behavior).set_active(True)
+        if behaviorSetUpdated:
+            self.annotations_changed.emit()
+        self.active_annotations_changed.emit()

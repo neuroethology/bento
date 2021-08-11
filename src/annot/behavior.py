@@ -3,6 +3,7 @@
 Overview comment here
 """
 
+from PySide2.QtCore import Slot
 from PySide2.QtGui import QColor
 import os
 
@@ -23,7 +24,7 @@ class Behavior(object):
         self.active = False
 
     def __repr__(self):
-        return f"Behavior: name={self.name}, hot_key={self.hot_key}, color={self.color}, visible={self.visible}"
+        return f"Behavior: name={self.name}, hot_key={self.hot_key}, color={self.color}, active={self.active}, visible={self.visible}"
 
     def set_hot_key(self, hot_key: str):
         self.hot_key = hot_key
@@ -31,9 +32,11 @@ class Behavior(object):
     def set_color(self, color: QColor):
         self.color = color
 
+    @Slot(bool)
     def set_active(self, active):
         self.active = active
 
+    @Slot(bool)
     def set_visible(self, visible):
         self.visible = visible
 
@@ -53,7 +56,9 @@ class Behavior(object):
         return {
             'hot_key': '_' if self.hot_key == '' else self.hot_key,
             'color': self.color,
-            'name': self.name
+            'name': self.name,
+            'active': self.active,
+            'visible': self.visible
             }
 
 class Behaviors(object):
@@ -120,6 +125,12 @@ class Behaviors(object):
 
     def getDeleteBehavior(self):
         return self._delete_behavior
+
+    def addIfMissing(self, nameToAdd):
+        if nameToAdd not in self._items.keys():
+            self._items[nameToAdd] = Behavior(nameToAdd, '', QColor.gray)
+            return True
+        return False
 
 class BehaviorsIterator():
     def __init__(self, behaviors):
