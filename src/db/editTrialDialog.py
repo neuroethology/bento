@@ -4,9 +4,9 @@ from db.schema_sqlalchemy import Camera, Trial, Session, VideoData, NeuralData, 
 from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from annot.annot import Annotations
-from PySide2.QtCore import Signal, Slot
-from PySide2.QtGui import QIntValidator
-from PySide2.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtGui import QIntValidator
+from PySide6.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
 from widgets.tableModel import EditableTableModel
 from timecode import Timecode
 from os.path import expanduser, getmtime, sep

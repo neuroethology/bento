@@ -1,8 +1,8 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
-from PySide2.QtCore import Signal, Slot
-from PySide2.QtWidgets import QFrame
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtWidgets import QFrame
 import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
@@ -21,6 +21,7 @@ class NeuralFrame(QFrame):
         # self.ui = Ui_NeuralDockWidget()
         self.ui = Ui_neuralFrame()
         self.ui.setupUi(self)
+        bento.quitting.connect(self.close)
         self.quitting.connect(self.bento.quit)
         self.neuralScene = NeuralScene()
         self.ui.neuralView.setScene(self.neuralScene)
@@ -84,4 +85,4 @@ class NeuralFrame(QFrame):
     def showNeuralAnnotations(self, state):
         if isinstance(self.neuralScene, NeuralScene):
             self.neuralScene.showAnnotations(state > 0)
-    
+

@@ -3,9 +3,9 @@
 from db.schema_sqlalchemy import VideoData, Session
 from db.trialWindow_ui import Ui_TrialDockWidget
 from db.editTrialDialog import EditTrialDialog
-from PySide2.QtCore import Signal, Slot, QItemSelection
-from PySide2.QtGui import Qt
-from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
+from PySide6.QtCore import Signal, Slot, QItemSelection
+from PySide6.QtGui import Qt
+from PySide6.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
 
 from db.schema_sqlalchemy import Trial, AnnotationsData
 from widgets.tableModel import TableModel
@@ -49,7 +49,7 @@ class TrialDockWidget(QDockWidget):
             self.ui.trialTableView.setSortingEnabled(True)
             self.ui.trialTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
             self.ui.trialTableView.setAutoScroll(False)
-            self.ui.trialTableView.sortByColumn(1)
+            self.ui.trialTableView.sortByColumn(1, Qt.AscendingOrder)
 
             self.ui.loadNeuralCheckBox.setCheckState(Qt.Checked)
 
@@ -79,7 +79,7 @@ class TrialDockWidget(QDockWidget):
         self.ui.videoTableView.setSortingEnabled(True)
         self.ui.videoTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ui.videoTableView.setAutoScroll(False)
-        self.ui.videoTableView.sortByColumn(0)
+        self.ui.videoTableView.sortByColumn(0, Qt.AscendingOrder)
         self.ui.videoTableView.selectRow(0)
 
     @Slot(QItemSelection, QItemSelection)

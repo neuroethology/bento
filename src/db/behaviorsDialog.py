@@ -2,9 +2,9 @@
 
 from db.behaviorsDialog_ui import Ui_BehaviorsDialog
 from annot.behavior import Behavior, Behaviors
-from PySide2.QtCore import QModelIndex, QSortFilterProxyModel, Signal, Slot
-from PySide2.QtGui import Qt, QIntValidator
-from PySide2.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QHeaderView, QMessageBox, QTableView
+from PySide6.QtCore import QModelIndex, QSortFilterProxyModel, Signal, Slot
+from PySide6.QtGui import Qt, QIntValidator
+from PySide6.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QHeaderView, QMessageBox, QTableView
 from widgets.tableModel import EditableTableModel
 from os.path import expanduser, sep
 # from caiman.utils.utils import load_dict_from_hdf5
@@ -172,6 +172,7 @@ class BehaviorsDialog(QDialog):
         self.ui = Ui_BehaviorsDialog()
         self.ui.setupUi(self)
         self.ui.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        bento.quitting.connect(self.quit)
         self.quitting.connect(self.bento.quit)
 
         self.base_model = self.createBehaviorsTableModel()
@@ -203,11 +204,11 @@ class BehaviorsDialog(QDialog):
 
     def createBehaviorsTableModel(self):
         header = self.bento.behaviors.header()
-        header.extend(["visibilityCheckBox", "activeCheckBox"])
         data_list = []
         for behavior in self.bento.behaviors:
             print(f"Creating table entry for {behavior}")
             behaviorDict = behavior.toDict()
+            print(f"type(behaviorDict['color']) = {type(behaviorDict['color'])}")
             visibilityCheckBox = QCheckBox("visible")
             visibilityCheckBox.setChecked(behaviorDict['visible'])
             visibilityCheckBox.stateChanged.connect(behavior.set_active)
@@ -239,11 +240,11 @@ class BehaviorsDialog(QDialog):
             beh = self.bento.behaviors.get(entry['name'])
             # update active
             set_active = entry['activeCheckBox'].isChecked()
-            if beh.active() != set_active:
+            if beh.is_active() != set_active:
                 if not set_active:
                     # if the behavior is being made inactive, delete bouts using this behavior
                     self.bento.annotations.delete_all_bouts(entry['name'])
-                beh.active(set_active)
+                beh.set_active(set_active)
             # update visibility
             beh.set_visible(entry['visibilityCheckBox'].isChecked())
             if model.isDirty(tableIndex):
@@ -290,6 +291,10 @@ class BehaviorsDialog(QDialog):
         Update Bento's group of active behaviors per changes to the table in this dialog
         """
         self.updateBehaviors()
+
+    @Slot()
+    def quit(self):
+        self.done(0)
 
     @Slot()
     def toggleVisibility(self):

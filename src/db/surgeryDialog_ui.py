@@ -3,22 +3,19 @@
 ################################################################################
 ## Form generated from reading UI file 'surgeryDialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 5.14.1
+## Created by: Qt User Interface Compiler version 6.1.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject, QPoint,
-    QRect, QSize, QUrl, Qt)
-from PySide2.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont,
-    QFontDatabase, QIcon, QLinearGradient, QPalette, QPainter, QPixmap,
-    QRadialGradient)
-from PySide2.QtWidgets import *
+from PySide6.QtCore import *  # type: ignore
+from PySide6.QtGui import *  # type: ignore
+from PySide6.QtWidgets import *  # type: ignore
 
 
 class Ui_SurgeryDialog(object):
     def setupUi(self, SurgeryDialog):
-        if SurgeryDialog.objectName():
+        if not SurgeryDialog.objectName():
             SurgeryDialog.setObjectName(u"SurgeryDialog")
         SurgeryDialog.resize(356, 250)
         self.verticalLayout = QVBoxLayout(SurgeryDialog)

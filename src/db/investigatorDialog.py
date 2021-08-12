@@ -1,8 +1,8 @@
 # investigatorDialog.py
 
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
-from PySide2.QtCore import Signal, Slot
-from PySide2.QtWidgets import QDialog, QDialogButtonBox
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
 from db.schema_sqlalchemy import Investigator
 

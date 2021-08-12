@@ -1,8 +1,8 @@
 # sessionWindow.py
 
 from db.sessionWindow_ui import Ui_SessionDockWidget
-from PySide2.QtCore import Signal, Slot
-from PySide2.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
 from db.schema_sqlalchemy import Investigator, Animal, Session
 from widgets.tableModel import TableModel
 from db.editSessionDialog import EditSessionDialog
@@ -107,4 +107,4 @@ class SessionDockWidget(QDockWidget):
             self.current_session_id = None
         dialog = EditSessionDialog(self.bento, self.bento.investigator_id, self.current_session_id)
         dialog.sessionChanged.connect(self.populateSessions)
-        dialog.exec_()
+        dialog.exec()

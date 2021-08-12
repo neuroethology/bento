@@ -3,9 +3,9 @@
 from db.schema_sqlalchemy import Animal, Investigator, SexEnum, Surgery
 from db.animalDialog_ui import Ui_AnimalDialog
 from db.surgeryDialog import SurgeryDialog
-from PySide2.QtCore import Signal, Slot
-from PySide2.QtGui import QIntValidator
-from PySide2.QtWidgets import QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtGui import QIntValidator
+from PySide6.QtWidgets import QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView
 
 from widgets.tableModel import TableModel
 import datetime
@@ -84,7 +84,7 @@ class AnimalDialog(QDialog):
         self.ui.surgeryTableView.setModel(None)
         if oldModel:
             oldModel.deleteLater()
-        
+
     def populateFields(self):
         animal_id = None
         current_animal_row = self.ui.animalTableView.currentIndex().row()
@@ -138,7 +138,7 @@ class AnimalDialog(QDialog):
     @Slot()
     def addSurgeryAction(self):
         surgeryDialog = SurgeryDialog(self.bento, self.investigator_id, self.animal.id)
-        surgeryDialog.exec_()
+        surgeryDialog.exec()
         self.populateSurgeryLog(self.animal.id)
 
     @Slot(object)

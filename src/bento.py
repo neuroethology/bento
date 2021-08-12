@@ -1,9 +1,9 @@
 # bento.py
 
 from timecode import Timecode
-from PySide2.QtCore import Signal, Slot, QObject, QThread, QRectF, QMarginsF, Qt
-from PySide2.QtGui import QColor
-from PySide2.QtWidgets import (QApplication, QFileDialog, QMenuBar, QMessageBox,
+from PySide6.QtCore import QMarginsF, QMetaType, QObject, QRectF, QThread, Qt, Signal, Slot
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import (QApplication, QFileDialog, QMenuBar, QMessageBox,
     QColorDialog, QItemEditorFactory, QItemEditorCreatorBase)
 from annot.annot import Annotations, Bout
 from annot.behavior import Behavior, Behaviors
@@ -90,12 +90,12 @@ class Bento(QObject):
     """
     def __init__(self):
         super().__init__()
-        # factory = QItemEditorFactory.defaultFactory()
-        # factory = QItemEditorFactory()
-        # QColor_user_type = 67    # magic number from Stack Overflow
-        # colorEditorCreator = ColorEditorCreator()
-        # factory.registerEditor(QColor_user_type, colorEditorCreator)
-        # QItemEditorFactory.setDefaultFactory(factory)
+        # register default editor for QColor
+        factory = QItemEditorFactory.defaultFactory()
+        colorEditorCreator = ColorEditorCreator()
+        factory.registerEditor(QMetaType(QMetaType.QColor).id(), colorEditorCreator)
+        QItemEditorFactory.setDefaultFactory(factory)
+
         self.config = BentoConfig()
         goodConfig = self.config.read()
         self.time_start = Timecode('30.0', '0:0:0:1')
@@ -147,6 +147,7 @@ class Bento(QObject):
             self.set_investigator()
         self.investigator_id = self.config.investigator_id()
         self.player.start()
+        self.mainWindow.show()
 
     def setInvestigatorId(self, investigator_id):
         self.investigator_id = investigator_id
@@ -182,7 +183,7 @@ class Bento(QObject):
     @Slot()
     def newChannel(self):
         dialog = ChannelDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     @Slot()
     def addChannel(self, chanName):
@@ -246,7 +247,7 @@ class Bento(QObject):
     @Slot()
     def set_investigator(self):
         dialog = SetInvestigatorDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     @Slot()
     def import_trials(self):
@@ -291,7 +292,7 @@ class Bento(QObject):
     @Slot()
     def edit_config(self):
         dialog = ConfigDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     @Slot()
     def edit_animal(self):
@@ -299,7 +300,7 @@ class Bento(QObject):
         Edit or add a new animal to the database associated with the selected investigator
         """
         dialog = AnimalDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     @Slot()
     def edit_camera(self):
@@ -307,7 +308,7 @@ class Bento(QObject):
         Edit or add a new camera type to the database
         """
         dialog = CameraDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     @Slot()
     def edit_investigator(self):
@@ -315,7 +316,7 @@ class Bento(QObject):
         Edit or add a new investigator to the database
         """
         dialog = InvestigatorDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     @Slot()
     def create_db(self):
@@ -479,6 +480,7 @@ class Bento(QObject):
 
     @Slot()
     def quit(self):
+        print("bento.quit() called")
         self.quitting.emit()
         QApplication.instance().processEvents()
         time.sleep(3./30.)  # wait for threads to shut down
@@ -492,7 +494,6 @@ class Bento(QObject):
         return video
 
     def newNeuralWidget(self, neuralData, base_dir):
-        # neuralWidget = NeuralDockWidget(self)
         neuralWidget = NeuralFrame(self)
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
@@ -594,4 +595,4 @@ if __name__ == "__main__":
     bento.mainWindow.move(qr.topLeft())
     bento.mainWindow.show()
     # Run the main Qt loop
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

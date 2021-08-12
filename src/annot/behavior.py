@@ -3,11 +3,11 @@
 Overview comment here
 """
 
-from PySide2.QtCore import Slot
-from PySide2.QtGui import QColor
+from PySide6.QtCore import QAbstractTableModel, QObject, Qt, Slot
+from PySide6.QtGui import QColor
 import os
 
-class Behavior(object):
+class Behavior(QObject):
     """
     An annotation behavior, which is quite simple.  It comprises:
     name        The name of the behavior, which is displayed on various UI widgets
@@ -16,56 +16,62 @@ class Behavior(object):
     """
 
     def __init__(self, name: str, hot_key: str = '', color: QColor = None):
-        super(Behavior, self).__init__()
-        self.name = name
-        self.hot_key = '' if hot_key == '_' else hot_key
-        self.color = color
-        self.visible = True
-        self.active = False
+        super().__init__()
+        self._name = name
+        self._hot_key = '' if hot_key == '_' else hot_key
+        self._color = color
+        self._visible = True
+        self._active = False
 
     def __repr__(self):
-        return f"Behavior: name={self.name}, hot_key={self.hot_key}, color={self.color}, active={self.active}, visible={self.visible}"
+        return f"Behavior: name={self._name}, hot_key={self._hot_key}, color={self._color}, active={self._active}, visible={self._visible}"
+
+    def get_hot_key(self):
+        return self._hot_key
 
     def set_hot_key(self, hot_key: str):
-        self.hot_key = hot_key
+        self._hot_key = hot_key
+
+    def get_color(self):
+        return self._color
 
     def set_color(self, color: QColor):
-        self.color = color
+        self._color = color
+
+    def is_active(self):
+        return self._active
 
     @Slot(bool)
     def set_active(self, active):
-        self.active = active
+        self._active = active
+
+    def is_visible(self):
+        return self._visible
 
     @Slot(bool)
     def set_visible(self, visible):
-        self.visible = visible
+        self._visible = visible
 
     def get_name(self):
-        return self.name
-
-    def get_color(self):
-        return self.color
-
-    def is_active(self):
-        return self.active
-
-    def is_visible(self):
-        return self.visible
+        return self._name
 
     def toDict(self):
         return {
-            'hot_key': '_' if self.hot_key == '' else self.hot_key,
-            'color': self.color,
-            'name': self.name,
-            'active': self.active,
-            'visible': self.visible
+            'hot_key': '_' if self._hot_key == '' else self._hot_key,
+            'color': self._color,
+            'name': self._name,
+            'active': self._active,
+            'visible': self._visible
             }
 
-class Behaviors(object):
+class Behaviors(QAbstractTableModel):
     """
     A set of behaviors, which represent "all" possible behaviors.
-    The class supports reading from and writing to profile files that specify the default
-    hot_key and color for each behavior, along with the name.
+    The class supports reading from and writing to profile files that specify
+    the default hot_key and color for each behavior, along with the name.
+
+    Derives from QAbstractTableModel so that it can be viewed and edited
+    directly in a QTableView widget.
 
     Use getattr(name) to get the Behavior instance for a given name.
     Use from_hot_key(key) to get the behavior given the hot key.
@@ -73,41 +79,40 @@ class Behaviors(object):
     """
 
     def __init__(self):
-        super(Behaviors, self).__init__()
-        self._hot_keys = {}
-        self._items = {}
+        super().__init__()
+        self._items = []
+        self._by_name = {}
+        self._by_hot_key = {}
+        self._header = ['hot_key', 'color', 'name', 'active', 'visible']
         self._delete_behavior = Behavior('_delete')
 
     def load(self, f):
         line = f.readline()
         while line:
             hot_key, name, r, g, b = line.strip().split(' ')
+            beh = Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b)))
+            self._items.append(beh)
+            self._by_name[name] = beh
             if hot_key == '_':
                 hot_key = ''
             else:
-                self._hot_keys[hot_key] = name
-            self._items[name] = Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b)))
+                self._hot_keys[hot_key] = beh
             line = f.readline()
 
     def save(self, f):
-        for key in self._items.keys():
-            beh = self._items[key]
-        # for item in self.__dict__.keys():
-        #     beh = getattr(self, item)
-            if beh.hot_key == '':
+        for beh in self._items:
+            h = beh.get_hot_key()
+            if h == '':
                 h = '_'
-            else:
-                h = beh.hot_key
-            f.write(f"{h} {beh.name} {beh.color.redF()} {beh.color.greenF()} {beh.color.blueF()}" + os.linesep)
+            color = beh.get_color()
+            f.write(f"{h} {beh.get_name()} {color.redF()} {color.greenF()} {color.blueF()}" + os.linesep)
 
     def get(self, name):
-        return self._items[name]
+        return self._by_name[name]
 
     def from_hot_key(self, key):
         try:
-            # print(f"available hot keys: {self._hot_keys}")
-            return self._items[self._hot_keys[key]]
-            # return getattr(self, self._hot_keys[key])
+            return self._by_hot_key[key]
         except KeyError:
             return None
 
@@ -115,13 +120,13 @@ class Behaviors(object):
         return len(self._items)
 
     def header(self):
-        return ['hot_key', 'color', 'name']
+        return self._header
 
     def colorColumns(self):
-        return [1]
+        return [self._header.index('color')]
 
     def __iter__(self):
-        return BehaviorsIterator(self)
+        return iter(self._items)
 
     def getDeleteBehavior(self):
         return self._delete_behavior
@@ -132,10 +137,42 @@ class Behaviors(object):
             return True
         return False
 
-class BehaviorsIterator():
-    def __init__(self, behaviors):
-        self.behaviors = behaviors
-        self.keyIter = behaviors._items.__iter__()
+    # QAbstractTableModel API methods
 
-    def __next__(self):
-        return self.behaviors._items[self.keyIter.__next__()]
+    def headerData(self, col, orientation, role):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self._header[col]
+        return None
+
+    def rowCount(self):
+        return len(self._items)
+
+    def columnCount(self):
+        return len(self._header)
+
+    def data(self, index, role=Qt.DisplayRole):
+        return self._item[index.row()][self._header[index.column()]]
+
+    def setData(self, index, value, role=Qt.EditRole):
+        beh = self._items[index.row()]
+        key = self._header[index.column()]
+        name = beh['name']
+        hot_key = beh['hot_key']
+        beh[key] = value
+        if key == 'hot_key' and value != hot_key:
+            # disassociate this behavior from the hot_key
+            # and associate with the new hot_key if not ''
+            del(self._by_hot_key[hot_key])
+            if value != '':
+                self._by_hot_key[value] = beh
+        elif key == 'name' and value != name:
+            del(self._by_name[name])
+            self._by_name[value] = beh
+
+# class BehaviorsIterator():
+#     def __init__(self, behaviors):
+#         self.behaviors = behaviors
+#         self.keyIter = behaviors._items.__iter__()
+
+#     def __next__(self):
+#         return self.behaviors._items[self.keyIter.__next__()]

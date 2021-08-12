@@ -3,8 +3,8 @@
 from mainWindow_ui import Ui_MainWindow
 import timecode as tc
 
-from PySide2.QtCore import Qt, Signal, Slot
-from PySide2.QtWidgets import QMainWindow, QMenuBar
+from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtWidgets import QMainWindow, QMenuBar
 from db.sessionWindow import SessionDockWidget
 
 class MainWindow(QMainWindow):
@@ -26,7 +26,9 @@ class MainWindow(QMainWindow):
         self.ui.nextButton.clicked.connect(bento.toNextEvent)
         self.ui.previousButton.clicked.connect(bento.toPrevEvent)
         self.ui.quitButton.clicked.connect(bento.quit)
+        bento.quitting.connect(self.close)
         self.quitting.connect(bento.quit)
+
         self.ui.sessionPushButton.clicked.connect(self.selectSession)
         self.ui.playButton.clicked.connect(bento.player.togglePlayer)
         self.ui.halveFrameRateButton.clicked.connect(bento.player.halveFrameRate)

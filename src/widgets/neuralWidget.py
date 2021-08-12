@@ -3,10 +3,10 @@
 """
 
 from os import X_OK
-from PySide2.QtCore import Qt, QPointF, QRectF, Signal, Slot
-from PySide2.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
+from PySide6.QtCore import Qt, QPointF, QRectF, Signal, Slot
+from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
     QGraphicsScene, QGraphicsView, QMessageBox)
-from PySide2.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
+from PySide6.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent)
 import pymatreader as pmr
 from timecode import Timecode
@@ -35,7 +35,7 @@ class QGraphicsSubSceneItem(QGraphicsItem):
     def boundingRect(self):
         rect = self.transform.mapRect(self.subScene.sceneRect()) if self.subScene else QRectF()
         return rect
-    
+
     def paint(self, painter, option, widget=None):
         if self.subScene:
             duration = min(self.parentScene.sceneRect().right(), self.subScene.sceneRect().right())
@@ -91,7 +91,7 @@ class NeuralView(QGraphicsView):
                 t.m33()
             )
         self.setTransform(t, combine=False)
-    
+
     def resizeEvent(self, event):
         oldHeight = float(event.oldSize().height())
         if oldHeight < 0.:
@@ -102,7 +102,7 @@ class NeuralView(QGraphicsView):
         if t.m22() < self.min_scale_v:
             self.setTransformScaleV(t, self.min_scale_v)
             self.update()
-    
+
     @Slot()
     def updateScene(self):
         self.sample_rate = self.scene().sample_rate
@@ -113,7 +113,7 @@ class NeuralView(QGraphicsView):
         self.scale(10., scale_v)
         self.min_scale_v = self.transform().m22()
         self.updatePosition(self.bento.current_time)
-        
+
     @Slot(Timecode)
     def updatePosition(self, t):
         pt = QPointF(t.float, self.center_y)
@@ -272,7 +272,7 @@ class NeuralScene(QGraphicsScene):
             self.heatmap.setVisible(showHeatmap)
         if isinstance(self.annotations, QGraphicsItem):
             self.annotations.setVisible(showAnnotations)
-        
+
     def loadChannel(self, data, chan):
         pen = QPen()
         pen.setWidth(0)
@@ -294,10 +294,10 @@ class NeuralScene(QGraphicsScene):
         traceItem = QGraphicsPathItem(trace)
         traceItem.setPen(pen)
         self.traces.addToGroup(traceItem)
-        
+
     def normalize(self, y_val):
         return 1.0 - (y_val - self.minimum) / self.range
-    
+
     def clip(self, val):
         return max(0., min(1., val))
 
@@ -314,12 +314,12 @@ class NeuralScene(QGraphicsScene):
     def showTraces(self, enabled):
         if isinstance(self.traces, QGraphicsItem):
             self.traces.setVisible(enabled)
-    
+
     @Slot(bool)
     def showHeatmap(self, enabled):
         if isinstance(self.heatmap, QGraphicsItem):
             self.heatmap.setVisible(enabled)
-    
+
     @Slot(bool)
     def showAnnotations(self, enabled):
         if isinstance(self.annotations, QGraphicsItem):

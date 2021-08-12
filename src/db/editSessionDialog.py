@@ -3,9 +3,9 @@
 from db.schema_sqlalchemy import Session, Animal
 from sqlalchemy import func
 from db.editSessionDialog_ui import Ui_EditSessionDialog
-from PySide2.QtCore import Signal, Slot, QItemSelectionModel
-from PySide2.QtGui import QIntValidator
-from PySide2.QtWidgets import QDialog, QFileDialog, QAbstractItemView, QHeaderView
+from PySide6.QtCore import Signal, Slot, QItemSelectionModel
+from PySide6.QtGui import QIntValidator
+from PySide6.QtWidgets import QDialog, QFileDialog, QAbstractItemView, QHeaderView
 from widgets.tableModel import TableModel
 from os.path import expanduser
 from datetime import date

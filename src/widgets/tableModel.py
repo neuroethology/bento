@@ -1,7 +1,7 @@
 # tableModel.py
 
-from PySide2.QtCore import QAbstractTableModel, QModelIndex
-from PySide2.QtGui import Qt, QColor
+from PySide6.QtCore import QAbstractTableModel, QModelIndex
+from PySide6.QtGui import Qt, QColor
 import operator
 
 class TableModel(QAbstractTableModel):
@@ -29,7 +29,7 @@ class TableModel(QAbstractTableModel):
             datum = row[self.header[index.column()]]
         else:
             raise RuntimeError(f"Can't handle indexing with data of type {type(row)}")
-        if (index.column() in self.colorRoleColumns) and (role == Qt.BackgroundRole):
+        if (index.column() in self.colorRoleColumns) and (role == Qt.BackgroundRole or role == Qt.EditRole):
             return QColor(datum)
         elif (index.column() not in self.colorRoleColumns) and (role in (Qt.DisplayRole, Qt.EditRole)):
             return str(datum)

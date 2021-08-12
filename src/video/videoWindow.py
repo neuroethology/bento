@@ -2,9 +2,9 @@
 
 from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
-from PySide2.QtCore import Signal, Slot, QMargins, Qt
-from PySide2.QtGui import QBrush, QFontMetrics, QPixmap
-from PySide2.QtWidgets import QFrame, QGraphicsScene
+from PySide6.QtCore import Signal, Slot, QMargins, Qt
+from PySide6.QtGui import QBrush, QFontMetrics, QPixmap
+from PySide6.QtWidgets import QFrame, QGraphicsScene
 from timecode import Timecode
 
 class VideoScene(QGraphicsScene):
@@ -56,6 +56,7 @@ class VideoFrame(QFrame):
         self.ui = Ui_videoFrame()
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
+        bento.quitting.connect(self.close)
 
         self.reader = None
         self.scene = VideoScene()
@@ -89,7 +90,7 @@ class VideoFrame(QFrame):
         print(f"aspect_ratio set to {self.aspect_ratio}")
         self.updateFrame(self.bento.current_time)
         self.ui.videoView.resize(frame_width, frame_height)
-        self.ui.videoView.fitInView(self.pixmapItem, aspectRatioMode=Qt.KeepAspectRatio)
+        self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
     def sample_rate(self):
         if not self.reader:

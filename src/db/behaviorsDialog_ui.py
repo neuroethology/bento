@@ -3,24 +3,21 @@
 ################################################################################
 ## Form generated from reading UI file 'behaviorsDialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 5.14.1
+## Created by: Qt User Interface Compiler version 6.1.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide2.QtCore import (QCoreApplication, QMetaObject, QObject, QPoint,
-    QRect, QSize, QUrl, Qt)
-from PySide2.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont,
-    QFontDatabase, QIcon, QLinearGradient, QPalette, QPainter, QPixmap,
-    QRadialGradient)
-from PySide2.QtWidgets import *
+from PySide6.QtCore import *  # type: ignore
+from PySide6.QtGui import *  # type: ignore
+from PySide6.QtWidgets import *  # type: ignore
 
 from db.behaviorsTableView import BehaviorsTableView
 
 
 class Ui_BehaviorsDialog(object):
     def setupUi(self, BehaviorsDialog):
-        if BehaviorsDialog.objectName():
+        if not BehaviorsDialog.objectName():
             BehaviorsDialog.setObjectName(u"BehaviorsDialog")
         BehaviorsDialog.resize(583, 1027)
         self.verticalLayout = QVBoxLayout(BehaviorsDialog)
@@ -39,7 +36,8 @@ class Ui_BehaviorsDialog(object):
         self.buttonBox = QDialogButtonBox(BehaviorsDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Cancel|QDialogButtonBox.Save)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Save)
+        self.buttonBox.setCenterButtons(False)
 
         self.verticalLayout.addWidget(self.buttonBox)
 
