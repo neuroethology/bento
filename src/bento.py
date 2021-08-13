@@ -3,8 +3,7 @@
 from timecode import Timecode
 from PySide6.QtCore import QMarginsF, QMetaType, QObject, QRectF, QThread, Qt, Signal, Slot
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QApplication, QFileDialog, QMenuBar, QMessageBox,
-    QColorDialog, QItemEditorFactory, QItemEditorCreatorBase)
+from PySide6.QtWidgets import QApplication, QFileDialog, QMenuBar, QMessageBox
 from annot.annot import Annotations, Bout
 from annot.behavior import Behavior, Behaviors
 from mainWindow import MainWindow
@@ -76,26 +75,12 @@ class PlayerWorker(QThread):
     def quit(self):
         self.running = False
 
-class ColorEditorCreator(QItemEditorCreatorBase):
-    def __init__(self):
-        super().__init__()
-
-    def createWidget(self, parent):
-        print("ColorEditorCreator.createWidget()")
-        return QColorDialog(parent=parent)
-
 class Bento(QObject):
     """
     Bento - class representing core machinery (no UI)
     """
     def __init__(self):
         super().__init__()
-        # register default editor for QColor
-        factory = QItemEditorFactory.defaultFactory()
-        colorEditorCreator = ColorEditorCreator()
-        factory.registerEditor(QMetaType(QMetaType.QColor).id(), colorEditorCreator)
-        QItemEditorFactory.setDefaultFactory(factory)
-
         self.config = BentoConfig()
         goodConfig = self.config.read()
         self.time_start = Timecode('30.0', '0:0:0:1')
@@ -208,6 +193,7 @@ class Bento(QObject):
                 print("  Success!")
                 break   # no exception, so success
             except Exception as e:
+                print(f"Exception caught: {e}")
                 continue
 
     def saveBehaviors(self):

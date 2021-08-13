@@ -2,11 +2,14 @@
 
 from db.behaviorsDialog_ui import Ui_BehaviorsDialog
 from annot.behavior import Behavior, Behaviors
-from PySide6.QtCore import QModelIndex, QSortFilterProxyModel, Signal, Slot
-from PySide6.QtGui import Qt, QIntValidator
-from PySide6.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QHeaderView, QMessageBox, QTableView
+from PySide6.QtCore import (QModelIndex, QPersistentModelIndex,
+    QSortFilterProxyModel, Signal, Slot)
+from PySide6.QtGui import QColor, QIntValidator, Qt
+from PySide6.QtWidgets import (QCheckBox, QColorDialog, QDialog, QDialogButtonBox, QHeaderView, QMessageBox,
+    QStyledItemDelegate, QStyleOptionViewItem, QWidget)
 from widgets.tableModel import EditableTableModel
 from os.path import expanduser, sep
+from typing import List, Union
 # from caiman.utils.utils import load_dict_from_hdf5
 
 class CheckableTableModel(EditableTableModel):
@@ -161,6 +164,39 @@ class CheckboxFilterProxyModelIterator():
         self.ix += 1
         return item
 
+class BehaviorItemDelegate(QStyledItemDelegate):
+    """
+    Delegate class that renders QColor objects as colors.
+    Everything else is handled by the QStyledItemDelegate superclass.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def paint(self, painter, option, index):
+        """
+        Override behavior for QColor objects
+        """
+        if isinstance(index.data(), QColor):
+            painter.fillRect(option.rect, index.data())
+            return
+        super().paint(painter, option, index)
+
+    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: Union[QModelIndex, QPersistentModelIndex]) -> QWidget:
+        if isinstance(index.data(), QColor):
+            print("Create a QColor editor")
+            editor = QColorDialog(index.data(), parent=parent)
+            return editor
+        return super().createEditor(parent, option, index)
+
+    def setModelData(self, editor, model, index):
+        if isinstance(index.data(), QColor):
+            print(f"setModelData called for QColor")
+            if editor.result() == QDialog.Accepted:
+                model.setData(index, editor.currentColor(), role=Qt.EditRole)
+            return
+        super().setModelData(editor, model, index)
+
 class BehaviorsDialog(QDialog):
 
     quitting = Signal()
@@ -176,33 +212,38 @@ class BehaviorsDialog(QDialog):
         self.quitting.connect(self.bento.quit)
 
         self.base_model = self.createBehaviorsTableModel()
-        self.proxy_model = CheckboxFilterProxyModel()
-        self.proxy_model.setSourceModel(self.base_model)
-        activeColumn = None
-        try:
-            activeColumn = self.base_model.header.index("activeCheckBox")
-        except ValueError:
-            pass
-        self.proxy_model.setFilterColumn(activeColumn)
+        if True:
+            self.setBehaviorsModel(self.base_model)
+        else:
+            self.proxy_model = CheckboxFilterProxyModel()
+            self.proxy_model.setSourceModel(self.base_model)
+            activeColumn = None
+            try:
+                activeColumn = self.base_model.header().index("active")
+            except ValueError:
+                pass
+            self.proxy_model.setFilterColumn(activeColumn)
 
-        self.ui.hideInactiveBehaviorsCheckBox.stateChanged.connect(self.updateRowVisibility)
-        self.updateRowVisibility(self.ui.hideInactiveBehaviorsCheckBox.isChecked())
-        self.setBehaviorsModel(self.proxy_model)
-        self.proxy_model.sort(self.base_model.header.index("name"), Qt.AscendingOrder)
+            self.ui.hideInactiveBehaviorsCheckBox.stateChanged.connect(self.updateRowVisibility)
+            self.updateRowVisibility(self.ui.hideInactiveBehaviorsCheckBox.isChecked())
+            self.setBehaviorsModel(self.proxy_model)
+            self.proxy_model.sort(self.base_model.header().index("name"), Qt.AscendingOrder)
 
     # Behaviors Data
 
     def setBehaviorsModel(self, model):
         oldModel = self.ui.behaviorsTableView.selectionModel()
-        self.ui.behaviorsTableView.setModel(model)
+        self.ui.behaviorsTableView.setItemDelegate(BehaviorItemDelegate())
         self.ui.behaviorsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.behaviorsTableView.resizeColumnsToContents()
         self.ui.behaviorsTableView.setSortingEnabled(True)
         self.ui.behaviorsTableView.setAutoScroll(False)
+        self.ui.behaviorsTableView.setModel(model)
         if oldModel:
             oldModel.deleteLater()
 
     def createBehaviorsTableModel(self):
+        """
         header = self.bento.behaviors.header()
         data_list = []
         for behavior in self.bento.behaviors:
@@ -219,9 +260,14 @@ class BehaviorsDialog(QDialog):
             behaviorDict['activeCheckBox'] = activeCheckBox
             data_list.append(behaviorDict)
         model = CheckableTableModel(self, data_list, header)
+        """
+        model = self.bento.behaviors
+        header = model.header()
         model.setImmutable(header.index('name'))
+        """
         for column in self.bento.behaviors.colorColumns():
             model.setColorRoleColumn(column)
+        """
         return model
 
     @Slot(int)

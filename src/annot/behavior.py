@@ -3,7 +3,7 @@
 Overview comment here
 """
 
-from PySide6.QtCore import QAbstractTableModel, QObject, Qt, Slot
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt, Slot
 from PySide6.QtGui import QColor
 import os
 
@@ -22,9 +22,31 @@ class Behavior(QObject):
         self._color = color
         self._visible = True
         self._active = False
+        self._get_functions = {
+            'hot_key': self.get_hot_key,
+            'name': self.get_name,
+            'color': self.get_color,
+            'active': self.is_active,
+            'visible': self.is_visible
+            }
+        self._set_functions = {
+            'hot_key': self.set_hot_key,
+            'name': self.set_name,
+            'color': self.set_color,
+            'active': self.set_active,
+            'visible': self.set_visible
+            }
 
     def __repr__(self):
         return f"Behavior: name={self._name}, hot_key={self._hot_key}, color={self._color}, active={self._active}, visible={self._visible}"
+
+    def get(self, key):
+        # may raise KeyError
+        return self._get_functions[key]()
+
+    def set(self, key, value):
+        # may raise KeyError
+        self._set_functions[key](value)
 
     def get_hot_key(self):
         return self._hot_key
@@ -54,6 +76,9 @@ class Behavior(QObject):
 
     def get_name(self):
         return self._name
+
+    def set_name(self, name):
+        self._name = name
 
     def toDict(self):
         return {
@@ -85,18 +110,36 @@ class Behaviors(QAbstractTableModel):
         self._by_hot_key = {}
         self._header = ['hot_key', 'color', 'name', 'active', 'visible']
         self._delete_behavior = Behavior('_delete')
+        self._immutableColumns = set()
+        self._role_to_str = {
+            Qt.DisplayRole: "DisplayRole",
+            Qt.DecorationRole: "DecorationRole",
+            Qt.EditRole: "EditRole",
+            Qt.ToolTipRole: "ToolTipRole",
+            Qt.StatusTipRole: "StatusTipRole",
+            Qt.WhatsThisRole: "WhatsThisRole",
+            Qt.SizeHintRole: "SizeHintRole",
+            Qt.FontRole: "FontRole",
+            Qt.TextAlignmentRole: "TextAlignmentRole",
+            Qt.BackgroundRole: "BackgroundRole",
+            Qt.ForegroundRole: "ForegroundRole",
+            Qt.CheckStateRole: "CheckStateRole",
+            Qt.InitialSortOrderRole: "InitialSortOrderRole",
+            Qt.AccessibleTextRole: "AccessibleTextRole",
+            Qt.UserRole: "UserRole"
+        }
 
     def load(self, f):
         line = f.readline()
         while line:
             hot_key, name, r, g, b = line.strip().split(' ')
+            if hot_key == '_':
+                hot_key = ''
             beh = Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b)))
             self._items.append(beh)
             self._by_name[name] = beh
-            if hot_key == '_':
-                hot_key = ''
-            else:
-                self._hot_keys[hot_key] = beh
+            if hot_key:
+                self._by_hot_key[hot_key] = beh
             line = f.readline()
 
     def save(self, f):
@@ -137,6 +180,12 @@ class Behaviors(QAbstractTableModel):
             return True
         return False
 
+    def isImmutable(self, index):
+        return index.column() in self._immutableColumns
+
+    def setImmutable(self, column):
+        self._immutableColumns.add(column)
+
     # QAbstractTableModel API methods
 
     def headerData(self, col, orientation, role):
@@ -144,30 +193,62 @@ class Behaviors(QAbstractTableModel):
             return self._header[col]
         return None
 
-    def rowCount(self):
+    def rowCount(self, parent=None):
+        # if parent:
+        #     return 0
         return len(self._items)
 
-    def columnCount(self):
+    def columnCount(self, parent=None):
         return len(self._header)
 
     def data(self, index, role=Qt.DisplayRole):
-        return self._item[index.row()][self._header[index.column()]]
+        # print(f"Behaviors.data({index}, role={self._role_to_str[role]}")
+        datum = self._items[index.row()].get(self._header[index.column()])
+        if isinstance(datum, bool):
+            if role in [Qt.CheckStateRole, Qt.EditRole]:
+                if datum:
+                    return Qt.Checked
+                else:
+                    return Qt.Unchecked
+            return None
+        # if index.column() in self.colorColumns():
+        #     if role in [Qt.BackgroundRole, Qt.EditRole]:
+        #         return self._items[index.row()].get(self._header[index.column()])
+        #     return None
+        if role in [Qt.DisplayRole, Qt.EditRole]:
+            return self._items[index.row()].get(self._header[index.column()])
+        return None
 
     def setData(self, index, value, role=Qt.EditRole):
+        print(f"Behaviors.setData({index}, {value}, role={self._role_to_str[role]}")
+        if not role in [Qt.CheckStateRole, Qt.EditRole]:
+            return False
+        if role == Qt.CheckStateRole:
+            value = bool(value)
         beh = self._items[index.row()]
         key = self._header[index.column()]
-        name = beh['name']
-        hot_key = beh['hot_key']
-        beh[key] = value
+        name = beh.get_name()
+        hot_key = beh.get_hot_key()
+        beh.set(key, value)
         if key == 'hot_key' and value != hot_key:
             # disassociate this behavior from the hot_key
             # and associate with the new hot_key if not ''
-            del(self._by_hot_key[hot_key])
+            if hot_key != '':
+                del(self._by_hot_key[hot_key])
             if value != '':
                 self._by_hot_key[value] = beh
         elif key == 'name' and value != name:
             del(self._by_name[name])
             self._by_name[value] = beh
+        return True
+
+    def flags(self, index):
+        f = super().flags(index)
+        if index.column() not in self._immutableColumns:
+            f |= Qt.ItemIsEditable
+        if isinstance(index.data(), bool):
+            f = (f & ~(Qt.ItemIsSelectable | Qt.ItemIsEditable)) | Qt.ItemIsUserCheckable
+        return f
 
 # class BehaviorsIterator():
 #     def __init__(self, behaviors):
