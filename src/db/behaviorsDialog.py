@@ -121,9 +121,8 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
             return True
         srcIdx = self.sourceModel().index(source_row, self.filterColumn)
         datum = srcIdx.data(role=Qt.CheckStateRole)
-        print(f"filterAcceptsRow: data type is {type(datum)}")
         if isinstance(datum, int):
-            return datum
+            return bool(datum)
         elif srcIdx.data() is None:
             return False
         else:
