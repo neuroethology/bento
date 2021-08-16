@@ -120,8 +120,10 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         if not self.filterActive or self.filterColumn == None:
             return True
         srcIdx = self.sourceModel().index(source_row, self.filterColumn)
-        if isinstance(srcIdx.data(), QCheckBox):
-            return srcIdx.data().isChecked()
+        datum = srcIdx.data(role=Qt.CheckStateRole)
+        print(f"filterAcceptsRow: data type is {type(datum)}")
+        if isinstance(datum, int):
+            return datum
         elif srcIdx.data() is None:
             return False
         else:
@@ -210,7 +212,7 @@ class BehaviorsDialog(QDialog):
         self.quitting.connect(self.bento.quit)
 
         self.base_model = self.createBehaviorsTableModel()
-        if True:
+        if False:
             self.setBehaviorsModel(self.base_model)
         else:
             self.proxy_model = CheckboxFilterProxyModel()
