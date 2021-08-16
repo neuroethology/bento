@@ -184,14 +184,12 @@ class BehaviorItemDelegate(QStyledItemDelegate):
 
     def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: Union[QModelIndex, QPersistentModelIndex]) -> QWidget:
         if isinstance(index.data(), QColor):
-            print("Create a QColor editor")
             editor = QColorDialog(index.data(), parent=parent)
             return editor
         return super().createEditor(parent, option, index)
 
     def setModelData(self, editor, model, index):
         if isinstance(index.data(), QColor):
-            print(f"setModelData called for QColor")
             if editor.result() == QDialog.Accepted:
                 model.setData(index, editor.currentColor(), role=Qt.EditRole)
             return

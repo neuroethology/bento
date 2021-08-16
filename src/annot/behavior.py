@@ -111,6 +111,7 @@ class Behaviors(QAbstractTableModel):
         self._header = ['hot_key', 'color', 'name', 'active', 'visible']
         self._delete_behavior = Behavior('_delete')
         self._immutableColumns = set()
+        self._booleanColumns = set([self._header.index('active'), self._header.index('visible')])
         self._role_to_str = {
             Qt.DisplayRole: "DisplayRole",
             Qt.DecorationRole: "DecorationRole",
@@ -202,25 +203,16 @@ class Behaviors(QAbstractTableModel):
         return len(self._header)
 
     def data(self, index, role=Qt.DisplayRole):
-        # print(f"Behaviors.data({index}, role={self._role_to_str[role]}")
         datum = self._items[index.row()].get(self._header[index.column()])
         if isinstance(datum, bool):
             if role in [Qt.CheckStateRole, Qt.EditRole]:
-                if datum:
-                    return Qt.Checked
-                else:
-                    return Qt.Unchecked
+                return Qt.Checked if datum else Qt.Unchecked
             return None
-        # if index.column() in self.colorColumns():
-        #     if role in [Qt.BackgroundRole, Qt.EditRole]:
-        #         return self._items[index.row()].get(self._header[index.column()])
-        #     return None
         if role in [Qt.DisplayRole, Qt.EditRole]:
             return self._items[index.row()].get(self._header[index.column()])
         return None
 
     def setData(self, index, value, role=Qt.EditRole):
-        print(f"Behaviors.setData({index}, {value}, role={self._role_to_str[role]}")
         if not role in [Qt.CheckStateRole, Qt.EditRole]:
             return False
         if role == Qt.CheckStateRole:
@@ -246,7 +238,7 @@ class Behaviors(QAbstractTableModel):
         f = super().flags(index)
         if index.column() not in self._immutableColumns:
             f |= Qt.ItemIsEditable
-        if isinstance(index.data(), bool):
+        if index.column() in self._booleanColumns:
             f = (f & ~(Qt.ItemIsSelectable | Qt.ItemIsEditable)) | Qt.ItemIsUserCheckable
         return f
 
