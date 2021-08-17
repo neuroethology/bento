@@ -500,8 +500,8 @@ class Bento(QObject):
             1 if loadNeural else 0 +
             1 if loadAudio else 0)
         completed = 0
-        progress = QProgressDialog("Loading Trial ...", "Cancel", 0, total, self)
-        progress.setModality(Qt.WindowModal)
+        progress = QProgressDialog("Loading Trial ...", "Cancel", 0, total, self.mainWindow)
+        progress.setWindowModality(Qt.WindowModal)
         with self.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).one()
             base_directory = session.base_directory
