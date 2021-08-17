@@ -130,17 +130,20 @@ class Behaviors(QAbstractTableModel):
             Qt.UserRole: "UserRole"
         }
 
+    def add(self, beh: Behavior):
+        self._items.append(beh)
+        self._by_name[beh.get_name()] = beh
+        hot_key = beh.get_hot_key()
+        if hot_key:
+            self._by_hot_key[hot_key] = beh
+
     def load(self, f):
         line = f.readline()
         while line:
             hot_key, name, r, g, b = line.strip().split(' ')
             if hot_key == '_':
                 hot_key = ''
-            beh = Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b)))
-            self._items.append(beh)
-            self._by_name[name] = beh
-            if hot_key:
-                self._by_hot_key[hot_key] = beh
+            self.add(Behavior(name, hot_key, QColor.fromRgbF(float(r), float(g), float(b))))
             line = f.readline()
 
     def save(self, f):
@@ -176,8 +179,8 @@ class Behaviors(QAbstractTableModel):
         return self._delete_behavior
 
     def addIfMissing(self, nameToAdd):
-        if nameToAdd not in self._items.keys():
-            self._items[nameToAdd] = Behavior(nameToAdd, '', QColor.gray)
+        if nameToAdd not in self._by_name:
+            self.add(Behavior(nameToAdd, '', QColor.gray))
             return True
         return False
 
