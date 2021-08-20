@@ -22,7 +22,6 @@ from db.bentoConfig import BentoConfig
 from db.animal_surgery_xls import import_animal_xls_file
 from db.behaviorsDialog import BehaviorsDialog
 from db.bento_xls import import_bento_xls_file
-# from neural.neuralWindow import NeuralDockWidget
 from neural.neuralFrame import NeuralFrame
 from channelDialog import ChannelDialog
 from os.path import expanduser, sep
@@ -493,15 +492,16 @@ class Bento(QObject):
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
         self.video_widgets.clear()
-        total = (
+        progressTotal = (
             len(videos) +
-            1 if annotation else 0 +
-            1 if loadPose else 0 +
-            1 if loadNeural else 0 +
-            1 if loadAudio else 0)
-        completed = 0
-        progress = QProgressDialog("Loading Trial ...", "Cancel", 0, total, self.mainWindow)
+            (1 if annotation else 0) +
+            (1 if loadPose else 0) +
+            (1 if loadNeural else 0) +
+            (1 if loadAudio else 0))
+        progressCompleted = 0
+        progress = QProgressDialog("Loading Trial ...", "Cancel", 0, progressTotal, None)
         progress.setWindowModality(Qt.WindowModal)
+        progress.setAutoClose(True)
         with self.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).one()
             base_directory = session.base_directory
@@ -509,8 +509,9 @@ class Bento(QObject):
             runningTime = 0.
             sample_rate = 30.0
             sample_rate_set = False
-            for video_data in videos:
-                progress.setValue(completed)
+            for ix, video_data in enumerate(videos):
+                progress.setLabelText(f"Loading video #{ix}...")
+                progress.setValue(progressCompleted)
                 widget = self.newVideoWidget(fix_path(base_dir + video_data.file_path))
                 self.video_widgets.append(widget)
                 qr = widget.frameGeometry()
@@ -522,17 +523,16 @@ class Bento(QObject):
                 if not sample_rate_set:
                     sample_rate = widget.sample_rate()
                     sample_rate_set = True
-                completed += 1
+                progressCompleted += 1
             if annotation:
-                progress.setValue(completed)
                 annot_path = fix_path(base_dir + annotation.file_path)
                 sample_rate = annotation.sample_rate
-                completed += 1
             else:
                 annot_path = None
-            progress.setValue(completed)
+            progress.setLabelText("Loading annotations...")
+            progress.setValue(progressCompleted)
             self.load_or_init_annotations(annot_path, sample_rate, runningTime)
-            completed += 1
+            progressCompleted += 1
             # try:
             #     self.load_or_init_annotations(annot_path, sample_rate, runningTime)
             # except Exception as e:
@@ -545,35 +545,39 @@ class Bento(QObject):
             self.annotationsSceneUpdated.emit()
             if loadPose:
                 print("Load pose data if any")
-                progress.setValue(completed)
+                progress.setLabelText("Loading pose data...")
+                progress.setValue(progressCompleted)
                 # if self.trial_id.pose_data:
                 #     print(f"Load pose from {self.trial_id.pose_data[0].file_path}")
                 # else:
                 #     print("No pose data in trial.")
-                completed += 1
+                progressCompleted += 1
             if loadNeural:
                 with self.db_sessionMaker() as db_sess:
                     trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
                     if trial.neural_data:
-                        progress.setValue(completed)
+                        progress.setLabelText("Loading neural data...")
+                        progress.setValue(progressCompleted)
                         neuralWidget = self.newNeuralWidget(trial.neural_data[0], base_dir)
                         self.neural_widgets.append(neuralWidget)
                         if self.annotationsScene:
                             neuralWidget.overlayAnnotations(self.annotationsScene)
                         neuralWidget.show()
-                        completed += 1
+                        progressCompleted += 1
                     else:
                         print("No neural data in trial.")
             if loadAudio:
                 print("Load audio data if any")
-                progress.setValue(completed)
+                progress.setLabelText("Loading audio data...")
+                progress.setValue(progressCompleted)
                 # if self.trial_id.audio_data:
                 #     print(f"Load audio from {self.trial_id.audio_data[0].file_path}")
                 # else:
                 #     print("No audio data in trial.")
-                completed += 1
+                progressCompleted += 1
         # set the time to get all the new widgets in sync
-        progress.setValue(completed)
+        progress.setLabelText("Done")
+        progress.setValue(progressCompleted)
         self.set_time(self.time_start)
         return True
 
