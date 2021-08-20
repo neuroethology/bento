@@ -206,26 +206,35 @@ class Bento(QObject):
 
     @Slot()
     def save_annotations(self):
-        with self.db_sessionMaker() as db_sess:
-            base_directory = db_sess.query(Session).filter(Session.id == self.session_id).one().base_directory
-        fileName, filter = QFileDialog.getSaveFileName(
-            self.mainWindow,
-            caption="Annotation File Name",
-            dir=base_directory)
-        with self.db_sessionMaker() as db_sess:
-            trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
-            with open(fileName, 'w') as file:
-                self.annotations.write_caltech(
-                    file,
-                    [video_data.file_path for video_data in trial.video_data],
-                    trial.stimulus
-                    )
-            if self.newAnnotations:
-                db_sess.add(self.annotations)
-                db_sess.commit()
-                trial.annotations.append(self.annotations)
-                db_sess.commit()
-                self.newAnnotations = False
+        msgBox = QMessageBox(
+            QMessageBox.Question,
+            "Save Annotations",
+            "This will delete inactive behaviors.  Okay?",
+            buttons=QMessageBox.Save | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Save:
+            self.annotations.delete_inactive_bouts()
+            with self.db_sessionMaker() as db_sess:
+                base_directory = db_sess.query(Session).filter(Session.id == self.session_id).one().base_directory
+            fileName, _ = QFileDialog.getSaveFileName(
+                self.mainWindow,
+                caption="Annotation File Name",
+                dir=base_directory)
+            if fileName:
+                with self.db_sessionMaker() as db_sess:
+                    trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+                    with open(fileName, 'w') as file:
+                        self.annotations.write_caltech(
+                            file,
+                            [video_data.file_path for video_data in trial.video_data],
+                            trial.stimulus
+                            )
+                    if self.newAnnotations:
+                        db_sess.add(self.annotations)
+                        db_sess.commit()
+                        trial.annotations.append(self.annotations)
+                        db_sess.commit()
+                        self.newAnnotations = False
 
     # File menu actions
 

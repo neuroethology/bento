@@ -58,6 +58,9 @@ class Bout(object):
     def color(self):
         return self._behavior.get_color()
 
+    def is_active(self):
+        return self._behavior.is_active()
+
     def is_visible(self):
         return self._behavior.is_visible()
 
@@ -185,14 +188,20 @@ class Channel(QGraphicsItem):
                     bout.color()
                     )
 
-    def delete_all_bouts(self, behavior_name):
+    def _delete_all_inner(self, predicate):
         to_delete = list()
+        # can't alter the bouts within the iterator
         for bout in iter(self):
-            if bout.name() == behavior_name:
+            if predicate(bout):
                 to_delete.append(bout)
         for bout in to_delete:
             self.remove(bout)
 
+    def delete_bouts_by_name(self, behavior_name):
+        self._delete_all_inner(lambda bout: bout.name() == behavior_name)
+
+    def delete_inactive_bouts(self):
+        self._delete_all_inner(lambda bout: not bout.is_active())
 class Annotations(QObject):
     """
     """
@@ -427,9 +436,13 @@ class Annotations(QObject):
     def format(self):
         return self._format
 
-    def delete_all_bouts(self, behavior_name):
+    def delete_bouts_by_name(self, behavior_name):
         for chan_name in self.channel_names():
-            self.channel(chan_name).delete_all_bouts(behavior_name)
+            self.channel(chan_name).delete_bouts_by_name(behavior_name)
+
+    def delete_inactive_bouts(self):
+        for chan_name in self.channel_names():
+            self.channel(chan_name).delete_inactive_bouts()
 
     def ensure_and_activate_behaviors(self, toActivate):
         behaviorSetUpdated = False
