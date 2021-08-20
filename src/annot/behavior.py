@@ -3,7 +3,7 @@
 Overview comment here
 """
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt, Slot
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt, Signal, Slot
 from PySide6.QtGui import QColor
 import os
 
@@ -103,6 +103,8 @@ class Behaviors(QAbstractTableModel):
         Returns None if the hot_key isn't defined.
     """
 
+    behaviors_changed = Signal()
+
     def __init__(self):
         super().__init__()
         self._items = []
@@ -180,7 +182,7 @@ class Behaviors(QAbstractTableModel):
 
     def addIfMissing(self, nameToAdd):
         if nameToAdd not in self._by_name:
-            self.add(Behavior(nameToAdd, '', QColor.gray))
+            self.add(Behavior(nameToAdd, '', QColor('gray')))
             return True
         return False
 
@@ -235,6 +237,7 @@ class Behaviors(QAbstractTableModel):
         elif key == 'name' and value != name:
             del(self._by_name[name])
             self._by_name[value] = beh
+        self.behaviors_changed.emit()
         return True
 
     def flags(self, index):

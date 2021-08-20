@@ -2,7 +2,7 @@
 import timecode as tc
 from annot.behavior import Behavior
 from sortedcontainers import SortedKeyList
-from PySide6.QtCore import QObject, QRectF, Signal
+from PySide6.QtCore import QObject, QRectF, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QGraphicsItem
 
@@ -212,6 +212,7 @@ class Annotations(QObject):
         self._stimulus = None
         self._format = None
         self.annotation_names = []
+        behaviors.behaviors_changed.connect(self.note_annotations_changed)
 
     def read(self, fn):
         with open(fn, "r") as f:
@@ -234,6 +235,7 @@ class Annotations(QObject):
         found_annotation_names = False
         found_all_channels = False
         found_all_annotations = False
+        new_behaviors_activated = False
         reading_channel = False
         to_activate = []
         channel_names = []
@@ -242,6 +244,10 @@ class Annotations(QObject):
 
         line = f.readline()
         while line:
+            if found_annotation_names and not new_behaviors_activated:
+                self.ensure_and_activate_behaviors(to_activate)
+                new_behaviors_activated = True
+
             line.strip()
 
             if not line:
@@ -337,8 +343,7 @@ class Annotations(QObject):
                         line = f.readline()
             line = f.readline()
         print(f"Done reading Caltech annotation file {f.name}")
-        self.ensure_and_activate_behaviors(to_activate)
-        self.annotations_changed.emit()
+        self.note_annotations_changed()
 
     def write_caltech(self, f, video_files, stimulus):
         if not f.writable():
@@ -435,3 +440,7 @@ class Annotations(QObject):
         if behaviorSetUpdated:
             self.annotations_changed.emit()
         self.active_annotations_changed.emit()
+
+    @Slot()
+    def note_annotations_changed(self):
+        self.annotations_changed.emit()
