@@ -30,13 +30,18 @@ class Ui_BehaviorsDialog(object):
 
         self.behaviorsTableView = BehaviorsTableView(BehaviorsDialog)
         self.behaviorsTableView.setObjectName(u"behaviorsTableView")
+        self.behaviorsTableView.setAlternatingRowColors(True)
+        self.behaviorsTableView.setTextElideMode(Qt.ElideNone)
+        self.behaviorsTableView.setSortingEnabled(True)
+        self.behaviorsTableView.horizontalHeader().setProperty("showSortIndicator", True)
+        self.behaviorsTableView.horizontalHeader().setStretchLastSection(True)
 
         self.verticalLayout.addWidget(self.behaviorsTableView)
 
         self.buttonBox = QDialogButtonBox(BehaviorsDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Save)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Save)
         self.buttonBox.setCenterButtons(False)
 
         self.verticalLayout.addWidget(self.buttonBox)
