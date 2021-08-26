@@ -397,11 +397,17 @@ class Bento(QObject):
         """
         processHotKey - start or finish a bout referenced by a hot key
         """
-        # Which behavior does the key correspond to?
+        print(f"processHotKey: key {event.key()} pressed")
+        if event.key() == Qt.Key_Escape:
+            print("Escape key pressed -- cancelling annotation.")
+            self.pending_bout = None
+            return
         shift = bool(event.modifiers() & Qt.ShiftModifier)
-        delete_pending = (event.key() == Qt.Key_Backspace)
-        print(f"processHotKey: shift = {shift}, delete_pending = {delete_pending}")
-        if delete_pending:
+        do_delete = (event.key() == Qt.Key_Backspace)
+        print(f"processHotKey: shift = {shift}, delete_pending = {do_delete}")
+
+        # Which behavior does the key correspond to?
+        if do_delete:
             beh = self.behaviors.getDeleteBehavior()
         else:
             key = chr(event.key())
@@ -413,7 +419,8 @@ class Bento(QObject):
                 print(f"processHotKey: didn't match a behavior, so doing nothing")
                 return
         print(f"processHotKey: beh.get_name() = {beh.get_name()}")
-        # Is there a pending bout?
+
+        # Is there a pending bout?  If so, complete the annotation activity
         print(f"processHotKey: self.pending_bout = {self.pending_bout}")
         if self.pending_bout:
             chan = self.active_channels[0]
@@ -424,54 +431,25 @@ class Bento(QObject):
                 print("processHotKey: swapping start and end")
             else:
                 self.pending_bout.set_end(self.current_time)
-            if delete_pending:
-                if self.pending_bout.behavior().get_name() == self.behaviors.getDeleteBehavior().get_name():
-                    print("processHotKey: self.pending_bout == self.behaviors.getDeleteBehavior()")
-                    # remove all bouts between the pending_bout start time and the current time
-                    to_remove = []
-                    it = self.annotations.channel(chan).irange(self.pending_bout.start(), self.pending_bout.end())
-                    while True:
-                        try:
-                            item = next(it)
-                        except ValueError as e:
-                            print(f"Bout doesn't exist in active channel {chan}")
-                            continue
-                        except StopIteration:
-                            break
-                        print(f"adding {item} to to_remove list")
-                        to_remove.append(item)
-                    for item in to_remove:
-                        # don't do the removing inside the iterator above
-                        print(f"removing {item} from channel {chan}")
-                        self.annotations.channel(chan).remove(item)
-                    self.pending_bout = None
-                else:
-                    try:
-                        self.annotations.channel(chan).remove(self.pending_bout)
-                        self.pending_bout = None
-                    except ValueError as e:
-                        print(f"Bout doesn't exist in channel {chan}")
-                return
+
+            if do_delete:
+                # truncate or remove any bouts of the same behavior as pending_bout
+                self.annotations.truncate_or_remove_bouts(
+                    self.pending_bout.behavior(),
+                    self.pending_bout.start(),
+                    self.pending_bout.end(),
+                    chan)
+
             elif self.pending_bout.name() == beh.get_name():
                 # typical case
-                # insert the pending bout in the active channel
-                #TODO: need a way to specify the active channel, as distinct from visible channels
-                # for chan in self.active_channels:
+                # insert the pending bout into the active channel
                 print(f"processHotKey: adding new bout to chan {chan}")
                 self.annotations.add_bout(self.pending_bout, chan)
-                # self.annotationsScene.addBout(self.pending_bout, chan)
-                self.pending_bout = None
-                return
-            else:
-                self.pending_bout = None
-        # Is that annotation active here?
-        for (c, bout) in self.current_annotations:
-            if bout.name() == beh.get_name():
-                # what to do to "toggle" it?
-                print(f"processHotKey: behavior {beh.get_name()} is already active")
-                pass
-        self.pending_bout = Bout(self.current_time, self.current_time, beh)
-        print(f"processHotKey: pending_bout is now {self.pending_bout}")
+            self.pending_bout = None
+        else:
+            # Start a new annotation activity by saving a pending_bout
+            self.pending_bout = Bout(self.current_time, self.current_time, beh)
+            print(f"processHotKey: pending_bout is now {self.pending_bout}")
 
     @Slot()
     def quit(self):

@@ -144,12 +144,18 @@ class Channel(QGraphicsItem):
     def get_prev_end(self, t):
         return self._get_inner(t, self._bouts_by_end, self._get_prev)
 
+    def get_in_range(self, start, end):
+        """
+        get all bouts that intersect the range [start, end]
+        """
+        return [bout for bout in self._bouts_by_start
+            if bout.start().float <= end.float and bout.end().float >= start.float]
+
     def get_at(self, t):
         """
         get all bouts that span time t
         """
-        return [bout for bout in self._bouts_by_start
-            if bout.start().float <= t.float and bout.end().float >= t.float]
+        return self.get_in_range(t, t)
 
     def __iter__(self):
         return iter(self._bouts_by_start)
@@ -206,6 +212,39 @@ class Channel(QGraphicsItem):
 
     def delete_inactive_bouts(self):
         return self._delete_all_inner(lambda bout: not bout.is_active())
+
+    def truncate_or_remove_bouts(self, behavior, start, end, delete_all=False):
+        """
+        Delete bouts entirely within the range [start, end], and
+        truncate bouts that extend outside the range.
+        If behavior matches _deleteBehavior, the activity affects
+        all bouts.  Otherwise, it only affects bouts with matching behavior.
+        """
+        items = self.get_in_range(start, end)
+        for item in items:
+            if not delete_all and behavior.get_name() != item.name():
+                continue
+            # Delete bouts that are entirely within the range
+            if item.start() >= start and item.end() < end:
+                print(f"removing {item} from active channel")
+                self.remove(item)
+
+            # Truncate and duplicate bouts that extend out both sides of the range
+            if item.start() < start and item.end() > end:
+                self.append(Bout(end, item.end(), behavior))
+                item.set_end(start)
+
+            # Truncate bouts at the start boundary that start before the range
+            elif item.start() < start and item.end() <= end:
+                item.set_end(start)
+
+            # Truncate bouts at the end boundary that end after the range
+            elif item.start() >= start and item.end() > end:
+                item.set_start(end)
+
+            else:
+                print(f"truncate_or_delete_bouts: Unexpected bout {item}")
+
 class Annotations(QObject):
     """
     """
@@ -463,6 +502,16 @@ class Annotations(QObject):
         if behaviorSetUpdated:
             self.annotations_changed.emit()
         self.active_annotations_changed.emit()
+
+    def truncate_or_remove_bouts(self, behavior, start, end, chan):
+        """
+        Delete bouts entirely within the range [start, end], or
+        truncate bouts that extend outside the range.
+        If behavior matches _deleteBehavior, the activity affects
+        all bouts.  Otherwise, it only affects bouts with matching behavior.
+        """
+        delete_all = (behavior.get_name() == self._behaviors.getDeleteBehavior().get_name())
+        self._channels[chan].truncate_or_remove_bouts(behavior, start, end, delete_all)
 
     @Slot()
     def note_annotations_changed(self):
