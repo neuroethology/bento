@@ -95,12 +95,12 @@ class Channel(QGraphicsItem):
             Behavior('none', '', QColor.fromRgbF(0., 0., 0.), active = True)
         )
 
-    def append(self, b):
+    def add(self, b):
         if isinstance(b, Bout):
             self._bouts_by_start.add(b)
             self._bouts_by_end.add(b)
         else:
-            raise TypeError("Can only append Bout to Channel")
+            raise TypeError("Can only add Bouts to Channel")
 
     def remove(self, b):
         # can raise ValueError if b is not in the channel
@@ -126,7 +126,7 @@ class Channel(QGraphicsItem):
         self._bouts_by_end.add(b)
 
     def __add__(self, b):
-        self.append(b)
+        self.add(b)
 
     def _get_next(self, t, sortedlist):
         ix = sortedlist.bisect_key_right(t.float)
@@ -249,7 +249,7 @@ class Channel(QGraphicsItem):
 
             # Truncate and duplicate bouts that extend out both sides of the range
             if item.start() < start and item.end() > end:
-                self.append(Bout(end, item.end(), behavior))
+                self.add(Bout(end, item.end(), item.behavior()))
                 self.update_end(item, start)
 
             # Truncate bouts at the start boundary that start before the range
@@ -498,7 +498,7 @@ class Annotations(QObject):
             self._channels[ch] = Channel()
 
     def add_bout(self, bout, channel):
-        self._channels[channel].append(bout)
+        self._channels[channel].add(bout)
         if bout.end() > self._time_end:
             self._time_end = bout.end()
 
