@@ -441,8 +441,7 @@ class Bento(QObject):
                     chan)
 
             elif self.pending_bout.name() == beh.get_name():
-                # typical case
-                # insert the pending bout into the active channel
+                # insert the pending bout into the active channel (typical case)
                 print(f"processHotKey: adding new bout to chan {chan}")
                 self.annotations.add_bout(self.pending_bout, chan)
                 self.annotations.coalesce_bouts(
