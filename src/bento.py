@@ -445,6 +445,10 @@ class Bento(QObject):
                 # insert the pending bout into the active channel
                 print(f"processHotKey: adding new bout to chan {chan}")
                 self.annotations.add_bout(self.pending_bout, chan)
+                self.annotations.coalesce_bouts(
+                    self.pending_bout.start(),
+                    self.pending_bout.end(),
+                    chan)
             self.pending_bout = None
         else:
             # Start a new annotation activity by saving a pending_bout

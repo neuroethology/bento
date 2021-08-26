@@ -107,6 +107,24 @@ class Channel(QGraphicsItem):
         self._bouts_by_start.remove(b)
         self._bouts_by_end.remove(b)
 
+    def update_start(self, b, new_start):
+        """
+        Update the starting time of a bout while
+        preserving the _bouts_by_start access order
+        """
+        self._bouts_by_start.remove(b)
+        b.set_start(new_start)
+        self._bouts_by_start.add(b)
+
+    def update_end(self, b, new_end):
+        """
+        Update the ending time of a bout while
+        preserving the _bouts_by_end access order
+        """
+        self._bouts_by_end.remove(b)
+        b.set_end(new_end)
+        self._bouts_by_end.add(b)
+
     def __add__(self, b):
         self.append(b)
 
@@ -232,18 +250,39 @@ class Channel(QGraphicsItem):
             # Truncate and duplicate bouts that extend out both sides of the range
             if item.start() < start and item.end() > end:
                 self.append(Bout(end, item.end(), behavior))
-                item.set_end(start)
+                self.update_end(item, start)
 
             # Truncate bouts at the start boundary that start before the range
             elif item.start() < start and item.end() <= end:
-                item.set_end(start)
+                self.update_end(item, start)
 
             # Truncate bouts at the end boundary that end after the range
             elif item.start() >= start and item.end() > end:
-                item.set_start(end)
+                self.update_start(item, end)
 
             else:
                 print(f"truncate_or_delete_bouts: Unexpected bout {item}")
+
+    def coalesce_bouts(self, start, end):
+        """
+        combine overlapping bouts of the same behavior within [start, end]
+        """
+        to_delete = []
+        items = self.get_in_range(start, end)
+        # items will be ordered by start time
+        for ix, first in enumerate(items):
+            if first in to_delete:
+                # previously coalesced
+                continue
+            if ix == len(items)-1:
+                break
+            for second in items[ix+1:]:
+                if (first.name() == second.name() and
+                    first.end() >= second.start()):
+                    self.update_end(first, second.end())
+                    to_delete.append(second)
+        for item in to_delete:
+            self.remove(item)
 
 class Annotations(QObject):
     """
@@ -512,6 +551,12 @@ class Annotations(QObject):
         """
         delete_all = (behavior.get_name() == self._behaviors.getDeleteBehavior().get_name())
         self._channels[chan].truncate_or_remove_bouts(behavior, start, end, delete_all)
+
+    def coalesce_bouts(self, start, end, chan):
+        """
+        combine overlapping bouts of the same behavior within [start, end]
+        """
+        self._channels[chan].coalesce_bouts(start, end)
 
     @Slot()
     def note_annotations_changed(self):
