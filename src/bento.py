@@ -413,11 +413,12 @@ class Bento(QObject):
             key = chr(event.key())
             key = key.upper() if shift else key.lower()
             print(f"processHotKey: key = {key}")
-            beh = self.behaviors.from_hot_key(key)
-            if not beh:
+            behs = [beh for beh in self.behaviors.from_hot_key(key) if beh.is_active()]
+            if not behs:
                 # that hot key is not defined; do nothing
-                print(f"processHotKey: didn't match a behavior, so doing nothing")
+                print(f"processHotKey: didn't match an active behavior, so doing nothing")
                 return
+            beh = behs[0]
         print(f"processHotKey: beh.get_name() = {beh.get_name()}")
 
         # Is there a pending bout?  If so, complete the annotation activity

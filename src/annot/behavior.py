@@ -99,7 +99,7 @@ class Behaviors(QAbstractTableModel):
     directly in a QTableView widget.
 
     Use getattr(name) to get the Behavior instance for a given name.
-    Use from_hot_key(key) to get the behavior given the hot key.
+    Use from_hot_key(key) to get the behavior(s) given the hot key.
         Returns None if the hot_key isn't defined.
     """
 
@@ -137,7 +137,10 @@ class Behaviors(QAbstractTableModel):
         self._by_name[beh.get_name()] = beh
         hot_key = beh.get_hot_key()
         if hot_key:
-            self._by_hot_key[hot_key] = beh
+            if hot_key not in self._by_hot_key.keys():
+                self._by_hot_key[hot_key] = []
+            assert(isinstance(self._by_hot_key[hot_key], list))
+            self._by_hot_key[hot_key].append(beh)
 
     def load(self, f):
         line = f.readline()
@@ -160,6 +163,9 @@ class Behaviors(QAbstractTableModel):
         return self._by_name[name]
 
     def from_hot_key(self, key):
+        """
+        Return the list of behaviors associated with this hot key, if any
+        """
         try:
             return self._by_hot_key[key]
         except KeyError:
@@ -233,7 +239,10 @@ class Behaviors(QAbstractTableModel):
             if hot_key != '':
                 del(self._by_hot_key[hot_key])
             if value != '':
-                self._by_hot_key[value] = beh
+                if value not in self._by_hot_key.keys():
+                    self._by_hot_key[value] = []
+                assert(isinstance(self._by_hot_key[value], list))
+                self._by_hot_key[value].append(beh)
         elif key == 'name' and value != name:
             del(self._by_name[name])
             self._by_name[value] = beh
@@ -247,11 +256,3 @@ class Behaviors(QAbstractTableModel):
         if index.column() in self._booleanColumns:
             f = (f & ~(Qt.ItemIsSelectable | Qt.ItemIsEditable)) | Qt.ItemIsUserCheckable
         return f
-
-# class BehaviorsIterator():
-#     def __init__(self, behaviors):
-#         self.behaviors = behaviors
-#         self.keyIter = behaviors._items.__iter__()
-
-#     def __next__(self):
-#         return self.behaviors._items[self.keyIter.__next__()]
