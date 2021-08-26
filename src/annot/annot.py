@@ -62,7 +62,7 @@ class Bout(object):
         return self._behavior.is_active()
 
     def is_visible(self):
-        return self._behavior.is_visible()
+        return self._behavior.is_visible() and self._behavior.is_active()
 
     def __repr__(self):
         return f"Bout: start = {self.start()}, end = {self.end()}, behavior: {self.behavior()}"
@@ -87,12 +87,12 @@ class Channel(QGraphicsItem):
         self.fakeFirstBout = Bout(
             tc.Timecode('30.0', '0:0:0:0'),
             tc.Timecode('30.0', '0:0:0:0'),
-            Behavior('none', '', QColor.fromRgbF(0., 0., 0.))
+            Behavior('none', '', QColor.fromRgbF(0., 0., 0.), active = True)
         )
         self.fakeLastBout = Bout(
             tc.Timecode('30.0', '23:59:59:29'),
             tc.Timecode('30.0', '23:59:59:29'),
-            Behavior('none', '', QColor.fromRgbF(0., 0., 0.))
+            Behavior('none', '', QColor.fromRgbF(0., 0., 0.), active = True)
         )
 
     def append(self, b):
@@ -114,20 +114,21 @@ class Channel(QGraphicsItem):
         ix = sortedlist.bisect_key_right(t.float)
         l = len(sortedlist)
         if ix == l:
-            return self.fakeLastBout
-        return sortedlist[ix]
+            return self.fakeLastBout, t.next()
+        return sortedlist[ix], t.next()
 
     def _get_prev(self, t, sortedlist):
         ix = sortedlist.bisect_key_left(t.float)
         if ix == 0:
-            return self.fakeFirstBout
-        return sortedlist[ix-1]
+            return self.fakeFirstBout, t.back()
+        return sortedlist[ix-1], t.back()
 
     def _get_inner(self, t, sortedList, op):
+        t_local = t + 0 # kludgy copy constructor!
         visible = False
         while not visible:
             # no need to check for the end, because the fake first and last bouts are visible
-            bout = op(t, sortedList)
+            bout, t_local = op(t_local, sortedList)
             visible = bout.is_visible()
         return bout
 
@@ -194,14 +195,17 @@ class Channel(QGraphicsItem):
         for bout in iter(self):
             if predicate(bout):
                 to_delete.append(bout)
+        deleted_names = set()
         for bout in to_delete:
+            deleted_names.add(bout.name())
             self.remove(bout)
+        return deleted_names
 
     def delete_bouts_by_name(self, behavior_name):
-        self._delete_all_inner(lambda bout: bout.name() == behavior_name)
+        return self._delete_all_inner(lambda bout: bout.name() == behavior_name)
 
     def delete_inactive_bouts(self):
-        self._delete_all_inner(lambda bout: not bout.is_active())
+        return self._delete_all_inner(lambda bout: not bout.is_active())
 class Annotations(QObject):
     """
     """
@@ -437,12 +441,18 @@ class Annotations(QObject):
         return self._format
 
     def delete_bouts_by_name(self, behavior_name):
+        deleted_names = set()
         for chan_name in self.channel_names():
-            self.channel(chan_name).delete_bouts_by_name(behavior_name)
+            deleted_names.update(self.channel(chan_name).delete_bouts_by_name(behavior_name))
+        for name in deleted_names:
+            self.annotation_names.remove(name)
 
     def delete_inactive_bouts(self):
+        deleted_names = set()
         for chan_name in self.channel_names():
-            self.channel(chan_name).delete_inactive_bouts()
+            deleted_names.update(self.channel(chan_name).delete_inactive_bouts())
+        for name in deleted_names:
+            self.annotation_names.remove(name)
 
     def ensure_and_activate_behaviors(self, toActivate):
         behaviorSetUpdated = False

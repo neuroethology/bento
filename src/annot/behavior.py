@@ -15,13 +15,13 @@ class Behavior(QObject):
     color       The color with which to display this behavior
     """
 
-    def __init__(self, name: str, hot_key: str = '', color: QColor = None):
+    def __init__(self, name: str, hot_key: str = '', color: QColor = None, active = False, visible = True):
         super().__init__()
         self._name = name
         self._hot_key = '' if hot_key == '_' else hot_key
         self._color = color
-        self._visible = True
-        self._active = False
+        self._visible = visible
+        self._active = active
         self._get_functions = {
             'hot_key': self.get_hot_key,
             'name': self.get_name,
@@ -111,7 +111,7 @@ class Behaviors(QAbstractTableModel):
         self._by_name = {}
         self._by_hot_key = {}
         self._header = ['hot_key', 'color', 'name', 'active', 'visible']
-        self._delete_behavior = Behavior('_delete')
+        self._delete_behavior = Behavior('_delete', color = QColor('black'))
         self._immutableColumns = set()
         self._booleanColumns = set([self._header.index('active'), self._header.index('visible')])
         self._role_to_str = {

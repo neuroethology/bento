@@ -325,7 +325,8 @@ class Bento(QObject):
         for ch in self.active_channels:
             bouts = self.annotations.channel(ch).get_at(self.current_time)
             for bout in bouts:
-                self.current_annotations.append((ch, bout))
+                if bout.is_visible():
+                    self.current_annotations.append((ch, bout))
         self.annotChanged.emit([(
             c,
             bout.name(),
@@ -411,7 +412,7 @@ class Bento(QObject):
                 # that hot key is not defined; do nothing
                 print(f"processHotKey: didn't match a behavior, so doing nothing")
                 return
-        print(f"processHotKey: beh.name = {beh.name}")
+        print(f"processHotKey: beh.get_name() = {beh.get_name()}")
         # Is there a pending bout?
         print(f"processHotKey: self.pending_bout = {self.pending_bout}")
         if self.pending_bout:
@@ -424,7 +425,7 @@ class Bento(QObject):
             else:
                 self.pending_bout.set_end(self.current_time)
             if delete_pending:
-                if self.pending_bout.behavior().name == self.behaviors.getDeleteBehavior().name:
+                if self.pending_bout.behavior().get_name() == self.behaviors.getDeleteBehavior().get_name():
                     print("processHotKey: self.pending_bout == self.behaviors.getDeleteBehavior()")
                     # remove all bouts between the pending_bout start time and the current time
                     to_remove = []

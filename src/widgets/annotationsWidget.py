@@ -93,11 +93,13 @@ class AnnotationsView(QGraphicsView):
 
     def maybeDrawPendingBout(self, painter, rect):
         bout = self.bento.pending_bout
-        if not bout or bout.behavior().name == self.bento.behaviors.getDeleteBehavior().name:
+        if not bout:
             return
         now = self.bento.get_time().float
-        painter.setBrush(QBrush(bout.color()))
+        painter.setBrush(QBrush(bout.color(), bs=Qt.FDiagPattern))
+        painter.setPen(Qt.NoPen)
         painter.drawRect(QRectF(QPointF(bout.start().float, rect.top()), QPointF(now, rect.bottom())))
+        painter.setBrush(Qt.NoBrush)
 
     def drawForeground(self, painter, rect):
         self.maybeDrawPendingBout(painter, rect)
@@ -179,6 +181,7 @@ class AnnotationsScene(QGraphicsScene):
             self.addItem(channel)
             # channel.contentChanged.connect(self.sceneChanged)
             # self.loadBouts(annotations.channel(chan),  ix)
+        self.loaded = True
 
     def loadBouts(self, channel, chan_num):
         print(f"Loading bouts for channel {chan_num}")
