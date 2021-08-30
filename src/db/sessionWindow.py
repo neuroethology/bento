@@ -105,6 +105,18 @@ class SessionDockWidget(QDockWidget):
         """
         if len(self.ui.sessionsTableView.selectedIndexes()) == 0:
             self.current_session_id = None
-        dialog = EditSessionDialog(self.bento, self.bento.investigator_id, self.current_session_id)
+        investigator = self.ui.investigatorComboBox.currentText()
+        investigator_id = self.bento.investigator_id
+        print(f"investigator_id initialized to {investigator_id}")
+        if self.ui.useInvestigatorCheckBox.isChecked() and investigator:
+            print(f'Querying db for id of investigator "{investigator}"')
+            with self.bento.db_sessionMaker() as db_sess:
+                result = db_sess.query(Investigator).filter(Investigator.user_name == investigator).one_or_none()
+                if result:
+                    print(f"Got result {result}, setting id to {result.id}")
+                    investigator_id = result.id
+                else:
+                    print("Query failed, so didn't update id")
+        dialog = EditSessionDialog(self.bento, investigator_id, self.current_session_id)
         dialog.sessionChanged.connect(self.populateSessions)
         dialog.exec()

@@ -35,7 +35,7 @@ class NeuralFrame(QFrame):
         self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
         bento.annotationsSceneUpdated.connect(self.ui.annotationsView.updateScene)
-        self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScale)
+        self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
 
     def load(self, neuralData, base_dir):
         neural_path = fix_path(base_dir + neuralData.file_path)

@@ -551,12 +551,14 @@ class Annotations(QObject):
         """
         delete_all = (behavior.get_name() == self._behaviors.getDeleteBehavior().get_name())
         self._channels[chan].truncate_or_remove_bouts(behavior, start, end, delete_all)
+        self.note_annotations_changed()
 
     def coalesce_bouts(self, start, end, chan):
         """
         combine overlapping bouts of the same behavior within [start, end]
         """
         self._channels[chan].coalesce_bouts(start, end)
+        self.note_annotations_changed()
 
     @Slot()
     def note_annotations_changed(self):

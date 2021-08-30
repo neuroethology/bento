@@ -110,7 +110,7 @@ class Bento(QObject):
         self.player.finished.connect(self.player.quit)
         self.annotationsSceneUpdated.connect(self.mainWindow.ui.annotationsView.updateScene)
         self.timeChanged.connect(self.mainWindow.updateTime)
-        self.annotChanged.connect(self.mainWindow.updateAnnotLabel)
+        self.currentAnnotsChanged.connect(self.mainWindow.updateAnnotLabel)
         self.active_channel_changed.connect(self.mainWindow.selectChannelByName)
         self.set_time('0:0:0:0')
         if not goodConfig:
@@ -162,6 +162,7 @@ class Bento(QObject):
             self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 0.)))
             self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
             self.newAnnotations = True
+        self.annotations.active_annotations_changed.connect(self.noteAnnotationsChanged)
         self.set_time(self.time_start)
 
     @Slot()
@@ -327,7 +328,7 @@ class Bento(QObject):
             for bout in bouts:
                 if bout.is_visible():
                     self.current_annotations.append((ch, bout))
-        self.annotChanged.emit([(
+        self.currentAnnotsChanged.emit([(
             c,
             bout.name(),
             bout.color())
@@ -450,6 +451,7 @@ class Bento(QObject):
                     self.pending_bout.end(),
                     chan)
             self.pending_bout = None
+            self.noteAnnotationsChanged()
         else:
             # Start a new annotation activity by saving a pending_bout
             self.pending_bout = Bout(self.current_time, self.current_time, beh)
@@ -467,7 +469,7 @@ class Bento(QObject):
         video = VideoFrame(self)
         video.load_video(video_path)
         self.timeChanged.connect(video.updateFrame)
-        self.annotChanged.connect(video.updateAnnots)
+        self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
     def newNeuralWidget(self, neuralData, base_dir):
@@ -577,10 +579,16 @@ class Bento(QObject):
     def toggleBehaviorVisibility(self):
         self.behaviorsDialog.toggleVisibility()
 
+    @Slot()
+    def noteAnnotationsChanged(self):
+        print("noteAnnotationsChanged()")
+        self.newAnnotations = True
+        self.annotationsSceneUpdated.emit()
+
    # Signals
     quitting = Signal()
     timeChanged = Signal(Timecode)
-    annotChanged = Signal(list)
+    currentAnnotsChanged = Signal(list)
     annotationsSceneUpdated = Signal()
     active_channel_changed = Signal(str)
 

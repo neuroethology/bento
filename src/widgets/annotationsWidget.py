@@ -3,7 +3,7 @@
 """
 
 from PySide6.QtCore import Qt, QPointF, QRectF, Slot
-from PySide6.QtGui import QBrush, QPen, QMouseEvent
+from PySide6.QtGui import QBrush, QPen, QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
 from timecode import Timecode
 
@@ -22,6 +22,7 @@ class AnnotationsView(QGraphicsView):
         self.bento = None
         self.start_x = 0.
         self.scale_h = 1.
+        self.scale(10., self.scale_h)
         self.sample_rate = 30.
         self.time_x = Timecode(str(self.sample_rate), '0:0:0:1')
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
@@ -33,10 +34,10 @@ class AnnotationsView(QGraphicsView):
 
     @Slot(float)
     def updateScene(self):
-        self.sample_rate = self.scene().sample_rate
-        self.scale_h = self.height() / self.scene().height
-        self.scale(10., self.scale_h)
-        # self.time_x.framerate(self.sample_rate)
+        # self.invalidate_scene() and self.update() don't seem to trigger a repaint
+        # if scene contents have changed but the view has not.  self.repaint() does
+        # trigger a repaint even when the view has not changed, so we use it here.
+        self.repaint()
         self.updatePosition(self.bento.current_time)
 
     @Slot(Timecode)
@@ -45,13 +46,17 @@ class AnnotationsView(QGraphicsView):
         self.centerOn(pt)
         self.show()
 
-    def setTransformScaleH(self, t, scale_h: float):
+    def setTransformScale(self, t, scale_h: float=None, scale_v: float=None):
+        if scale_h == None:
+            scale_h = t.m11()
+        if scale_v == None:
+            scale_v = t.m22()
         t.setMatrix(
                 scale_h,
                 t.m12(),
                 t.m13(),
                 t.m21(),
-                t.m22(),
+                scale_v,
                 t.m23(),
                 t.m31(),
                 t.m32(),
@@ -59,11 +64,35 @@ class AnnotationsView(QGraphicsView):
             )
         self.setTransform(t, combine=False)
 
-    @Slot(float)
+    def setScale(self, hScale: float, vScale: float) -> None:
+        self.setTransformScale(self.transform(), scale_h=hScale, scale_v=vScale)
+
     def setHScale(self, hScale):
+        self.setTransformScale(self.transform(), scale_h=hScale)
+
+    def setVScale(self, vScale):
+        self.setTransformScale(self.transform(), scale_v=vScale)
+
+    @Slot(float)
+    def setHScaleAndShow(self, hScale):
         self.scale_h = hScale
-        self.setTransformScaleH(self.transform(), hScale)
+        self.setHScale(hScale)
         self.show()
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # Override the widget behavior on key strokes
+        # to let the parent window handle the event
+        event.ignore()
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        # Override the widget behavior on wheel events
+        # (including "magic mouse" and trackpad gestures)
+        if event.phase() == Qt.ScrollUpdate:
+            self.bento.change_time(int(event.angleDelta().x() / 2))
+            event.accept()
+        else: # ignores wheel "momentum" among other things
+            event.ignore()
+        # super().wheelEvent(event)
 
     def mousePressEvent(self, event):
         assert isinstance(event, QMouseEvent)
@@ -72,6 +101,7 @@ class AnnotationsView(QGraphicsView):
         self.scale_h = self.transform().m11()
         self.start_x = event.localPos().x() / self.scale_h
         self.time_x = self.bento.get_time()
+        event.accept()
 
     def mouseMoveEvent(self, event):
         assert isinstance(event, QMouseEvent)
@@ -81,6 +111,7 @@ class AnnotationsView(QGraphicsView):
             self.time_x.framerate,
             start_seconds=self.time_x.float + (self.start_x - x)
         ))
+        event.accept()
 
     def updateFromScroll(self):
         assert self.bento
@@ -193,4 +224,4 @@ class AnnotationsScene(QGraphicsScene):
 
     @Slot()
     def sceneChanged(self):
-        print("scene chagned -- update views")
+        print("scene changed -- update views")

@@ -20,6 +20,11 @@ class EditSessionDialog(QDialog):
         self.bento = bento
         self.session_id = session_id
         self.investigator_id = investigator_id
+        if session_id:
+            with self.bento.db_sessionMaker() as db_sess:
+                session = db_sess.query(Session).filter(Session.id == session_id).scalar()
+                if session:
+                    self.investigator_id = session.id
         self.ui = Ui_EditSessionDialog()
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
