@@ -60,7 +60,7 @@ class TableModel(QAbstractTableModel):
         new_rows = len(newData)
         first_new_index = self.index(rows, 0)
         last_new_index = self.index(rows + new_rows, columns-1)
-        self.beginInsertRows(self.index(), rows, rows + new_rows)
+        self.beginInsertRows(first_new_index, rows, rows + new_rows)
         self.mylist.append(newData)
         self.endInsertRows()
         self.dataChanged.emit(

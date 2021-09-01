@@ -166,7 +166,7 @@ class EditTrialDialog(QDialog):
     def updateVideoData(self, trial, db_sess):
         model = self.ui.videosFileTableView.model()
         if model:
-            for ix, entry in enumerate(model.getIterator()):
+            for ix, entry in enumerate(iter(model)):
                 tableIndex = model.createIndex(ix, 0)
                 if model.isDirty(tableIndex):
                     print(f"item at row {ix} is dirty")
@@ -293,7 +293,7 @@ class EditTrialDialog(QDialog):
     def updateNeuralData(self, trial, db_sess):
         model = self.ui.neuralsTableView.model()
         if model:
-            for ix, entry in enumerate(model.getIterator()):
+            for ix, entry in enumerate(iter(model)):
                 print(f"updateNeural ix = {ix}, entry = {entry}")
                 tableIndex = model.createIndex(ix, 0)
                 if model.isDirty(tableIndex):
@@ -402,7 +402,7 @@ class EditTrialDialog(QDialog):
     def updateAnnotationsData(self, trial, db_sess):
         model = self.ui.annotationsTableView.model()
         if model:
-            for ix, entry in enumerate(model.getIterator()):
+            for ix, entry in enumerate(iter(model)):
                 print(f"updateAnnotations ix = {ix}, entry = {entry}")
                 tableIndex = model.createIndex(ix, 0)
                 if model.isDirty(tableIndex):
