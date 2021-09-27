@@ -538,7 +538,7 @@ class seqIo_reader():
         n=self.header['numFrames']
         if n==0:n=1e7
 
-        seek_table = np.zeros((n)).astype(int)
+        seek_table = np.zeros((n)).astype(np.int64)
         seek_table[0]=1024
         extra = 8 # extra bytes after image data , 8 for ts then 0 or 8 empty
         self.file.seek(1024,0)
@@ -569,7 +569,7 @@ class seqIo_reader():
                     seek_table[i] = offset
                     # seek_table[i-1,1]=size
                     i+=1
-                except:
+                except Exception as e:
                     break
                     #most likely EOF
         else:
