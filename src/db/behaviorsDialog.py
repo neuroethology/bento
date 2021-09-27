@@ -95,8 +95,9 @@ class CheckboxFilterProxyModelIterator():
 
 class BehaviorItemDelegate(QStyledItemDelegate):
     """
-    Delegate class that renders QColor objects as colors.
-    Everything else is handled by the QStyledItemDelegate superclass.
+    Delegate class that renders QColor objects as colors
+    and instantiates a QColorDialog when the user wants to edit them.
+    Most everything else is handled by the QStyledItemDelegate superclass.
     """
 
     def __init__(self, parent=None):
