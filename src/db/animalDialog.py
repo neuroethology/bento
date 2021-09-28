@@ -30,8 +30,11 @@ class AnimalDialog(QDialog):
         self.ui.investigatorComboBox.setEditable(False)
         self.ui.investigatorComboBox.setCurrentText(username) # may not exist
         investigator_name = self.ui.investigatorComboBox.currentText()
-        investigator = query.filter(Investigator.user_name == investigator_name).scalar()
-        if investigator:
+        investigator_candidates = query.filter(Investigator.user_name == investigator_name).all()
+        if len(investigator_candidates) > 0:
+            #TODO: warn if there is more than one investigator of the same name,
+            # or make it impossible to occur
+            investigator = investigator_candidates[0]
             self.investigator_id = investigator.id
             self.populateAnimalTable(investigator.id)
         else:

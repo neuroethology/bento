@@ -23,20 +23,23 @@ class SetInvestigatorDialog(QDialog):
             with self.bento.db_sessionMaker() as db_sess:
                 query = db_sess.query(Investigator).distinct()
                 investigators = query.all()
-                investigator = query.filter(Investigator.user_name == username).scalar()
+                investigator_candidates = query.filter(Investigator.user_name == username).all()
                 self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
                 self.ui.investigatorComboBox.setEditable(False)
-                if investigator:
-                    print(f"setting investigator_id to {investigator.id}")
-                    self.investigator_id = investigator.id
-                    self.ui.investigatorComboBox.setCurrentText(investigator.user_name)
+                if len(investigator_candidates) > 0:
+                    investigator = investigator_candidates[0]
+                    if len(investigator_candidates) > 1:
+                        #TODO: put up alert box here to warn that there are duplicate investigators
+                        pass
                 elif len(investigators) > 0:
-                    self.investigator_id = investigators[0].id
-                    self.ui.investigatorComboBox.setCurrentText(investigators[0].user_name)
+                    investigator = investigators[0].id
+            print(f"setting investigator_id to {investigator.id}")
+            self.investigator_id = investigator.id
+            self.ui.investigatorComboBox.setCurrentText(investigator.user_name)
+            self.ui.investigatorComboBox.currentIndexChanged.connect(self.investigatorChanged)
         except Exception as e:
-            print(f"Caught exception {e}")
+            print(f"Caught exception: {e}")
             pass # no database yet?
-        self.ui.investigatorComboBox.currentIndexChanged.connect(self.investigatorChanged)
 
     @Slot()
     def investigatorChanged(self):
