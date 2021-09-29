@@ -2,11 +2,10 @@
 """
 """
 
-from PySide2.QtCore import Qt, QPointF, Signal, Slot
-from PySide2.QtGui import QBrush, QColor, QPen, QMouseEvent
-from PySide2.QtWidgets import QGraphicsScene, QGraphicsView, QGraphicsRectItem
+from PySide6.QtCore import Qt, QPointF, QRectF, Slot
+from PySide6.QtGui import QBrush, QPen, QKeyEvent, QMouseEvent, QWheelEvent
+from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
 from timecode import Timecode
-from annot.annot import Bout
 
 class AnnotationsView(QGraphicsView):
     """
@@ -18,21 +17,82 @@ class AnnotationsView(QGraphicsView):
     from QtGraphicsScene
     """
 
-    def __init__(self, annotationsScene, parent=None):
-        super(AnnotationsView, self).__init__(annotationsScene, parent)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.bento = None
         self.start_x = 0.
         self.scale_h = 1.
-        self.time_x = Timecode('30.0', '0:0:0:1')
+        self.scale(10., self.scale_h)
+        self.sample_rate = 30.
+        self.time_x = Timecode(str(self.sample_rate), '0:0:0:1')
+        self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.ticksScale = 1.
 
     def set_bento(self, bento):
         self.bento = bento
-    
+
+    @Slot(float)
+    def updateScene(self):
+        # self.invalidate_scene() and self.update() don't seem to trigger a repaint
+        # if scene contents have changed but the view has not.  self.repaint() does
+        # trigger a repaint even when the view has not changed, so we use it here.
+        self.repaint()
+        self.updatePosition(self.bento.current_time)
+
     @Slot(Timecode)
     def updatePosition(self, t):
-        pt = QPointF(t.float, 0.)
+        pt = QPointF(t.float, self.scene().height/2.)
         self.centerOn(pt)
         self.show()
+
+    def setTransformScale(self, t, scale_h: float=None, scale_v: float=None):
+        if scale_h == None:
+            scale_h = t.m11()
+        if scale_v == None:
+            scale_v = t.m22()
+        t.setMatrix(
+                scale_h,
+                t.m12(),
+                t.m13(),
+                t.m21(),
+                scale_v,
+                t.m23(),
+                t.m31(),
+                t.m32(),
+                t.m33()
+            )
+        self.setTransform(t, combine=False)
+
+    def setScale(self, hScale: float, vScale: float) -> None:
+        self.setTransformScale(self.transform(), scale_h=hScale, scale_v=vScale)
+
+    def setHScale(self, hScale):
+        self.setTransformScale(self.transform(), scale_h=hScale)
+
+    def setVScale(self, vScale):
+        self.setTransformScale(self.transform(), scale_v=vScale)
+
+    @Slot(float)
+    def setHScaleAndShow(self, hScale):
+        self.scale_h = hScale
+        self.setHScale(hScale)
+        self.show()
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # Override the widget behavior on key strokes
+        # to let the parent window handle the event
+        event.ignore()
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        # Override the widget behavior on wheel events
+        # (including "magic mouse" and trackpad gestures)
+        if event.phase() == Qt.ScrollUpdate:
+            self.bento.change_time(int(event.angleDelta().x() / 2))
+            event.accept()
+        else: # ignores wheel "momentum" among other things
+            event.ignore()
+        # super().wheelEvent(event)
 
     def mousePressEvent(self, event):
         assert isinstance(event, QMouseEvent)
@@ -41,6 +101,7 @@ class AnnotationsView(QGraphicsView):
         self.scale_h = self.transform().m11()
         self.start_x = event.localPos().x() / self.scale_h
         self.time_x = self.bento.get_time()
+        event.accept()
 
     def mouseMoveEvent(self, event):
         assert isinstance(event, QMouseEvent)
@@ -50,29 +111,117 @@ class AnnotationsView(QGraphicsView):
             self.time_x.framerate,
             start_seconds=self.time_x.float + (self.start_x - x)
         ))
+        event.accept()
+
+    def updateFromScroll(self):
+        assert self.bento
+        center = self.viewport().rect().center()
+        sceneCenter = self.mapToScene(center)
+        self.bento.set_time(Timecode(
+            self.time_x.framerate,
+            start_seconds=sceneCenter.x()
+        ))
+
+    def maybeDrawPendingBout(self, painter, rect):
+        bout = self.bento.pending_bout
+        if not bout:
+            return
+        now = self.bento.get_time().float
+        painter.setBrush(QBrush(bout.color(), bs=Qt.FDiagPattern))
+        painter.setPen(Qt.NoPen)
+        painter.drawRect(QRectF(QPointF(bout.start().float, rect.top()), QPointF(now, rect.bottom())))
+        painter.setBrush(Qt.NoBrush)
+
+    def drawForeground(self, painter, rect):
+        self.maybeDrawPendingBout(painter, rect)
+        # draw current time indicator
+        now = self.bento.get_time().float
+        pen = QPen(Qt.black)
+        pen.setWidth(0)
+        painter.setPen(pen)
+        painter.drawLine(
+            QPointF(now, rect.top()),
+            QPointF(now, rect.bottom())
+            )
+        # draw tick marks
+        if self.scene().loaded:
+            offset = self.ticksScale
+            eighth = (rect.bottom() - rect.top()) / 8.
+            eighthDown = rect.top() + eighth
+            eighthUp = rect.bottom() - eighth
+            while now + offset < rect.right():
+                painter.drawLine(
+                    QPointF(now + offset, rect.top()),
+                    QPointF(now + offset, eighthDown)
+                )
+                painter.drawLine(
+                    QPointF(now + offset, eighthUp),
+                    QPointF(now + offset, rect.bottom())
+                )
+                painter.drawLine(
+                    QPointF(now - offset, rect.top()),
+                    QPointF(now - offset, eighthDown)
+                )
+                painter.drawLine(
+                    QPointF(now - offset, eighthUp),
+                    QPointF(now - offset, rect.bottom())
+                )
+                offset += self.ticksScale
 
 class AnnotationsScene(QGraphicsScene):
     """
     AnnotationsScene is a class to contain annotation bouts for display in an
     AnnotationsView widget.  The horizontal axis is scaled in seconds, represented
     as a float, which can be produced directly by the timecode class.
-    Multiple views the AnnotationsScene can be supported, so that the annotation
+    Multiple views of the AnnotationsScene can be supported, so that the annotation
     bouts can easily be shown against a variety of data, as well as separately in
     the main annotations view.
     """
 
-    def __init__(self):
-        super(AnnotationsScene, self).__init__()
+    def __init__(self, sample_rate=30.):
+        super().__init__()
         self.setBackgroundBrush(QBrush(Qt.white))
-    
-    def addBout(self, bout):
+        self.height = 1.
+        self.sample_rate = sample_rate
+        self.chan_map = {}
+        self.loaded = False
+
+    def addBout(self, bout, chan):
         """
-        Add a bout to the scene according to its timecode.
-        For now, put it vertically at (0, 1).  Eventually, we will probably want to
-        place it depending on which channel it is in.
+        Add a bout to the scene according to its timecode and channel name or number.
         """
-        self.addRect(bout.start().float, 0., bout.len().float, 1., QPen(QBrush(), 0, s=Qt.NoPen), QBrush(bout.color()))
-    
-    def load(self, bouts):
-        for bout in bouts:
-            self.addBout(bout)
+        if isinstance(chan, int):
+            chan_num = chan
+        elif isinstance(chan, str):
+            if chan not in self.chan_map.keys():
+                self.chan_map[chan] = len(self.chan_map.keys()) # add the new channel
+            chan_num = self.chan_map[chan]
+        else:
+            raise RuntimeError(f"addBout: expected int or str, but got {type(chan)}")
+        color = bout.color
+        self.addRect(bout.start().float, float(chan_num), bout.len().float, 1., QPen(QBrush(), 0, s=Qt.NoPen), QBrush(color()))
+        self.loaded = True
+
+    def loadAnnotations(self, annotations, activeChannels, sample_rate):
+        self.setSampleRate(sample_rate)
+        self.height = float(len(activeChannels))
+        for ix, chan in enumerate(activeChannels):
+            self.chan_map[chan] = ix
+            channel = annotations.channel(chan)
+            channel.set_top(float(ix))
+            self.addItem(channel)
+            # channel.contentChanged.connect(self.sceneChanged)
+            # self.loadBouts(annotations.channel(chan),  ix)
+        self.loaded = True
+
+    def loadBouts(self, channel, chan_num):
+        print(f"Loading bouts for channel {chan_num}")
+        for bout in channel:
+            self.addBout(bout, chan_num)
+
+    def setSampleRate(self, sample_rate):
+        self.sample_rate = sample_rate
+
+    @Slot()
+    def sceneChanged(self):
+        print("scene changed -- update views")

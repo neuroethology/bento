@@ -52,7 +52,8 @@ def fread(fid, nelements, dtype):
         dt = dtype
 
     data_array = np.fromfile(fid, dt, nelements)
-    if data_array.size==1:data_array=data_array[0]
+    if data_array.size == 1:
+        data_array = data_array[0]
     return data_array
 
 def fwrite(fid,a,dtype=np.str):
@@ -424,7 +425,7 @@ def syncTopFront(f,num_frames,num_framesf):
 
 
 class seqIo_reader():
-    def __init__(self,filename,info=[]):
+    def __init__(self,filename,info=[],buildTable=True):
         self.filename = filename
         try:
             self.file=open(filename,'rb')
@@ -438,7 +439,9 @@ class seqIo_reader():
             self.readHeader()
         else:
             info.numFrames=0
-        self.buildSeekTable(False)
+        if buildTable:
+            print("buildTable was True, so calling buildSeekTable()")
+            self.buildSeekTable(False)
 
 
     def readHeader(self):
@@ -524,6 +527,7 @@ class seqIo_reader():
 
     def buildSeekTable(self,memoize=False):
         """Build a seek table containing the offset and frame size for every frame in the video."""
+        print("in seqIo_reader.buildSeekTable()")
         pickle_name = self.filename.strip(".seq") + ".seek"
         if memoize:
             if os.path.isfile(pickle_name):
@@ -534,7 +538,7 @@ class seqIo_reader():
         n=self.header['numFrames']
         if n==0:n=1e7
 
-        seek_table = np.zeros((n)).astype(int)
+        seek_table = np.zeros((n)).astype(np.int64)
         seek_table[0]=1024
         extra = 8 # extra bytes after image data , 8 for ts then 0 or 8 empty
         self.file.seek(1024,0)
@@ -565,7 +569,7 @@ class seqIo_reader():
                     seek_table[i] = offset
                     # seek_table[i-1,1]=size
                     i+=1
-                except:
+                except Exception as e:
                     break
                     #most likely EOF
         else:
@@ -594,7 +598,7 @@ class seqIo_reader():
 
     def getTs(self, n=None):
         if n==None: n=self.header['numFrames']
-        if self.seek_table is None:
+        if self.compressed and self.seek_table is None:
             self.buildSeekTable()
 
         ts = np.zeros((n))
@@ -759,14 +763,14 @@ class seqIo_writer():
 def seqIo_crop(fname, tname, frames):
     """
     Crop sub-sequence from seq file.
-    
+
     Frame indices are 0 indexed. frames need not be consecutive and can
     contain duplicates. An index of -1 indicates a blank (all 0) frame. If
     contiguous subset of frames is cropped timestamps are preserved.
-    
+
     USAGE
      seqIo( fName, 'crop', tName, frames )
-    
+
     INPUTS
      fName      - seq file name
      tName      - cropped seq file name
@@ -799,10 +803,10 @@ def seqIo_crop(fname, tname, frames):
 def seqIo_toImgs(fName, tDir=[], skip=1, f0=0, f1=np.inf, ext=''):
     """
     Extract images from seq file to target directory or array.
-    
+
     USAGE
      Is = seqIo( fName, 'toImgs', [tDir], [skip], [f0], [f1], [ext] )
-    
+
     INPUTS
      fName      - seq file name
      tDir       - [] target directory (if empty extract images to array)
@@ -810,7 +814,7 @@ def seqIo_toImgs(fName, tDir=[], skip=1, f0=0, f1=np.inf, ext=''):
      f0         - [0] first frame to write
      f1         - [numFrames-1] last frame to write
      ext        - [] optionally save as given type (slow, reconverts)
-    
+
     OUTPUTS
      Is         - if isempty(tDir) outputs image array (else Is=[])
     """
@@ -857,14 +861,14 @@ def seqIo_toImgs(fName, tDir=[], skip=1, f0=0, f1=np.inf, ext=''):
 def seqIo_frImgs(fName, header=[], aviName=[], Is=[], sDir=[], name='I', ndig=5, f0=0, f1=1e6):
     """
     Create seq file from an array or directory of images or from an AVI file.
-    
+
     For info, if converting from array, only codec (e.g., 'jpg') and fps must
     be specified while width and height and determined automatically. If
     converting from AVI, fps is also determined automatically.
-    
+
     USAGE
      seqIo( fName, 'frImgs', info, varargin )
-    
+
     INPUTS
      fName      - seq file name
      info       - defines codec, etc, see seqIo>writer
@@ -878,7 +882,7 @@ def seqIo_frImgs(fName, header=[], aviName=[], Is=[], sDir=[], name='I', ndig=5,
       .f0         - [0] first frame to read
       .f1         - [10^6] last frame to read
     """
-    
+
     if aviName!=[]: #avi movie exists
         vc = cv2.VideoCapture(aviName)
         if vc.isOpened(): rval = True
@@ -944,10 +948,10 @@ def seqIo_frImgs(fName, header=[], aviName=[], Is=[], sDir=[], name='I', ndig=5,
 def seqIo_convert(fName, tName, imgFun, info=[], skip=1, f0=0, f1=np.inf):
     """
     Convert seq file by applying imgFun(I) to each frame I.
-    
+
     USAGE
      seqIo( fName, 'convert', tName, imgFun, varargin )
-    
+
     INPUTS
      fName      - seq file name
      tName      - converted seq file name
@@ -982,13 +986,13 @@ def seqIo_convert(fName, tName, imgFun, info=[], skip=1, f0=0, f1=np.inf):
 def seqIo_newHeader(fName, info):
     """
     Replace header of seq file with provided info.
-    
+
     Can be used if the file fName has a corrupt header. Automatically tries
     to compute number of frames in fName. No guarantees that it will work.
-    
+
     USAGE
      seqIo( fName, 'newHeader', info )
-    
+
     INPUTS
      fName      - seq file name
      info       - info for target seq file
@@ -1009,7 +1013,7 @@ class seqIo_dualReader():
     """
     seqIo_dualReader
     Create interface sr for reading dual seq files.
-    
+
     Wrapper for two seq files of the same image dims and roughly the same
     frame counts that are treated as a single reader object. getframe()
     returns the concatentation of the two frames. For videos of different
@@ -1017,14 +1021,14 @@ class seqIo_dualReader():
     frame count of the second video is adjusted accordingly. Same general
     usage as in reader, but the only supported operations are: close(),
     getframe(), getinfo(), and seek().
-    
+
     USAGE
      sr = seqIo( fNames, 'readerDual', [cache] )
-    
+
     INPUTS
      fNames - two seq file names
      cache  - [0] size of cache (see seqIo>reader)
-    
+
     OUTPUTS
      sr     - interface for reading seq file
     """
@@ -1122,10 +1126,10 @@ def seqIo_toVid(fName, ext='avi'):
     """
     seqIo_toVid
     Create seq file to another common used format as avi or mp4.
-    
+
     USAGE
      seqIo( fName, ext )
-    
+
     INPUTS
      fName      - seq file name
      ext        - video extension to convert to
