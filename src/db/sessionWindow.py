@@ -111,8 +111,11 @@ class SessionDockWidget(QDockWidget):
         if self.ui.useInvestigatorCheckBox.isChecked() and investigator:
             print(f'Querying db for id of investigator "{investigator}"')
             with self.bento.db_sessionMaker() as db_sess:
-                result = db_sess.query(Investigator).filter(Investigator.user_name == investigator).one_or_none()
-                if result:
+                results = db_sess.query(Investigator).filter(Investigator.user_name == investigator).all()
+                if len(results) > 0:
+                    result = results[0]
+                    if len(results) > 1:
+                        print("Found more than one investigator with the same user_name!  Using the first one.")
                     print(f"Got result {result}, setting id to {result.id}")
                     investigator_id = result.id
                 else:
