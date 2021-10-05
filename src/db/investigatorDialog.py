@@ -1,7 +1,8 @@
 # investigatorDialog.py
 
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
-from PySide6.QtCore import Signal, Slot
+from db.dispositionItemsDialog import DispositionItemsDialog, REASSIGN_TO_RESULT, DISCARD_RESULT
+from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
 from db.schema_sqlalchemy import Investigator
@@ -15,6 +16,7 @@ class InvestigatorDialog(QDialog):
         self.bento = bento
         self.ui = Ui_InvestigatorDialog()
         self.ui.setupUi(self)
+        self.ui.deleteButton = self.ui.buttonBox.addButton("Delete...", QDialogButtonBox.ActionRole)
         self.quitting.connect(self.bento.quit)
 
         self.investigator_id = None
@@ -47,17 +49,57 @@ class InvestigatorDialog(QDialog):
             else:
                 self.ui.investigatorComboBox.setCurrentText(selection)
 
+    def dispositionOwnedItems(self, items, category_str, db_sess):
+        """
+        Delete or reassign items owned by this investigator
+
+        Which to do depends on what the user selects in the disposition box
+        """
+        if items:
+            dispositionItemsDialog = DispositionItemsDialog()
+            dispositionItemsDialog.exec_()
+            result = dispositionItemsDialog.result()
+            if result == Qt.Rejected:
+                okay_to_delete = False
+            elif result == DISCARD_RESULT:
+                db_sess.delete_all(items)
+                db_sess.commit()
+                okay_to_delete = True
+            elif result == REASSIGN_TO_RESULT:
+                #TODO: need to get the selected new owner somehow
+                pass
+            else:
+                raise Exception("shouldn't get here")
+        else:
+            okay_to_delete = True
+        return okay_to_delete
+
     @Slot(object)
     def update(self, button, preSelect=True):
         buttonRole = self.ui.buttonBox.buttonRole(button)
-        if (buttonRole == QDialogButtonBox.AcceptRole or
-            buttonRole == QDialogButtonBox.ApplyRole):
-            with self.bento.db_sessionMaker() as db_sess:
-                need_to_add = False
-                data_changed = False
-                investigator = None
-                if self.investigator_id:
-                    investigator = db_sess.query(Investigator).filter(Investigator.id == self.investigator_id).scalar()
+        need_to_add = False
+        data_changed = False
+        investigator = None
+        with self.bento.db_sessionMaker() as db_sess:
+            if self.investigator_id:
+                investigator = db_sess.query(Investigator).filter(Investigator.id == self.investigator_id).scalar()
+            if buttonRole == QDialogButtonBox.ActionRole:
+                """
+                Delete selected investigator after dispositioning any DB entries owned by him/her
+                """
+                if not investigator:
+                    print("Nothing selected, so nothing to delete")
+                else:
+                    okay_to_delete = True
+                    okay_to_delete &= self.dispositionOwnedItems(investigator.sessions, "sessions", db_sess)
+                    okay_to_delete &= self.dispositionOwnedItems(investigator.animals, "animals", db_sess)
+                    if okay_to_delete:
+                        db_sess.delete(investigator)
+                        db_sess.commit()
+                        self.investigator_id = None
+                        self.showSelected()
+            elif (buttonRole == QDialogButtonBox.AcceptRole or
+                buttonRole == QDialogButtonBox.ApplyRole):
                 if not investigator:
                     need_to_add = True
                     investigator = Investigator()
@@ -81,11 +123,11 @@ class InvestigatorDialog(QDialog):
                     data_changed = True
                 if data_changed:
                     db_sess.commit()
-            self.populateComboBox(preSelect)
-        elif buttonRole == QDialogButtonBox.DestructiveRole:
-            self.reject()
-        else:
-            print("returning without any action")
+                self.populateComboBox(preSelect)
+            elif buttonRole == QDialogButtonBox.DestructiveRole:
+                self.reject()
+            else:
+                print("returning without any action")
 
     @Slot()
     def accept(self):
