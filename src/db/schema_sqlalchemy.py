@@ -45,6 +45,7 @@ class Investigator(Base):
     institution = Column(String(64))
     e_mail = Column(String(128))
     sessions = relationship('Session')
+    animals = relationship('Animal')
 
     def __repr__(self):
         return "<Investigator(user_name='%s', last_name='%s', first_name='%s', institution='%s', e_mail='%s')>" % (
