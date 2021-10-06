@@ -31,8 +31,8 @@ class Animal(Base):
     investigator_id = Column(Integer, ForeignKey('investigator.id'))
 
     def __repr__(self):
-        return "<Animal(nickname='%s', id='%d', dob='%s', sex='%s', genotype='%s')>" % (
-            self.nickname, self.animal_services_id, self.dob, self.sex, self.genotype)
+        return "<Animal(id='%d', dnickname='%s', ob='%s', sex='%s', genotype='%s')>" % (
+            self.animal_services_id, self.nickname, self.dob, self.sex, self.genotype)
 
 class Investigator(Base):
     """ mapper for the investigator table """
@@ -45,6 +45,7 @@ class Investigator(Base):
     institution = Column(String(64))
     e_mail = Column(String(128))
     sessions = relationship('Session')
+    animals = relationship('Animal')
 
     def __repr__(self):
         return "<Investigator(user_name='%s', last_name='%s', first_name='%s', institution='%s', e_mail='%s')>" % (
