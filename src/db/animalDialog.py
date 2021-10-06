@@ -5,7 +5,8 @@ from db.animalDialog_ui import Ui_AnimalDialog
 from db.surgeryDialog import SurgeryDialog
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView
+from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView,
+    QMessageBox)
 
 from widgets.tableModel import TableModel
 import datetime
@@ -42,26 +43,28 @@ class AnimalDialog(QDialog):
         self.ui.investigatorComboBox.currentIndexChanged.connect(self.investigatorChanged)
         self.animal_id = None
         self.ui.addSurgeryPushButton.clicked.connect(self.addSurgeryAction)
+        applyButton = self.ui.buttonBox.button(QDialogButtonBox.Apply)
+        applyButton.clicked.connect(self.update)
 
     def populateAnimalTable(self, investigator_id, db_sess):
         results = db_sess.query(Animal).filter(Animal.investigator_id == investigator_id).all()
-        header = ['id', 'Nickname', 'Animal Services ID', 'Date of Birth', 'Sex', 'Genotype']
+        header = ['id', 'Animal Services ID', 'Nickname', 'Date of Birth', 'Sex', 'Genotype']
         data_list = [(
             elem.id,
-            elem.nickname,
             elem.animal_services_id,
+            elem.nickname,
             elem.dob.isoformat(),
             elem.sex.value,
             elem.genotype
             ) for elem in results]
-        data_list.insert(0, (None, "New Animal", None, "", "", ""))
+        data_list.insert(0, (None, None, "New Animal", "", "", ""))
         oldModel = self.ui.animalTableView.selectionModel()
         model = TableModel(self, data_list, header)
         self.ui.animalTableView.setModel(model)
         self.ui.animalTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.animalTableView.resizeColumnsToContents()
         self.ui.animalTableView.hideColumn(0)   # don't show the animal's ID field, but we need it for Load
-        self.ui.animalTableView.setSortingEnabled(False)
+        self.ui.animalTableView.setSortingEnabled(True)
         self.ui.animalTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ui.animalTableView.setAutoScroll(False)
         selectionModel = self.ui.animalTableView.selectionModel()
@@ -146,70 +149,75 @@ class AnimalDialog(QDialog):
         surgeryDialog.exec()
         self.populateSurgeryLog(self.animal.id)
 
-    @Slot(object)
-    def update(self, button):
-        buttonRole = self.ui.buttonBox.buttonRole(button)
-        if (buttonRole == QDialogButtonBox.AcceptRole or
-            buttonRole == QDialogButtonBox.ApplyRole):
-            if not self.investigator_id:
-                print("No valid investigator.  Doing nothing.")
-                return
-            with self.bento.db_sessionMaker() as db_sess:
-                need_commit = False
-                need_to_add = False
-                if self.animal_id:
-                    animals = db_sess.query(Animal).filter(Animal.id == self.animal_id).all()
-                    if not animals:
-                        print("Internal error: no animal in database matching selection.")
-                        return
-                    animal = animals[0]
-                else:
-                    animal = Animal()
-                    need_commit = True
-                    need_to_add = True
-                if animal.investigator_id != self.investigator_id:
-                    animal.investigator_id = self.investigator_id
-                    need_commit = True
-                if animal.nickname != self.ui.nicknameLineEdit.text():
-                    animal.nickname = self.ui.nicknameLineEdit.text()
-                    need_commit = True
-                if animal.animal_services_id != int(self.ui.asiLineEdit.text()):
-                    animal.animal_services_id = int(self.ui.asiLineEdit.text())
-                    need_commit = True
-                if animal.dob != self.ui.dobDateEdit.date().toPython():
-                    animal.dob = self.ui.dobDateEdit.date().toPython()
-                    need_commit = True
-                if not (
-                    animal.sex == SexEnum.M and self.ui.maleRadioButton.isChecked() or
-                    animal.sex == SexEnum.F and self.ui.femaleRadioButton.isChecked() or
-                    animal.sex == SexEnum.U and self.ui.unknownRadioButton.isChecked()
+    @Slot()
+    def update(self) -> bool:   # returns successful update
+        if not self.investigator_id:
+            QMessageBox.warning(self, "Warning", "No valid investigator.  Please select one.")
+            return False
+        with self.bento.db_sessionMaker() as db_sess:
+            need_commit = False
+            need_to_add = False
+            if self.animal_id:
+                animals = db_sess.query(Animal).filter(Animal.id == self.animal_id).all()
+                if not animals:
+                    QMessageBox.critical(self, "Internal Error", "No animal in database matching selection.")
+                    return False
+                animal = animals[0]
+            elif self.ui.asiLineEdit.text():
+                animal = Animal()
+                need_commit = True
+                need_to_add = True
+            else:   # Maybe nothing selected and just exiting, or maybe incomplete new animal
+                if ( not self.ui.nicknameLineEdit.text() and
+                    not self.ui.genotypeLineEdit.text() and
+                    not self.ui.surgeryTableView.model()
                     ):
-                    if self.ui.maleRadioButton.isChecked():
-                        animal.sex = SexEnum.M
-                    elif self.ui.femaleRadioButton.isChecked():
-                        animal.sex = SexEnum.F
-                    else:
-                        animal.sex = SexEnum.U
-                    need_commit = True
-                if animal.genotype != self.ui.genotypeLineEdit.text():
-                    animal.genotype = self.ui.genotypeLineEdit.text()
-                    need_commit = True
-                if need_to_add:
-                    db_sess.add(animal)
-                if need_commit:
-                    db_sess.commit()
-                    db_sess.flush()
-                self.populateAnimalTable(self.investigator_id, db_sess)
+                    return True
+                else:
+                    QMessageBox.warning(self, "Warning", "An Animal Services ID is required.  Please supply one.")
+                    return False
 
-        elif buttonRole == QDialogButtonBox.DestructiveRole:
-            self.reject()
-        else:
-            print("returning without any action")
+            if animal.investigator_id != self.investigator_id:
+                animal.investigator_id = self.investigator_id
+                need_commit = True
+            if animal.nickname != self.ui.nicknameLineEdit.text():
+                animal.nickname = self.ui.nicknameLineEdit.text()
+                need_commit = True
+            if animal.animal_services_id != int(self.ui.asiLineEdit.text()):
+                animal.animal_services_id = int(self.ui.asiLineEdit.text())
+                need_commit = True
+            if animal.dob != self.ui.dobDateEdit.date().toPython():
+                animal.dob = self.ui.dobDateEdit.date().toPython()
+                need_commit = True
+            if not (
+                animal.sex == SexEnum.M and self.ui.maleRadioButton.isChecked() or
+                animal.sex == SexEnum.F and self.ui.femaleRadioButton.isChecked() or
+                animal.sex == SexEnum.U and self.ui.unknownRadioButton.isChecked()
+                ):
+                if self.ui.maleRadioButton.isChecked():
+                    animal.sex = SexEnum.M
+                elif self.ui.femaleRadioButton.isChecked():
+                    animal.sex = SexEnum.F
+                else:
+                    animal.sex = SexEnum.U
+                need_commit = True
+            if animal.genotype != self.ui.genotypeLineEdit.text():
+                animal.genotype = self.ui.genotypeLineEdit.text()
+                need_commit = True
+            if need_to_add:
+                db_sess.add(animal)
+            if need_commit:
+                db_sess.commit()
+                db_sess.flush()
+            self.populateAnimalTable(self.investigator_id, db_sess)
+            self.animal_id = None
+            self.clearFields()
+            return True
 
     @Slot()
     def accept(self):
-        self.update(self.ui.buttonBox.button(QDialogButtonBox.Ok))
-        super().accept()
+        if self.update():
+            super().accept()
 
     @Slot()
     def reject(self):
