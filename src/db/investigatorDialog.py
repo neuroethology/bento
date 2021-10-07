@@ -1,7 +1,7 @@
 # investigatorDialog.py
 
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
-from db.dispositionItemsDialog import DispositionItemsDialog, REASSIGN_TO_RESULT, DISCARD_RESULT
+from db.dispositionItemsDialog import DispositionItemsDialog, CANCEL_OPERATION, DISCARD_RESULT
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
@@ -56,18 +56,30 @@ class InvestigatorDialog(QDialog):
         Which to do depends on what the user selects in the disposition box
         """
         if items:
-            dispositionItemsDialog = DispositionItemsDialog()
+            dispositionItemsDialog = DispositionItemsDialog(
+                db_sess,
+                "Investigator",
+                Investigator,
+                category_str,
+                self.investigator_id
+                )
             dispositionItemsDialog.exec_()
             result = dispositionItemsDialog.result()
-            if result == Qt.Rejected:
+            if result == CANCEL_OPERATION:
                 okay_to_delete = False
             elif result == DISCARD_RESULT:
                 db_sess.delete_all(items)
                 db_sess.commit()
                 okay_to_delete = True
-            elif result == REASSIGN_TO_RESULT:
-                #TODO: need to get the selected new owner somehow
-                pass
+            elif result >= 0:
+                new_owner = db_sess.query(Investigator).filter(Investigator.id == result).scalar()
+                if not new_owner:
+                    print(f"Internal Error: New owner with ID {result} not in database.")
+                    raise Exception(f"InternalError: New owner with ID {result} not in database.")
+                for item in items:
+                    item.investigator_id = result
+                db_sess.commit()
+                okay_to_delete = True
             else:
                 raise Exception("shouldn't get here")
         else:

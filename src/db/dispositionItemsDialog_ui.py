@@ -24,6 +24,7 @@ class Ui_DispositionItemsDialog(object):
         self.dispositionLabel.setObjectName(u"dispositionLabel")
         self.dispositionLabel.setText(u"TextLabel")
         self.dispositionLabel.setAlignment(Qt.AlignCenter)
+        self.dispositionLabel.setWordWrap(True)
 
         self.verticalLayout.addWidget(self.dispositionLabel)
 
@@ -35,7 +36,8 @@ class Ui_DispositionItemsDialog(object):
         self.buttonBox = QDialogButtonBox(DispositionItemsDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Discard)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel)
+        self.buttonBox.setCenterButtons(False)
 
         self.verticalLayout.addWidget(self.buttonBox)
 
