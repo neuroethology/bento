@@ -30,16 +30,7 @@ class AnimalDialog(QDialog):
             self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
             self.ui.investigatorComboBox.setEditable(False)
             self.ui.investigatorComboBox.setCurrentText(username) # may not exist
-            investigator_name = self.ui.investigatorComboBox.currentText()
-            investigator_candidates = query.filter(Investigator.user_name == investigator_name).all()
-            if len(investigator_candidates) > 0:
-                #TODO: warn if there is more than one investigator of the same name,
-                # or make it impossible to occur
-                investigator = investigator_candidates[0]
-                self.investigator_id = investigator.id
-                self.populateAnimalTable(investigator.id, db_sess)
-            else:
-                self.investigator_id = None
+        self.investigatorChanged()
         self.ui.investigatorComboBox.currentIndexChanged.connect(self.investigatorChanged)
         self.animal_id = None
         self.ui.addSurgeryPushButton.clicked.connect(self.addSurgeryAction)
@@ -64,7 +55,7 @@ class AnimalDialog(QDialog):
         self.ui.animalTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.animalTableView.resizeColumnsToContents()
         self.ui.animalTableView.hideColumn(0)   # don't show the animal's ID field, but we need it for Load
-        self.ui.animalTableView.setSortingEnabled(True)
+        self.ui.animalTableView.setSortingEnabled(False)
         self.ui.animalTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ui.animalTableView.setAutoScroll(False)
         selectionModel = self.ui.animalTableView.selectionModel()
@@ -75,9 +66,24 @@ class AnimalDialog(QDialog):
     @Slot()
     def investigatorChanged(self):
         username = self.ui.investigatorComboBox.currentText()
-        investigator= self.db_sess.query(Investigator).filter(Investigator.user_name == username).distinct().one()
-        self.investigator_id = investigator.id
-        self.populateAnimalTable(self.investigator_id)
+        with self.bento.db_sessionMaker() as db_sess:
+            investigators = db_sess.query(Investigator).filter(Investigator.user_name == username).distinct().all()
+            if investigators:
+                if len(investigators) > 1:
+                    QMessageBox.warning(
+                        self,
+                        "Duplicate Investigators",
+                        "Multiple investigators have the same selected investigator username.\n"
+                        "I'll use the first one I found, but you should clean that up!"
+                    )
+                self.investigator_id = investigators[0].id
+                self.populateAnimalTable(self.investigator_id, db_sess)
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Investigator",
+                    "The selected investigator doesn't exist in the database."
+                    )
         self.ui.animalTableView.selectRow(0)
 
     def clearFields(self):
