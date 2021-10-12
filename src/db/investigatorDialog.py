@@ -1,7 +1,7 @@
 # investigatorDialog.py
 
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
-from db.dispositionItemsDialog import DispositionItemsDialog, CANCEL_OPERATION, DISCARD_RESULT
+from db.dispositionItemsDialog import DispositionItemsDialog, CANCEL_OPERATION, DELETE_ITEMS, NOTHING_TO_DO
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
@@ -49,7 +49,7 @@ class InvestigatorDialog(QDialog):
             else:
                 self.ui.investigatorComboBox.setCurrentText(selection)
 
-    def dispositionOwnedItems(self, items, category_str, db_sess):
+    def dispositionOwnedItems(self, items: list, category_str: str, db_sess) -> int:
         """
         Delete or reassign items owned by this investigator
 
@@ -60,31 +60,31 @@ class InvestigatorDialog(QDialog):
                 db_sess,
                 "Investigator",
                 Investigator,
+                "user_name",
                 category_str,
                 self.investigator_id
                 )
             dispositionItemsDialog.exec_()
             result = dispositionItemsDialog.result()
             if result == CANCEL_OPERATION:
-                okay_to_delete = False
-            elif result == DISCARD_RESULT:
+                pass
+            elif result == DELETE_ITEMS:
                 db_sess.delete_all(items)
                 db_sess.commit()
-                okay_to_delete = True
             elif result >= 0:
                 new_owner = db_sess.query(Investigator).filter(Investigator.id == result).scalar()
                 if not new_owner:
                     print(f"Internal Error: New owner with ID {result} not in database.")
                     raise Exception(f"InternalError: New owner with ID {result} not in database.")
                 for item in items:
-                    item.investigator_id = result
+                    if hasattr(item, "investigator_id"):
+                        item.investigator_id = result
                 db_sess.commit()
-                okay_to_delete = True
             else:
                 raise Exception("shouldn't get here")
         else:
-            okay_to_delete = True
-        return okay_to_delete
+            result = NOTHING_TO_DO
+        return result
 
     @Slot(object)
     def update(self, button, preSelect=True):
@@ -102,14 +102,16 @@ class InvestigatorDialog(QDialog):
                 if not investigator:
                     print("Nothing selected, so nothing to delete")
                 else:
-                    okay_to_delete = True
-                    okay_to_delete &= self.dispositionOwnedItems(investigator.sessions, "sessions", db_sess)
-                    okay_to_delete &= self.dispositionOwnedItems(investigator.animals, "animals", db_sess)
-                    if okay_to_delete:
+                    result = self.dispositionOwnedItems(investigator.sessions, "sessions and associated trials "
+                        "and data file references", db_sess)
+                    if result == DELETE_ITEMS:
+                        result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess)
+                    if result != CANCEL_OPERATION:
                         db_sess.delete(investigator)
                         db_sess.commit()
                         self.investigator_id = None
                         self.showSelected()
+                    self.populateComboBox(False)
             elif (buttonRole == QDialogButtonBox.AcceptRole or
                 buttonRole == QDialogButtonBox.ApplyRole):
                 if not investigator:

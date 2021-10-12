@@ -6,7 +6,8 @@ from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
 CANCEL_OPERATION = -1
-DISCARD_RESULT = -2
+DELETE_ITEMS = -2
+NOTHING_TO_DO = -3
 
 class DispositionItemsDialog(QDialog):
     """
@@ -18,7 +19,7 @@ class DispositionItemsDialog(QDialog):
     Cancel deleting the owner
     """
 
-    def __init__(self, db_sess, ownerCategoryStr, ownerDbType, itemCategoryStr, current_id):
+    def __init__(self, db_sess, ownerCategoryStr, ownerDbType, displayField, itemCategoryStr, current_id):
         super().__init__()
         self.ui = Ui_DispositionItemsDialog()
         self.ui.setupUi(self)
@@ -29,19 +30,20 @@ class DispositionItemsDialog(QDialog):
             f"that need to be dispositioned.  You can delete them along with the {ownerCategoryStr}, "
             f"reassign them to another {ownerCategoryStr} (selected below), or cancel the whole operation.")
         self.ui.dispositionLabel.setText(label_text)
-        self.populateComboBox(db_sess, ownerDbType, current_id)
+        self.populateComboBox(db_sess, ownerDbType, displayField, current_id)
         self.ui.assignToComboBox.currentIndexChanged.connect(self.setNewOwner)
         self.new_owner_id = -1
         self.ui.reassignButton.clicked.connect(self.reassign)
-        self.ui.deleteButton.clicked.connect(self.discard)
+        self.ui.deleteButton.clicked.connect(self.deleteItems)
 
-    def populateComboBox(self, db_sess, dbType, current_id):
+    def populateComboBox(self, db_sess, dbType, displayField, current_id):
         try:
             possibilities = db_sess.query(dbType).distinct().all()
             for elem in possibilities:
                 if elem.id == current_id:
                     continue
-                self.ui.assignToComboBox.addItem(elem.user_name, userData=elem.id)
+                attr = getattr(elem, displayField)
+                self.ui.assignToComboBox.addItem(attr, userData=elem.id)
         except Exception as e:
             print(f"Exception in populateComboBox: {e}")
             pass # no database yet?
@@ -55,8 +57,8 @@ class DispositionItemsDialog(QDialog):
         self.done(self.new_owner_id)
 
     @Slot()
-    def discard(self):
-        self.done(DISCARD_RESULT)
+    def deleteItems(self):
+        self.done(DELETE_ITEMS)
 
     @Slot()
     def reject(self):

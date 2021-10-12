@@ -31,7 +31,7 @@ class Animal(Base):
     investigator_id = Column(Integer, ForeignKey('investigator.id'))
 
     def __repr__(self):
-        return "<Animal(id='%d', dnickname='%s', ob='%s', sex='%s', genotype='%s')>" % (
+        return "<Animal(asid='%d', dnickname='%s', ob='%s', sex='%s', genotype='%s')>" % (
             self.animal_services_id, self.nickname, self.dob, self.sex, self.genotype)
 
 class Investigator(Base):
