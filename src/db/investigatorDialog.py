@@ -49,27 +49,31 @@ class InvestigatorDialog(QDialog):
             else:
                 self.ui.investigatorComboBox.setCurrentText(selection)
 
-    def dispositionOwnedItems(self, items: list, category_str: str, db_sess) -> int:
+    def dispositionOwnedItems(self, items: list, category_str: str, db_sess, default_action=None) -> int:
         """
         Delete or reassign items owned by this investigator
 
         Which to do depends on what the user selects in the disposition box
         """
         if items:
-            dispositionItemsDialog = DispositionItemsDialog(
-                db_sess,
-                "Investigator",
-                Investigator,
-                "user_name",
-                category_str,
-                self.investigator_id
-                )
-            dispositionItemsDialog.exec_()
-            result = dispositionItemsDialog.result()
+            if default_action:
+                result = default_action
+            else:
+                dispositionItemsDialog = DispositionItemsDialog(
+                    db_sess,
+                    "Investigator",
+                    Investigator,
+                    "user_name",
+                    category_str,
+                    self.investigator_id
+                    )
+                dispositionItemsDialog.exec_()
+                result = dispositionItemsDialog.result()
             if result == CANCEL_OPERATION:
                 pass
             elif result == DELETE_ITEMS:
-                db_sess.delete_all(items)
+                for item in items:
+                    db_sess.delete(item)
                 db_sess.commit()
             elif result >= 0:
                 new_owner = db_sess.query(Investigator).filter(Investigator.id == result).scalar()
@@ -107,6 +111,7 @@ class InvestigatorDialog(QDialog):
                     if result == DELETE_ITEMS:
                         result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess)
                     if result != CANCEL_OPERATION:
+                        result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess, result)
                         db_sess.delete(investigator)
                         db_sess.commit()
                         self.investigator_id = None
