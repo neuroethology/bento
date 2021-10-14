@@ -2,7 +2,7 @@
 
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
 from db.dispositionItemsDialog import DispositionItemsDialog, CANCEL_OPERATION, DELETE_ITEMS, NOTHING_TO_DO
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import Qt, QMetaMethod, Signal, Slot
 from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
 from db.schema_sqlalchemy import Investigator
@@ -21,9 +21,16 @@ class InvestigatorDialog(QDialog):
 
         self.investigator_id = None
         self.populateComboBox(False)
-        self.ui.investigatorComboBox.currentIndexChanged.connect(self.showSelected)
 
     def populateComboBox(self, preSelect):
+        try:
+            # prevent unwanted side effects while we're populating the combo box
+            self.ui.investigatorComboBox.currentIndexChanged.disconnect(self.showSelected)
+        except RuntimeError as e:
+            # the above raises RuntimeError if the slot is not connected, which
+            # will be the case the first time through
+            print(f"Caught runtime error {e}")
+            pass
         if preSelect:
             selection = self.ui.investigatorComboBox.currentText()
             selection_username = None
@@ -43,6 +50,7 @@ class InvestigatorDialog(QDialog):
                 pass # no database yet?
 
         self.ui.investigatorComboBox.setEditable(False)
+        self.ui.investigatorComboBox.currentIndexChanged.connect(self.showSelected)
         if preSelect:
             if self.investigator_id and self.investigator_id > 0 and selection_username == selection:
                 self.ui.investigatorComboBox.setCurrentIndex(self.investigator_id)
@@ -106,12 +114,16 @@ class InvestigatorDialog(QDialog):
                 if not investigator:
                     print("Nothing selected, so nothing to delete")
                 else:
-                    result = self.dispositionOwnedItems(investigator.sessions, "sessions and associated trials "
+                    animals_result = NOTHING_TO_DO
+                    sessions_result = self.dispositionOwnedItems(investigator.sessions, "sessions and associated trials "
                         "and data file references", db_sess)
-                    if result == DELETE_ITEMS:
-                        result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess)
-                    if result != CANCEL_OPERATION:
-                        result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess, result)
+                    if sessions_result == DELETE_ITEMS or sessions_result == NOTHING_TO_DO:
+                        animals_result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess)
+                    elif sessions_result == CANCEL_OPERATION:
+                        return
+                    else:   # sessions were reassigned to new owner in sessions_result
+                        animals_result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess, sessions_result)
+                    if animals_result != CANCEL_OPERATION:
                         db_sess.delete(investigator)
                         db_sess.commit()
                         self.investigator_id = None
