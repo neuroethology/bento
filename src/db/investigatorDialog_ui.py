@@ -123,7 +123,7 @@ class Ui_InvestigatorDialog(object):
         self.buttonBox = QDialogButtonBox(InvestigatorDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Discard|QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
 
         self.verticalLayout.addWidget(self.buttonBox)
 

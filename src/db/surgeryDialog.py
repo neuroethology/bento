@@ -25,7 +25,7 @@ class SurgeryDialog(QDialog):
 
     @Slot()
     def accept(self):
-        with self.bento.db_sessionMaker().begin() as db_sess:
+        with self.bento.db_sessionMaker() as db_sess:
             surgery = Surgery()
             surgery.animal_id = self.animal_id
             surgery.investigator_id = self.investigator_id
@@ -52,6 +52,7 @@ class SurgeryDialog(QDialog):
             surgery.anesthesia = self.ui.anesthesiaLineEdit.text()
             surgery.follow_up_care = self.ui.followUpLineEdit.text()
             db_sess.add(surgery)
+            db_sess.commit()
         super().accept()
 
     @Slot()

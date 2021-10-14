@@ -32,7 +32,7 @@ class SetInvestigatorDialog(QDialog):
                         #TODO: put up alert box here to warn that there are duplicate investigators
                         pass
                 elif len(investigators) > 0:
-                    investigator = investigators[0].id
+                    investigator = investigators[0]
             print(f"setting investigator_id to {investigator.id}")
             self.investigator_id = investigator.id
             self.ui.investigatorComboBox.setCurrentText(investigator.user_name)
