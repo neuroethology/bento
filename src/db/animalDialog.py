@@ -151,9 +151,10 @@ class AnimalDialog(QDialog):
 
     @Slot()
     def addSurgeryAction(self):
-        surgeryDialog = SurgeryDialog(self.bento, self.investigator_id, self.animal.id)
+        surgeryDialog = SurgeryDialog(self.bento, self.investigator_id, self.animal_id)
         surgeryDialog.exec()
-        self.populateSurgeryLog(self.animal.id)
+        with self.bento.db_sessionMaker() as db_sess:
+            self.populateSurgeryLog(self.animal_id, db_sess)
 
     @Slot()
     def update(self) -> bool:   # returns successful update

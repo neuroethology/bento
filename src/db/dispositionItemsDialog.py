@@ -3,7 +3,7 @@
 from db.dispositionItemsDialog_ui import Ui_DispositionItemsDialog
 
 from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox
+from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 CANCEL_OPERATION = -1
 DELETE_ITEMS = -2
@@ -58,7 +58,14 @@ class DispositionItemsDialog(QDialog):
 
     @Slot()
     def deleteItems(self):
-        self.done(DELETE_ITEMS)
+        answer = QMessageBox.question(self, "Delete Confirmation", "You're about to delete items from the database!  Are you sure?")
+        if answer == QMessageBox.StandardButton.Yes:
+            self.done(DELETE_ITEMS)
+        elif answer == QMessageBox.StandardButton.No:
+            return
+        else:
+            raise Exception("Unexpected button response--shouldn't be possible.")
+
 
     @Slot()
     def reject(self):

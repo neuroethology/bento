@@ -30,6 +30,8 @@ class Animal(Base):
     nickname = Column(String(128))  # investigator-specific identifier
     investigator_id = Column(Integer, ForeignKey('investigator.id'))
     sessions = relationship("Session")
+    surgeries = relationship("Surgery",
+        cascade='all, delete, delete-orphan')
 
     def __repr__(self):
         return "<Animal(asid='%d', dnickname='%s', ob='%s', sex='%s', genotype='%s')>" % (
