@@ -2,7 +2,7 @@
 
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
 from db.dispositionItemsDialog import DispositionItemsDialog, CANCEL_OPERATION, DELETE_ITEMS, NOTHING_TO_DO
-from PySide6.QtCore import Qt, QMetaMethod, Signal, Slot
+from PySide6.QtCore import Qt, QMetaMethod, Signal, Slot, SIGNAL
 from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
 from db.schema_sqlalchemy import Investigator
@@ -20,17 +20,12 @@ class InvestigatorDialog(QDialog):
         self.quitting.connect(self.bento.quit)
 
         self.investigator_id = None
+        self.ui.investigatorComboBox.currentIndexChanged.connect(self.showSelected)
         self.populateComboBox(False)
 
     def populateComboBox(self, preSelect):
-        try:
-            # prevent unwanted side effects while we're populating the combo box
-            self.ui.investigatorComboBox.currentIndexChanged.disconnect(self.showSelected)
-        except RuntimeError as e:
-            # the above raises RuntimeError if the slot is not connected, which
-            # will be the case the first time through
-            print(f"Caught runtime error {e}")
-            pass
+        # prevent unwanted side effects while we're populating the combo box
+        self.ui.investigatorComboBox.blockSignals(True)
         if preSelect:
             selection = self.ui.investigatorComboBox.currentText()
             selection_username = None
@@ -50,7 +45,7 @@ class InvestigatorDialog(QDialog):
                 pass # no database yet?
 
         self.ui.investigatorComboBox.setEditable(False)
-        self.ui.investigatorComboBox.currentIndexChanged.connect(self.showSelected)
+        self.ui.investigatorComboBox.blockSignals(False)
         if preSelect:
             if self.investigator_id and self.investigator_id > 0 and selection_username == selection:
                 self.ui.investigatorComboBox.setCurrentIndex(self.investigator_id)
@@ -162,7 +157,7 @@ class InvestigatorDialog(QDialog):
 
     @Slot()
     def accept(self):
-        self.update(self.ui.buttonBox.button(QDialogButtonBox.Ok), False)
+        # implicitly calls self.update()
         super().accept()
 
     @Slot()
