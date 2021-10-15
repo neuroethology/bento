@@ -3,7 +3,7 @@
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
 from db.dispositionItemsDialog import DispositionItemsDialog, CANCEL_OPERATION, DELETE_ITEMS, NOTHING_TO_DO
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox
+from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 from db.schema_sqlalchemy import Investigator
 
@@ -20,34 +20,40 @@ class InvestigatorDialog(QDialog):
         self.quitting.connect(self.bento.quit)
 
         self.investigator_id = None
-        self.populateComboBox(False)
+        self.ui.investigatorComboBox.setEditable(False)
         self.ui.investigatorComboBox.currentIndexChanged.connect(self.showSelected)
+        self.populateComboBox()
 
-    def populateComboBox(self, preSelect):
+    def populateComboBox(self, preSelect: bool=False):
+        # prevent unwanted side effects while we're populating the combo box
+        self.ui.investigatorComboBox.blockSignals(True)
         if preSelect:
             selection = self.ui.investigatorComboBox.currentText()
             selection_username = None
         self.ui.investigatorComboBox.clear()
-        # For some unknown reason, addItem resets self.investigator_id to None!
-        # So we need to preserve and restore it
-        investigator_id = self.investigator_id
+        # # For some unknown reason, addItem resets self.investigator_id to None!
+        # # So we need to preserve and restore it
+        # investigator_id = self.investigator_id
         self.ui.investigatorComboBox.addItem("New Investigator")
-        self.investigator_id = investigator_id
+        # self.investigator_id = investigator_id
         with self.bento.db_sessionMaker() as db_sess:
             try:
                 investigators = db_sess.query(Investigator).distinct().all()
-                self.ui.investigatorComboBox.addItems([elem.user_name for elem in investigators])
-                if preSelect and self.investigator_id:
-                    selection_username = investigators[self.investigator_id-1].user_name
+                for elem in investigators:
+                    self.ui.investigatorComboBox.addItem(elem.user_name)
+                    if preSelect and self.investigator_id == elem.id:
+                        selection_username = elem.user_name
             except Exception as e:
                 pass # no database yet?
 
-        self.ui.investigatorComboBox.setEditable(False)
         if preSelect:
-            if self.investigator_id and self.investigator_id > 0 and selection_username == selection:
-                self.ui.investigatorComboBox.setCurrentIndex(self.investigator_id)
+            if selection_username:
+                self.ui.investigatorComboBox.setCurrentText(selection_username)
             else:
-                self.ui.investigatorComboBox.setCurrentText(selection)
+                self.ui.investigatorComboBox.setCurrentText("New Investigator")
+            self.showSelected()
+        # reenable signals so that showSelected will be invoked when the combo box selection changes
+        self.ui.investigatorComboBox.blockSignals(False)
 
     def dispositionOwnedItems(self, items: list, category_str: str, db_sess, default_action=None) -> int:
         """
@@ -106,22 +112,45 @@ class InvestigatorDialog(QDialog):
                 if not investigator:
                     print("Nothing selected, so nothing to delete")
                 else:
-                    result = self.dispositionOwnedItems(investigator.sessions, "sessions and associated trials "
+                    animals_result = NOTHING_TO_DO
+                    sessions_result = self.dispositionOwnedItems(investigator.sessions, "sessions and associated trials "
                         "and data file references", db_sess)
-                    if result == DELETE_ITEMS:
-                        result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess)
-                    if result != CANCEL_OPERATION:
-                        result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess, result)
+                    if sessions_result == DELETE_ITEMS or sessions_result == NOTHING_TO_DO:
+                        animals_result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess)
+                    elif sessions_result == CANCEL_OPERATION:
+                        return
+                    else:   # sessions were reassigned to new owner in sessions_result
+                        animals_result = self.dispositionOwnedItems(investigator.animals, "animals", db_sess, sessions_result)
+                    if animals_result != CANCEL_OPERATION:
                         db_sess.delete(investigator)
                         db_sess.commit()
                         self.investigator_id = None
                         self.showSelected()
-                    self.populateComboBox(False)
+                    self.populateComboBox()
             elif (buttonRole == QDialogButtonBox.AcceptRole or
                 buttonRole == QDialogButtonBox.ApplyRole):
                 if not investigator:
-                    need_to_add = True
-                    investigator = Investigator()
+                    # if all fields are blank, silently do nothing
+                    # (allow click of "Okay" to close dialog without
+                    # creating a new blank Investigator)
+                    if (not self.ui.usernameLineEdit.text() and
+                        not self.ui.lastNameLineEdit.text() and
+                        not self.ui.firstNameLineEdit.text() and
+                        not self.ui.institutionLineEdit.text() and
+                        not self.ui.eMailLineEdit.text()
+                        ):  # do nothing and close dialog (if Okay was clicked)
+                        return
+                    # Require user name, last name and first name fields
+                    elif not (
+                            self.ui.usernameLineEdit.text() and
+                            self.ui.lastNameLineEdit.text() and
+                            self.ui.firstNameLineEdit.text()
+                            ):
+                        QMessageBox.warning(self, "Requirements", "You need to provide at least a user name, last name and first name")
+                        return
+                    else:
+                        need_to_add = True
+                        investigator = Investigator()
                 if investigator.user_name != self.ui.usernameLineEdit.text():
                     investigator.user_name = self.ui.usernameLineEdit.text()
                     data_changed = True
@@ -150,7 +179,7 @@ class InvestigatorDialog(QDialog):
 
     @Slot()
     def accept(self):
-        self.update(self.ui.buttonBox.button(QDialogButtonBox.Ok), False)
+        # implicitly calls self.update()
         super().accept()
 
     @Slot()
