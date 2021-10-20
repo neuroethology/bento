@@ -32,7 +32,7 @@ class DispositionItemsDialog(QDialog):
         self.ui.dispositionLabel.setText(label_text)
         self.populateComboBox(db_sess, ownerDbType, displayField, current_id)
         self.ui.assignToComboBox.currentIndexChanged.connect(self.setNewOwner)
-        self.new_owner_id = -1
+        self.new_owner_id = self.ui.assignToComboBox.currentData()
         self.ui.reassignButton.clicked.connect(self.reassign)
         self.ui.deleteButton.clicked.connect(self.deleteItems)
 
