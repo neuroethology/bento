@@ -2,9 +2,9 @@
 """
 """
 
-from PySide6.QtCore import Qt, QPointF, QRectF, Slot
-from PySide6.QtGui import QBrush, QPen, QKeyEvent, QMouseEvent, QWheelEvent
-from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
+from qtpy.QtCore import Qt, QPointF, QRectF, Slot
+from qtpy.QtGui import QBrush, QPen, QKeyEvent, QMouseEvent, QWheelEvent
+from qtpy.QtWidgets import QGraphicsScene, QGraphicsView
 from timecode import Timecode
 
 class AnnotationsView(QGraphicsView):

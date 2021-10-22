@@ -2,8 +2,8 @@
 
 from db.investigatorDialog_ui import Ui_InvestigatorDialog
 from db.dispositionItemsDialog import DispositionItemsDialog, CANCEL_OPERATION, DELETE_ITEMS, NOTHING_TO_DO
-from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
+from qtpy.QtCore import Qt, Signal, Slot
+from qtpy.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 from db.schema_sqlalchemy import Investigator
 

@@ -3,10 +3,10 @@
 """
 
 from os import X_OK
-from PySide6.QtCore import Qt, QPointF, QRectF, Signal, Slot
-from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
+from qtpy.QtCore import Qt, QPointF, QRectF, Signal, Slot
+from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
     QGraphicsScene, QGraphicsView, QMessageBox)
-from PySide6.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
+from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent)
 import pymatreader as pmr
 from timecode import Timecode
