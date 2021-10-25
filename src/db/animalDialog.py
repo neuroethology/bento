@@ -3,9 +3,9 @@
 from db.schema_sqlalchemy import Animal, Investigator, SexEnum, Surgery
 from db.animalDialog_ui import Ui_AnimalDialog
 from db.surgeryDialog import SurgeryDialog
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView,
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtGui import QIntValidator
+from qtpy.QtWidgets import (QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView,
     QMessageBox)
 
 from widgets.tableModel import TableModel

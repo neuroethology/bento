@@ -3,8 +3,8 @@
 from db.schema_sqlalchemy import Camera
 from db.cameraDialog_ui import Ui_CameraDialog
 from db.dispositionItemsDialog import DispositionItemsDialog, CANCEL_OPERATION, DELETE_ITEMS, NOTHING_TO_DO
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 from db.schema_sqlalchemy import *
 

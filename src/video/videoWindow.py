@@ -2,9 +2,9 @@
 
 from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
-from PySide6.QtCore import Signal, Slot, QMargins, Qt
-from PySide6.QtGui import QBrush, QFontMetrics, QPixmap
-from PySide6.QtWidgets import QFrame, QGraphicsScene
+from qtpy.QtCore import Signal, Slot, QMargins, Qt
+from qtpy.QtGui import QBrush, QFontMetrics, QPixmap
+from qtpy.QtWidgets import QFrame, QGraphicsScene
 from timecode import Timecode
 
 class VideoScene(QGraphicsScene):

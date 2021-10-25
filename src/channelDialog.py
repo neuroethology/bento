@@ -3,8 +3,8 @@
 """
 
 from channelDialog_ui import Ui_ChannelDialog
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import QDialog, QDialogButtonBox
 
 class ChannelDialog(QDialog):
 

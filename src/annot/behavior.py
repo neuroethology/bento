@@ -3,8 +3,8 @@
 Overview comment here
 """
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt, Signal, Slot
-from PySide6.QtGui import QColor
+from qtpy.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt, Signal, Slot
+from qtpy.QtGui import QColor
 import os
 
 class Behavior(QObject):

@@ -1,8 +1,8 @@
 # sessionWindow.py
 
 from db.sessionWindow_ui import Ui_SessionDockWidget
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView
 from db.schema_sqlalchemy import Investigator, Animal, Session
 from widgets.tableModel import TableModel
 from db.editSessionDialog import EditSessionDialog

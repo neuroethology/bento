@@ -2,8 +2,8 @@
 
 from db.dispositionItemsDialog_ui import Ui_DispositionItemsDialog
 
-from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
+from qtpy.QtCore import Slot
+from qtpy.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 CANCEL_OPERATION = -1
 DELETE_ITEMS = -2
@@ -32,7 +32,7 @@ class DispositionItemsDialog(QDialog):
         self.ui.dispositionLabel.setText(label_text)
         self.populateComboBox(db_sess, ownerDbType, displayField, current_id)
         self.ui.assignToComboBox.currentIndexChanged.connect(self.setNewOwner)
-        self.new_owner_id = -1
+        self.new_owner_id = self.ui.assignToComboBox.currentData()
         self.ui.reassignButton.clicked.connect(self.reassign)
         self.ui.deleteButton.clicked.connect(self.deleteItems)
 
