@@ -2,8 +2,8 @@
 
 from db.dispositionItemsDialog_ui import Ui_DispositionItemsDialog
 
-from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
+from qtpy.QtCore import Slot
+from qtpy.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 CANCEL_OPERATION = -1
 DELETE_ITEMS = -2

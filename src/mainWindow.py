@@ -3,8 +3,8 @@
 from mainWindow_ui import Ui_MainWindow
 import timecode as tc
 
-from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QMainWindow, QMenuBar
+from qtpy.QtCore import Qt, Signal, Slot
+from qtpy.QtWidgets import QMainWindow, QMenuBar
 from db.sessionWindow import SessionDockWidget
 
 class MainWindow(QMainWindow):

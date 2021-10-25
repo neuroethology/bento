@@ -1,9 +1,9 @@
 # bento.py
 
 from timecode import Timecode
-from PySide6.QtCore import QMarginsF, QMetaType, QObject, QRectF, QThread, Qt, Signal, Slot
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QApplication, QFileDialog, QMenuBar, QMessageBox, QProgressDialog
+from qtpy.QtCore import QMarginsF, QObject, QRectF, QThread, Qt, Signal, Slot
+from qtpy.QtGui import QColor
+from qtpy.QtWidgets import QApplication, QFileDialog, QMenuBar, QMessageBox, QProgressDialog
 from annot.annot import Annotations, Bout
 from annot.behavior import Behavior, Behaviors
 from mainWindow import MainWindow
@@ -607,4 +607,4 @@ if __name__ == "__main__":
     bento.mainWindow.move(qr.topLeft())
     bento.mainWindow.show()
     # Run the main Qt loop
-    sys.exit(app.exec())
+    sys.exit(app.exec_())

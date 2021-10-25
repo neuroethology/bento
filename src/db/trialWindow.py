@@ -3,9 +3,9 @@
 from db.schema_sqlalchemy import VideoData, Session
 from db.trialWindow_ui import Ui_TrialDockWidget
 from db.editTrialDialog import EditTrialDialog
-from PySide6.QtCore import Signal, Slot, QItemSelection
-from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
+from qtpy.QtCore import Signal, Slot, QItemSelection
+from qtpy.QtGui import Qt
+from qtpy.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
 
 from db.schema_sqlalchemy import Trial, AnnotationsData
 from widgets.tableModel import TableModel

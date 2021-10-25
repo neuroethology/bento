@@ -1,6 +1,6 @@
 # behaviorsTableView.py
 
-from PySide6.QtWidgets import QTableView
+from qtpy.QtWidgets import QTableView
 
 class BehaviorsTableView(QTableView):
     def update(self, index):
