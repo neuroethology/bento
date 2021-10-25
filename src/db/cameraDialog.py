@@ -32,7 +32,7 @@ class CameraDialog(QDialog):
             selection = self.ui.cameraComboBox.currentText()
             selection_name = None
         self.ui.cameraComboBox.clear()
-        self.ui.cameraComboBox.addItem("new Camera")
+        self.ui.cameraComboBox.addItem("New Camera")
         with self.bento.db_sessionMaker() as db_sess:
             try:
                 cameras = db_sess.query(Camera).distinct().all()
