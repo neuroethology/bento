@@ -64,6 +64,7 @@ class Camera(Base):
     model = Column(String(128))
     lens = Column(String(128))
     position = Column(String(128))
+    videos = relationship('VideoData')
 
     def __repr__(self):
         return "<Camera(id='%d', name='%s', model='%s', kebs='%s', position='%s')>" % (
@@ -135,7 +136,6 @@ class VideoData(Base):
     sample_rate = Column(Float)
     start_time = Column(Float)   # needs to be convertible to timecode
     camera_id = Column(Integer, ForeignKey('camera.id'))
-    camera = relationship('Camera')
     trial = Column(Integer, ForeignKey('trial.id'))
     pose_data = relationship('PoseData')
     keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera', 'trial_id']
