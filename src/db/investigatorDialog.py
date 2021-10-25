@@ -31,11 +31,7 @@ class InvestigatorDialog(QDialog):
             selection = self.ui.investigatorComboBox.currentText()
             selection_username = None
         self.ui.investigatorComboBox.clear()
-        # # For some unknown reason, addItem resets self.investigator_id to None!
-        # # So we need to preserve and restore it
-        # investigator_id = self.investigator_id
         self.ui.investigatorComboBox.addItem("New Investigator")
-        # self.investigator_id = investigator_id
         with self.bento.db_sessionMaker() as db_sess:
             try:
                 investigators = db_sess.query(Investigator).distinct().all()
