@@ -1,10 +1,10 @@
 # behaviorsDialog.py
 
 from db.behaviorsDialog_ui import Ui_BehaviorsDialog
-from PySide6.QtCore import (QModelIndex, QPersistentModelIndex,
+from qtpy.QtCore import (QModelIndex, QPersistentModelIndex,
     QSortFilterProxyModel, Signal, Slot)
-from PySide6.QtGui import QColor, QIntValidator, Qt
-from PySide6.QtWidgets import (QColorDialog, QDialog, QHeaderView, QLineEdit,
+from qtpy.QtGui import QColor, QIntValidator, Qt
+from qtpy.QtWidgets import (QColorDialog, QDialog, QHeaderView, QLineEdit,
     QMessageBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget)
 from os.path import expanduser, sep
 from typing import List, Union

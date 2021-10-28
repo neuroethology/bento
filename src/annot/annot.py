@@ -2,9 +2,9 @@
 import timecode as tc
 from annot.behavior import Behavior
 from sortedcontainers import SortedKeyList
-from PySide6.QtCore import QObject, QRectF, Signal, Slot
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QGraphicsItem
+from qtpy.QtCore import QObject, QRectF, Signal, Slot
+from qtpy.QtGui import QColor
+from qtpy.QtWidgets import QGraphicsItem
 
 class Bout(object):
     """

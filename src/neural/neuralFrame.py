@@ -1,8 +1,8 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QFrame
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import QFrame
 import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene

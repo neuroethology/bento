@@ -2,8 +2,8 @@
 
 from db.schema_sqlalchemy import Investigator
 from db.surgeryDialog_ui import Ui_SurgeryDialog
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import QDialog, QDialogButtonBox
 
 from db.schema_sqlalchemy import Surgery, LateralityEnum
 from datetime import date
