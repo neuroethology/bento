@@ -3,6 +3,7 @@
 from db.schema_sqlalchemy import Animal, Investigator, SexEnum, Surgery
 from db.animalDialog_ui import Ui_AnimalDialog
 from db.surgeryDialog import SurgeryDialog
+from db.dbDialog import DBDialog
 from qtpy.QtCore import Signal, Slot
 from qtpy.QtGui import QIntValidator
 from qtpy.QtWidgets import (QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView,
@@ -20,6 +21,7 @@ class AnimalDialog(QDialog):
         self.bento = bento
         self.ui = Ui_AnimalDialog()
         self.ui.setupUi(self)
+        self.ui.deleteButton = self.ui.buttonBox.addButton("Delete...", QDialogButtonBox.ActionRole)
         self.quitting.connect(self.bento.quit)
         self.ui.asiLineEdit.setValidator(QIntValidator())
 
@@ -121,9 +123,11 @@ class AnimalDialog(QDialog):
                 self.ui.genotypeLineEdit.setText(animal.genotype)
                 self.populateSurgeryLog(animal_id, db_sess)
             self.animal_id = animal_id
+            self.ui.addSurgeryPushButton.setDisabled(False)
         else:
             self.animal_id = None
             self.clearFields()
+            self.ui.addSurgeryPushButton.setDisabled(True)
 
     def populateSurgeryLog(self, animal_id, db_sess):
         results = db_sess.query(Surgery).filter(Surgery.animal_id == animal_id).all()
