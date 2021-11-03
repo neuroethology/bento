@@ -20,11 +20,17 @@ class DBDialog(QDialog):
         self.quitting.connect(self.bento.quit)
 
         self.item_id = None
-        self.comboBox = getattr(self.ui, self.dialogConfig['comboBoxName'])
-        self.dbClass = getattr(sa, self.dialogConfig['dbClass'])
-        self.comboBox.setEditable(False)
-        self.comboBox.currentIndexChanged.connect(self.showSelected)
-        self.populateComboBox()
+        try:
+            self.dbClass = getattr(sa, self.dialogConfig['dbClass'])
+        except KeyError:
+            self.dbClass = None
+        try:
+            self.comboBox = getattr(self.ui, self.dialogConfig['comboBoxName'])
+            self.comboBox.setEditable(False)
+            self.comboBox.currentIndexChanged.connect(self.showSelected)
+            self.populateComboBox()
+        except KeyError:
+            self.comboBox = None
 
     def populateComboBox(self, preSelect: bool=False):
         # prevent unwanted side effects while we're populating the combo box
@@ -176,9 +182,13 @@ class DBDialog(QDialog):
     def reject(self):
         super().reject()
 
+    def clearFields(self):
+        for field in self.dialogConfig['fields']:
+            getattr(self.ui, field[1]).clear()
+
     @Slot()
     def showSelected(self):
-        if self.comboBox.currentIndex() == 0:
+        if not self.comboBox or self.comboBox.currentIndex() == 0:
             self.item_id = None
         else:
             with self.bento.db_sessionMaker() as db_sess:
@@ -190,5 +200,4 @@ class DBDialog(QDialog):
                     for field in self.dialogConfig['fields']:
                         getattr(self.ui, field[1]).setText(getattr(item, field[0]))
                     return
-        for field in self.dialogConfig['fields']:
-            getattr(self.ui, field[1]).clear()
+        self.clearFields()
