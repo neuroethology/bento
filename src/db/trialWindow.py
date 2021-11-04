@@ -22,7 +22,6 @@ class TrialDockWidget(QDockWidget):
         self.bento = bento
         self.ui = Ui_TrialDockWidget()
         self.ui.setupUi(self)
-        self.ui.loadTrialPushButton.clicked.connect(self.loadTrial)
         self.ui.addOrEditSessionPushButton.clicked.connect(self.addOrEditSession)
         self.ui.addOrEditTrialPushButton.clicked.connect(self.addOrEditTrial)
         self.ui.investigatorComboBox.currentTextChanged.connect(self.populateSessions)
@@ -201,6 +200,11 @@ class TrialDockWidget(QDockWidget):
         self.ui.annotationTableView.selectRow(0)
 
     @Slot()
+    def update(self):
+        self.loadTrial()
+        super().update()
+
+    @Slot()
     def loadTrial(self):
         trialSelectionModel = self.ui.trialTableView.selectionModel()
         if trialSelectionModel and trialSelectionModel.hasSelection():
@@ -224,7 +228,7 @@ class TrialDockWidget(QDockWidget):
             loadNeural = self.ui.loadNeuralCheckBox.isChecked()
             loadAudio = self.ui.loadAudioCheckBox.isChecked()
             if self.bento.loadTrial(videos, annotation, loadPose, loadNeural, loadAudio):
-                self.bento.selectTrialWindow.close()
+                self.bento.trialWindow.close()
         else:
             print("No trial selected!")
 
