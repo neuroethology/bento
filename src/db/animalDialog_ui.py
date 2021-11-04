@@ -50,6 +50,7 @@ class Ui_AnimalDialog(object):
 
         self.animalTableView = QTableView(AnimalDialog)
         self.animalTableView.setObjectName(u"animalTableView")
+        self.animalTableView.setSelectionMode(QAbstractItemView.SingleSelection)
         self.animalTableView.horizontalHeader().setStretchLastSection(True)
 
         self.animalHorizontalLayout.addWidget(self.animalTableView)
@@ -195,6 +196,7 @@ class Ui_AnimalDialog(object):
         self.retranslateUi(AnimalDialog)
         self.buttonBox.accepted.connect(AnimalDialog.accept)
         self.buttonBox.rejected.connect(AnimalDialog.reject)
+        self.buttonBox.clicked.connect(AnimalDialog.update)
 
         QMetaObject.connectSlotsByName(AnimalDialog)
     # setupUi

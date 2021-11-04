@@ -49,6 +49,9 @@
      </item>
      <item>
       <widget class="QTableView" name="animalTableView">
+       <property name="selectionMode">
+        <enum>QAbstractItemView::SingleSelection</enum>
+       </property>
        <attribute name="horizontalHeaderStretchLastSection">
         <bool>true</bool>
        </attribute>
@@ -264,6 +267,22 @@
     <hint type="destinationlabel">
      <x>286</x>
      <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>clicked(QAbstractButton*)</signal>
+   <receiver>AnimalDialog</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>321</x>
+     <y>585</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>321</x>
+     <y>302</y>
     </hint>
    </hints>
   </connection>

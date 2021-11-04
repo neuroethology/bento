@@ -154,7 +154,7 @@ class TrialDockWidget(QDockWidget):
             if len(indexes) > 0:
                 trial_id = indexes[0].siblingAtColumn(0).data()
                 with self.bento.db_sessionMaker() as db_session:
-                    trial = db_session.query(Trial).where(Trial.id == trial_id).one()
+                    trial = db_session.query(Trial).filter(Trial.id == trial_id).one()
                     data_list = [(
                         elem.id,
                         elem.camera.position,
