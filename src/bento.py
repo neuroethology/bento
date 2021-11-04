@@ -478,10 +478,10 @@ class Bento(QObject):
         self.timeChanged.connect(neuralWidget.updateTime)
         return neuralWidget
 
-    @Slot()
-    def selectTrial(self):
-        self.selectTrialWindow = TrialDockWidget(self)
-        self.selectTrialWindow.show()
+    # @Slot()
+    # def selectTrial(self):
+    #     self.selectTrialWindow = TrialDockWidget(self)
+    #     self.selectTrialWindow.show()
 
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):

@@ -1,0 +1,2 @@
+#!/bin/zsh
+pyside6-uic $1 | sed s/PySide6/qtpy/ >${1/.ui/_ui.py}

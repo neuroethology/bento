@@ -147,10 +147,10 @@ class Ui_MainWindow(object):
 
         self.mainButtonLayout.addItem(self.channelHorizontalSpacer)
 
-        self.sessionPushButton = QPushButton(self.centralwidget)
-        self.sessionPushButton.setObjectName(u"sessionPushButton")
+        self.trialPushButton = QPushButton(self.centralwidget)
+        self.trialPushButton.setObjectName(u"trialPushButton")
 
-        self.mainButtonLayout.addWidget(self.sessionPushButton)
+        self.mainButtonLayout.addWidget(self.trialPushButton)
 
         self.quitButton = QPushButton(self.centralwidget)
         self.quitButton.setObjectName(u"quitButton")
@@ -191,7 +191,7 @@ class Ui_MainWindow(object):
         self.oneXFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"1x", None))
         self.doubleFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"* 2", None))
         self.newChannelPushButton.setText(QCoreApplication.translate("MainWindow", u"New Channel", None))
-        self.sessionPushButton.setText(QCoreApplication.translate("MainWindow", u"Select Session...", None))
+        self.trialPushButton.setText(QCoreApplication.translate("MainWindow", u"Select Trial...", None))
         self.quitButton.setText(QCoreApplication.translate("MainWindow", u"Quit", None))
     # retranslateUi
 
