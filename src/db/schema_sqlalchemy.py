@@ -5,7 +5,7 @@ The SQLAlchemy-style python class representation of the Bento SQL schema.
 
 from typing import KeysView
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String, Time, create_engine, func
+from sqlalchemy import Column, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Time, create_engine, func
 from sqlalchemy.orm import relationship, sessionmaker
 from datetime import date
 import enum
@@ -81,7 +81,7 @@ class NeuralData(Base):
     file_path = Column(String(512))
     sample_rate = Column(Float)
     format = Column(String(128))
-    start_time = Column(Float)   # needs to be convertible to timecode
+    start_time = Column(DateTime)   # needs to be convertible to timecode
     start_frame = Column(Integer)
     stop_frame = Column(Integer)
     trial = Column(Integer, ForeignKey('trial.id'))   # 'Trial.trial_id' is quoted because it's a forward reference
@@ -137,6 +137,7 @@ class VideoData(Base):
     start_time = Column(Float)   # needs to be convertible to timecode
     camera_id = Column(Integer, ForeignKey('camera.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
+    camera = Column(String(512))
     pose_data = relationship('PoseData')
     keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera', 'trial_id']
 
@@ -159,7 +160,7 @@ class VideoData(Base):
             'file_path': self.file_path,
             'sample_rate': self.sample_rate,
             'start_time': self.start_time,
-            'camera': self.camera.position,
+            'camera': self.camera,
             'trial_id': self.trial
             #TODO: camera?  pose_data?
         }
@@ -176,7 +177,7 @@ class VideoData(Base):
         self.sample_rate = d['sample_rate']
         self.start_time = d['start_time']
         self.camera_id = camera.id
-        self.camera = camera
+        self.camera = camera.position
         self.trial = d['trial_id']
         #TODO: pose_data?
 

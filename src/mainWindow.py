@@ -3,7 +3,7 @@
 from mainWindow_ui import Ui_MainWindow
 import timecode as tc
 
-from qtpy.QtCore import Qt, Signal, Slot
+from qtpy.QtCore import Qt, QEvent, Signal, Slot
 from qtpy.QtWidgets import QMainWindow, QMenuBar
 from db.sessionWindow import SessionDockWidget
 
@@ -15,6 +15,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.bento = bento
+        self.flag = "close"
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.ui.stepButton.clicked.connect(bento.incrementTime)
@@ -72,6 +73,13 @@ class MainWindow(QMainWindow):
         self.windowsMenu = self.menuBar.addMenu("Windows")
         self.toggleBehaviorVisibilityAction = self.windowsMenu.addAction("Show/Hide Behavior List")
         self.toggleBehaviorVisibilityAction.triggered.connect(bento.toggleBehaviorVisibility)
+
+    def closeEvent(self, event):
+        if event.type()==QEvent.Type.Close and self.flag=="close":
+            self.bento.quit(event)
+        else:
+            pass
+        event.accept()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:

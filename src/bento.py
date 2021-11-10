@@ -458,12 +458,21 @@ class Bento(QObject):
             print(f"processHotKey: pending_bout is now {self.pending_bout}")
 
     @Slot()
-    def quit(self):
-        print("bento.quit() called")
-        self.quitting.emit()
-        QApplication.instance().processEvents()
-        time.sleep(3./30.)  # wait for threads to shut down
-        QApplication.instance().quit()
+    def quit(self, event):
+        if event:
+            print(f"User has clicked close (x) button on the MainWindow")
+            self.quitting.emit()
+            QApplication.instance().processEvents()
+            time.sleep(3./30.)  # wait for threads to shut down
+            QApplication.instance().quit()
+        else:
+            #print("bento.quit() called")
+            print(f"User has clicked on quit button on the MainWindow")
+            self.mainWindow.flag = "quit"
+            self.quitting.emit()
+            QApplication.instance().processEvents()
+            time.sleep(3./30.)  # wait for threads to shut down
+            QApplication.instance().quit()
 
     def newVideoWidget(self, video_path):
         video = VideoFrame(self)

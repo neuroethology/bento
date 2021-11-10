@@ -68,7 +68,7 @@ class TrialDockWidget(QDockWidget):
                     trial = db_session.query(Trial).where(Trial.id == trial_id).one()
                     data_list = [(
                         elem.id,
-                        elem.camera.position,
+                        elem.camera,
                         elem.file_path
                         ) for elem in trial.video_data]
             model = TableModel(self, data_list, header)
