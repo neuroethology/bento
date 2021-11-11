@@ -9,9 +9,10 @@ from qtpy.QtGui import QIntValidator
 from qtpy.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
 from widgets.tableModel import EditableTableModel
 from timecode import Timecode
-from os.path import expanduser, getmtime, sep
+from os.path import expanduser, getmtime, sep, basename
 from datetime import date, datetime
 from video.seqIo import seqIo_reader
+from video.mp4Io import mp4Io_reader
 import pymatreader as pmr
 import warnings
 # from caiman.utils.utils import load_dict_from_hdf5
@@ -96,8 +97,12 @@ class EditTrialDialog(QDialog):
         """
         print(f"Add video file {file_path}")
         # Get various data from video file
+        ext = basename(file_path).rsplit('.', 1)[-1]
         try:
-            reader = seqIo_reader(file_path, buildTable=False)
+            if ext=='mp4'or ext=='avi':
+                reader = mp4Io_reader(file_path)
+            else:
+                reader = seqIo_reader(file_path, buildTable=False)
         except Exception:
             print(f"Error trying to open video file {file_path}")
             raise
@@ -157,7 +162,7 @@ class EditTrialDialog(QDialog):
             self,
             "Select Video Files to add to Trial",
             baseDir,
-            "Seq files (*.seq);;Generic video files (*.avi)",
+            "Seq files (*.seq);;mp4 files (*.mp4);;Generic video files (*.avi)",
             "Seq files (*.seq)")
         if len(videoFiles) > 0:
             for file_path in videoFiles:
