@@ -2,10 +2,13 @@
 
 from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
+import video.mp4Io as mp4Io
 from qtpy.QtCore import Signal, Slot, QMargins, Qt
-from qtpy.QtGui import QBrush, QFontMetrics, QPixmap
+from qtpy.QtGui import QBrush, QFontMetrics, QPixmap, QImage
 from qtpy.QtWidgets import QFrame, QGraphicsScene
 from timecode import Timecode
+import os
+import time
 
 class VideoScene(QGraphicsScene):
     """
@@ -83,7 +86,11 @@ class VideoFrame(QFrame):
             print("too tall")
 
     def load_video(self, fn):
-        self.reader = seqIo.seqIo_reader(fn)
+        self.ext = os.path.basename(fn).rsplit('.',1)[-1]
+        if self.ext=='mp4' or self.ext=='avi':
+            self.reader = mp4Io.mp4Io_reader(fn)
+        else:
+            self.reader = seqIo.seqIo_reader(fn)
         frame_width = self.reader.header['width']
         frame_height = self.reader.header['height']
         self.aspect_ratio = float(frame_height) / float(frame_width)
@@ -131,8 +138,16 @@ class VideoFrame(QFrame):
         myTc = Timecode(self.reader.header['fps'], start_seconds=t.float)
         i = min(myTc.frames, self.reader.header['numFrames']-1)
         image, _ = self.reader.getFrame(i, decode=False)
-        self.pixmap.loadFromData(image.tobytes())
-        self.pixmapItem.setPixmap(self.pixmap)
+        if self.ext=='seq':
+            self.pixmap.loadFromData(image.tobytes())
+            self.pixmapItem.setPixmap(self.pixmap)
+        else:
+            h, w, ch = image.shape
+            bytes_per_line = ch * w
+            convert_to_Qt_format = QImage(image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            convert_to_Qt_format = QPixmap.fromImage(convert_to_Qt_format)
+            self.pixmapItem.setPixmap(convert_to_Qt_format)
+        
         if isinstance(self.scene, VideoScene):
             self.scene.setAnnots(self.active_annots)
         self.show()
