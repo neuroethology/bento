@@ -215,8 +215,6 @@ class BehaviorsDialog(QDialog):
     def toggleVisibility(self):
         if self.isVisible():
             self.geometry = self.saveGeometry()
-            print(f"geometry: {self.geometry}, type: {type(self.geometry)}")
         else:
-            pass
             self.restoreGeometry(self.geometry)
         self.setVisible(not self.isVisible())
