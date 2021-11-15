@@ -5,7 +5,7 @@ import timecode as tc
 
 from qtpy.QtCore import Qt, QEvent, Signal, Slot
 from qtpy.QtWidgets import QMainWindow, QMenuBar
-from db.sessionWindow import SessionDockWidget
+from db.trialWindow import TrialDockWidget
 
 class MainWindow(QMainWindow):
 
@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
         bento.quitting.connect(self.close)
         self.quitting.connect(bento.quit)
 
-        self.ui.sessionPushButton.clicked.connect(self.selectSession)
+        self.ui.trialPushButton.clicked.connect(self.selectTrial)
         self.ui.playButton.clicked.connect(bento.player.togglePlayer)
         self.ui.halveFrameRateButton.clicked.connect(bento.player.halveFrameRate)
         self.ui.doubleFrameRateButton.clicked.connect(bento.player.doubleFrameRate)
@@ -125,9 +125,9 @@ class MainWindow(QMainWindow):
         self.show()
 
     @Slot()
-    def selectSession(self):
-        self.bento.sessionWindow = SessionDockWidget(self.bento)
-        self.bento.sessionWindow.show()
+    def selectTrial(self):
+        self.bento.trialWindow = TrialDockWidget(self.bento)
+        self.bento.trialWindow.show()
 
     def addChannelToCombo(self, chanName):
         if isinstance(chanName, list):

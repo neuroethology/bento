@@ -248,7 +248,9 @@ class NeuralScene(QGraphicsScene):
         self.heatmapImage.fill(Qt.white)
         for chan in range(self.num_chans):
             self.loadChannel(data, chan)
+
         self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
+
         # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
         # to the time scale
         transform = QTransform()
@@ -277,16 +279,18 @@ class NeuralScene(QGraphicsScene):
         pen = QPen()
         pen.setWidth(0)
         trace = QPainterPath()
+        trace.reserve(self.stop_frame - self.start_frame + 1)
         y = float(chan) + self.normalize(data[chan][self.start_frame])
         trace.moveTo(self.time_start.float, y)
+        time_start_float = self.time_start.float
         for ix in range(self.start_frame + 1, self.stop_frame):
-            t = Timecode(str(self.sample_rate), frames=ix - self.start_frame) + self.time_start
+            t = (ix - self.start_frame)/self.sample_rate + time_start_float
             val = self.normalize(data[chan][ix])
             # Add a section to the trace path
             y = float(chan) + val
             self.min_y = min(self.min_y, y)
             self.max_y = max(self.max_y, y)
-            trace.lineTo(t.float, y)
+            trace.lineTo(t, y)
             # Draw onto the heatmap
             hsv = QColor()
             hsv.setHsvF(self.clip(val), 1., 0.5, 0.5)

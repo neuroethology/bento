@@ -197,9 +197,9 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="sessionPushButton">
+       <widget class="QPushButton" name="trialPushButton">
         <property name="text">
-         <string>Select Session...</string>
+         <string>Select Trial...</string>
         </property>
        </widget>
       </item>
