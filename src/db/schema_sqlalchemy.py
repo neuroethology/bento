@@ -160,7 +160,7 @@ class VideoData(Base):
             'file_path': self.file_path,
             'sample_rate': self.sample_rate,
             'start_time': self.start_time,
-            'camera': self.camera.position,
+            'camera_position': self.camera.position,
             'trial_id': self.trial
             #TODO: camera?  pose_data?
         }
@@ -168,9 +168,9 @@ class VideoData(Base):
     def fromDict(self, d, db_sess):
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        camera = db_sess.query(Camera).where(func.lower(Camera.position) == func.lower(d['camera'])).scalar()
+        camera = db_sess.query(Camera).where(func.lower(Camera.position) == func.lower(d['camera_position'])).scalar()
         if not camera:
-            raise RuntimeError(f"No camera with position {d['camera']}")
+            raise RuntimeError(f"No camera with position {d['camera_position']}")
         if 'id' in d.keys() and d['id']:
             self.id = d['id']
         self.file_path = d['file_path']
