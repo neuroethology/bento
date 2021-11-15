@@ -279,7 +279,8 @@ class Channel(QGraphicsItem):
             for second in items[ix+1:]:
                 if (first.name() == second.name() and
                     first.end() >= second.start()):
-                    self.update_end(first, second.end())
+                    if first.end() < second.end():
+                        self.update_end(first, second.end())
                     to_delete.append(second)
         for item in to_delete:
             self.remove(item)
