@@ -117,17 +117,17 @@ class EditTrialDialog(QDialog):
         if file_path.startswith(baseDir):
             file_path = file_path[len(baseDir):]
 
-        this_camera = None
-        for camera in available_cameras:
-            if file_path.lower().find(camera[0].lower()) >= 0:
-                this_camera = camera[0]
+        this_camera_position = None
+        for camera_position in available_cameras:
+            if file_path.lower().find(camera_position[0].lower()) >= 0:
+                this_camera_position = camera_position[0]
                 break
         item = {
             'id': None,
             'file_path': file_path,
             'sample_rate': sample_rate,
             'start_time': start_time,
-            'camera': this_camera,
+            'camera_position': this_camera_position,
             'trial_id': self.trial_id,
             #TODO: pose_data?
             'dirty': True
