@@ -89,8 +89,10 @@ class VideoFrame(QFrame):
         self.ext = os.path.basename(fn).rsplit('.',1)[-1]
         if self.ext=='mp4' or self.ext=='avi':
             self.reader = mp4Io.mp4Io_reader(fn)
-        else:
+        elif self.ext=='seq':
             self.reader = seqIo.seqIo_reader(fn)
+        else:
+            raise Exception(f"video format {self.ext} not supported.")
         frame_width = self.reader.header['width']
         frame_height = self.reader.header['height']
         self.aspect_ratio = float(frame_height) / float(frame_width)
@@ -141,12 +143,14 @@ class VideoFrame(QFrame):
         if self.ext=='seq':
             self.pixmap.loadFromData(image.tobytes())
             self.pixmapItem.setPixmap(self.pixmap)
-        else:
+        elif self.ext=='mp4' or self.ext=='avi':
             h, w, ch = image.shape
             bytes_per_line = ch * w
             convert_to_Qt_format = QImage(image.data, w, h, bytes_per_line, QImage.Format_RGB888)
             convert_to_Qt_format = QPixmap.fromImage(convert_to_Qt_format)
             self.pixmapItem.setPixmap(convert_to_Qt_format)
+        else:
+            raise Exception(f"video format {self.ext} not supported")
         
         if isinstance(self.scene, VideoScene):
             self.scene.setAnnots(self.active_annots)

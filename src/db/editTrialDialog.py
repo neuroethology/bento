@@ -101,8 +101,10 @@ class EditTrialDialog(QDialog):
         try:
             if ext=='mp4'or ext=='avi':
                 reader = mp4Io_reader(file_path)
-            else:
+            elif ext=='seq':
                 reader = seqIo_reader(file_path, buildTable=False)
+            else:
+                raise Exception(f"video format {ext} not supported.")
         except Exception:
             print(f"Error trying to open video file {file_path}")
             raise
