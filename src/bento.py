@@ -1,7 +1,7 @@
 # bento.py
 
 from timecode import Timecode
-from qtpy.QtCore import QMarginsF, QObject, QRectF, QThread, Qt, Signal, Slot
+from qtpy.QtCore import QMarginsF, QObject, QRectF, QTimer, Qt, Signal, Slot
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QApplication, QFileDialog, QMenuBar, QMessageBox, QProgressDialog
 from annot.annot import Annotations, Bout
@@ -28,50 +28,49 @@ from os.path import expanduser, sep
 from utils import fix_path, padded_rectf
 import sys, traceback, time
 
-class PlayerWorker(QThread):
-    incrementTime = Signal()
-    finished = Signal()
+class Player(QObject):
 
     def __init__(self, bento):
         super().__init__()
-        self.bento = bento
         self.playing = False
-        self.running = False
-        self.frame_sleep_time = self.default_sleep_time = 1./30.
-
-    def run(self):
-        # print("Starting player worker")
-        self.running = True
-        while self.running:
-            if self.playing:
-                self.incrementTime.emit()
-            QApplication.instance().processEvents()
-            time.sleep(self.frame_sleep_time)
-        # print("Player worker exiting")
-        self.finished.emit()
+        self.timer = QTimer()
+        self.frame_interval = self.default_frame_interval = 1000./30.
+        self.timer.setInterval(round(self.frame_interval))
+        self.timer.timeout.connect(bento.incrementTime)
 
     @Slot()
     def togglePlayer(self):
         # print(f"Setting playing to {not self.playing}")
         self.playing = not self.playing
+        if self.playing:
+            self.timer.start()
+        else:
+            self.timer.stop()
 
     @Slot()
     def doubleFrameRate(self):
-        if self.frame_sleep_time > self.default_sleep_time / 8.:
-            self.frame_sleep_time /= 2.
+        if self.frame_interval > self.default_frame_interval / 8.:
+            self.frame_interval /= 2.
+            print(f"setting frame interval to {round(self.frame_interval)}")
+            self.timer.setInterval(round(self.frame_interval))
 
     @Slot()
     def halveFrameRate(self):
-        if self.frame_sleep_time < self.default_sleep_time * 8.:
-            self.frame_sleep_time *= 2.
+        if self.frame_interval < self.default_frame_interval * 8.:
+            self.frame_interval *= 2.
+            print(f"setting frame interval to {round(self.frame_interval)}")
+            self.timer.setInterval(round(self.frame_interval))
 
     @Slot()
     def resetFrameRate(self):
-        self.frame_sleep_time = self.default_sleep_time
+        self.frame_interval = self.default_frame_interval
+        print(f"resetting frame interval to {round(self.frame_interval)}")
+        self.timer.setInterval(round(self.frame_interval))
 
     @Slot()
     def quit(self):
-        self.running = False
+        if self.timer.isActive():
+            self.timer.stop()
 
 class Bento(QObject):
     """
@@ -95,7 +94,7 @@ class Bento(QObject):
 
         self.session_id = None
         self.trial_id = None
-        self.player = PlayerWorker(self)
+        self.player = Player(self)
         self.annotationsScene = AnnotationsScene()
         self.newAnnotations = False
         self.video_widgets = []
@@ -105,9 +104,6 @@ class Bento(QObject):
         self.current_time.set_fractional(False)
         self.active_channels = []
         self.quitting.connect(self.player.quit)
-        self.player.incrementTime.connect(self.incrementTime)
-        self.player.finished.connect(self.player.deleteLater)
-        self.player.finished.connect(self.player.quit)
         self.annotationsSceneUpdated.connect(self.mainWindow.ui.annotationsView.updateScene)
         self.timeChanged.connect(self.mainWindow.updateTime)
         self.currentAnnotsChanged.connect(self.mainWindow.updateAnnotLabel)
@@ -129,7 +125,6 @@ class Bento(QObject):
         if not self.config.investigator_id():
             self.set_investigator()
         self.investigator_id = self.config.investigator_id()
-        self.player.start()
         self.mainWindow.show()
 
     def setInvestigatorId(self, investigator_id):
