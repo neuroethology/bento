@@ -139,7 +139,7 @@ class VideoData(Base):
     trial = Column(Integer, ForeignKey('trial.id'))
     camera = relationship('Camera')
     pose_data = relationship('PoseData')
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera', 'trial_id']
+    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera_position', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()

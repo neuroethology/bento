@@ -62,8 +62,7 @@ class AnimalDialog(DBDialog):
         self.ui.investigatorComboBox.currentIndexChanged.connect(self.investigatorChanged)
         self.animal_id = None
         self.ui.addSurgeryPushButton.clicked.connect(self.addSurgeryAction)
-        applyButton = self.ui.buttonBox.button(QDialogButtonBox.Apply)
-        applyButton.clicked.connect(self.update)
+        self.ui.buttonBox.clicked.connect(self.update)
 
     def populateAnimalTable(self, investigator_id, db_sess):
         results = db_sess.query(Animal).filter(Animal.investigator_id == investigator_id).all()
@@ -198,6 +197,7 @@ class AnimalDialog(DBDialog):
         need_commit = False
         need_to_add = False
         with self.bento.db_sessionMaker() as db_sess:
+            animals = None
             if self.animal_id:
                 animals = db_sess.query(Animal).filter(Animal.id == self.animal_id).all()
                 if not animals:
