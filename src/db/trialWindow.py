@@ -104,13 +104,10 @@ class TrialDockWidget(QDockWidget):
             self.bento.session_id = None
         investigator = self.ui.investigatorComboBox.currentText()
         investigator_id = self.bento.investigator_id
-        print(f"investigator_id initialized to {investigator_id}")
         if self.ui.useInvestigatorCheckBox.isChecked() and investigator:
-            print(f'Querying db for id of investigator "{investigator}"')
             with self.bento.db_sessionMaker() as db_sess:
                 result = db_sess.query(Investigator).filter(Investigator.user_name == investigator).one_or_none()
                 if result:
-                    print(f"Got result {result}, setting id to {result.id}")
                     investigator_id = result.id
                 else:
                     print("Query failed, so didn't update id")
