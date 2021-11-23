@@ -3,16 +3,13 @@
 from timecode import Timecode
 from qtpy.QtCore import QMarginsF, QObject, QRectF, QTimer, Qt, Signal, Slot
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QApplication, QFileDialog, QMenuBar, QMessageBox, QProgressDialog
+from qtpy.QtWidgets import QApplication, QFileDialog, QMessageBox, QProgressDialog
 from annot.annot import Annotations, Bout
-from annot.behavior import Behavior, Behaviors
+from annot.behavior import Behaviors
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
-from widgets.neuralWidget import NeuralScene, NeuralView
-from db.sessionWindow import SessionDockWidget
-from db.trialWindow import TrialDockWidget
-from db.schema_sqlalchemy import Animal, Camera, Investigator, Session, Trial, new_session, create_tables
+from db.schema_sqlalchemy import Investigator, Session, Trial, new_session, create_tables
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog

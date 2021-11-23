@@ -1,4 +1,0 @@
-Error: uic: Error in line 1, column 0 : Premature end of document.
-File 'trialWindow' is not valid
-
-while executing '/Users/drumph/Library/Python/3.7/lib/python/site-packages/qtpy/uic -g python trialWindow'
