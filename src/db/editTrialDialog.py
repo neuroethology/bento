@@ -158,8 +158,6 @@ class EditTrialDialog(QDialog):
             available_cameras = db_sess.execute(select(Camera.position)).all()
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
         videoFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Video Files to add to Trial",
@@ -285,8 +283,6 @@ class EditTrialDialog(QDialog):
                 baseDir = session.base_directory
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
         neuralFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Neural Files to add to Trial",
@@ -439,8 +435,6 @@ class EditTrialDialog(QDialog):
                 baseDir = session.base_directory
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
         annotationFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Annotation Files to add to Trial",
