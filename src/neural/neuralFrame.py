@@ -7,6 +7,7 @@ import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
 from utils import fix_path
+from os.path import isabs
 
 class NeuralFrame(QFrame):
 
@@ -38,7 +39,11 @@ class NeuralFrame(QFrame):
         self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
 
     def load(self, neuralData, base_dir):
-        neural_path = fix_path(base_dir + neuralData.file_path)
+        if isabs(neuralData.file_path):
+            neural_path = neuralData.file_path
+        else:
+            neural_path = base_dir + neuralData.file_path
+        neural_path = fix_path(neural_path)
         print(f"Load neural from {neural_path}")
         self.neuralScene.loadNeural(
             neural_path,

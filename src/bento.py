@@ -21,7 +21,7 @@ from db.behaviorsDialog import BehaviorsDialog
 from db.bento_xls import import_bento_xls_file
 from neural.neuralFrame import NeuralFrame
 from channelDialog import ChannelDialog
-from os.path import expanduser, sep
+from os.path import expanduser, isabs, sep
 from utils import fix_path, padded_rectf
 import sys, traceback, time
 
@@ -243,8 +243,10 @@ class Bento(QObject):
             if not investigator:
                 raise RuntimeError(f"Investigator not found for id {self.investigator_id}")
             baseDir = expanduser("~")
-            if not baseDir.endswith(sep):
-                baseDir += sep
+            # Qt converts paths to platform-specific separators under the hood,
+            # so it's correct to use forward-slash ("/") here across all platforms
+            if not baseDir.endswith("/"):
+                baseDir += "/"
             file_paths, _ = QFileDialog.getOpenFileNames(
                 self.mainWindow,
                 "Select MatLab bento session file(s) to import",
@@ -262,8 +264,10 @@ class Bento(QObject):
             if not investigator:
                 raise RuntimeError(f"Investigator not found for id {self.investigator_id}")
             baseDir = expanduser("~")
-            if not baseDir.endswith(sep):
-                baseDir += sep
+            # Qt converts paths to platform-specific separators under the hood,
+            # so it's correct to use forward-slash ("/") here across all platforms
+            if not baseDir.endswith("/"):
+                baseDir += "/"
             file_paths, _ = QFileDialog.getOpenFileNames(
                 self.mainWindow,
                 "Select animal record files to import",
@@ -500,14 +504,20 @@ class Bento(QObject):
         with self.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).one()
             base_directory = session.base_directory
-            base_dir = base_directory + sep
+            # Qt converts paths to platform-specific separators under the hood,
+            # so it's correct to use forward-slash ("/") here across all platforms
+            base_dir = base_directory + "/"
             runningTime = 0.
             sample_rate = 30.0
             sample_rate_set = False
             for ix, video_data in enumerate(videos):
                 progress.setLabelText(f"Loading video #{ix}...")
                 progress.setValue(progressCompleted)
-                widget = self.newVideoWidget(fix_path(base_dir + video_data.file_path))
+                if not isabs(video_data.file_path):
+                    path = base_dir + video_data.file_path
+                else:
+                    path = video_data.file_path
+                widget = self.newVideoWidget(fix_path(path))
                 self.video_widgets.append(widget)
                 qr = widget.frameGeometry()
                 # qr.moveCenter(self.screen_center + spacing)
@@ -520,7 +530,11 @@ class Bento(QObject):
                     sample_rate_set = True
                 progressCompleted += 1
             if annotation:
-                annot_path = fix_path(base_dir + annotation.file_path)
+                if not isabs(annotation.file_path):
+                    annot_path = base_dir + annotation.file_path
+                else:
+                    annot_path = annotation.file_path
+                annot_path = fix_path(annot_path)
                 sample_rate = annotation.sample_rate
             else:
                 annot_path = None

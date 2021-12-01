@@ -9,7 +9,7 @@ from qtpy.QtGui import QIntValidator
 from qtpy.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
 from widgets.tableModel import EditableTableModel
 from timecode import Timecode
-from os.path import expanduser, getmtime, sep, basename
+from os.path import expanduser, getmtime, basename
 from datetime import date, datetime
 from video.seqIo import seqIo_reader
 from video.mp4Io import mp4Io_reader
@@ -158,8 +158,10 @@ class EditTrialDialog(QDialog):
             available_cameras = db_sess.execute(select(Camera.position)).all()
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
+        # Qt converts paths to platform-specific separators under the hood,
+        # so it's correct to use forward-slash ("/") here across all platforms
+        if not baseDir.endswith("/"):
+            baseDir += "/"
         videoFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Video Files to add to Trial",
@@ -285,8 +287,10 @@ class EditTrialDialog(QDialog):
                 baseDir = session.base_directory
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
+        # Qt converts paths to platform-specific separators under the hood,
+        # so it's correct to use forward-slash ("/") here across all platforms
+        if not baseDir.endswith("/"):
+            baseDir += "/"
         neuralFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Neural Files to add to Trial",
@@ -439,8 +443,10 @@ class EditTrialDialog(QDialog):
                 baseDir = session.base_directory
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
+        # Qt converts paths to platform-specific separators under the hood,
+        # so it's correct to use forward-slash ("/") here across all platforms
+        if not baseDir.endswith("/"):
+            baseDir += "/"
         annotationFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Annotation Files to add to Trial",
