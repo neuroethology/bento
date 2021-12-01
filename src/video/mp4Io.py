@@ -34,8 +34,7 @@ class mp4Io_reader():
 		ts = np.zeros(n+1)
 		for i in np.arange(1,n+1):
 			self.seek(i)
-			self.file.read()
-			ts[i] = self.file.get(cv2.CAP_PROP_POS_MSEC)/1000.
+			ts[i] = self.file.get(cv2.CAP_PROP_POS_MSEC)
 
 		self.ts = ts[1:]
 		return self.ts
