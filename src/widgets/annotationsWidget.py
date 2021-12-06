@@ -3,7 +3,8 @@
 """
 
 from qtpy.QtCore import Qt, QPointF, QRectF, Slot
-from qtpy.QtGui import QBrush, QPen, QKeyEvent, QMouseEvent, QWheelEvent
+from qtpy.QtGui import (QBrush, QPen, QKeyEvent, QMouseEvent,
+    QTransform, QWheelEvent)
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsView
 from timecode import Timecode
 
@@ -129,7 +130,13 @@ class AnnotationsView(QGraphicsView):
         if not bout:
             return
         now = self.bento.get_time().float
-        painter.setBrush(QBrush(bout.color(), bs=Qt.FDiagPattern))
+        brush = QBrush(bout.color(), bs=Qt.DiagCrossPattern)
+        painterTransform = painter.transform()
+        brushTransform = QTransform.fromScale(
+            1./painterTransform.m11(),
+            1./painterTransform.m22())
+        brush.setTransform(brushTransform)
+        painter.setBrush(brush)
         painter.setPen(Qt.NoPen)
         painter.drawRect(QRectF(QPointF(bout.start().float, rect.top()), QPointF(now, rect.bottom())))
         painter.setBrush(Qt.NoBrush)
