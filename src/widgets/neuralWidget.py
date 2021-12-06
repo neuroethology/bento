@@ -67,6 +67,8 @@ class NeuralView(QGraphicsView):
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.verticalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.ticksScale = 1.
+        self.setInteractive(False)
+        self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
     def set_bento(self, bento):
         self.bento = bento
