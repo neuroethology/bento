@@ -97,6 +97,7 @@ class Bento(QObject):
         self.video_widgets = []
         self.neural_widgets = []
         self.annotations = Annotations(self.behaviors)
+        self.annotations.annotations_changed.connect(self.noteAnnotationsChanged)
         self.mainWindow = MainWindow(self)
         self.current_time.set_fractional(False)
         self.active_channels = []
@@ -581,21 +582,23 @@ class Bento(QObject):
     def toggleBehaviorVisibility(self):
         self.behaviorsDialog.toggleVisibility()
 
-    @Slot()
-    def noteAnnotationsChanged(self, start, end):
-        if isinstance(start, Timecode):
+    @Slot(float, float)
+    def noteAnnotationsChanged(self, start=None, end=None):
+        if start == None:
+            start = self.time_start.float
+        elif isinstance(start, Timecode):
             start = start.float
-        if isinstance(end, Timecode):
+        if end == None:
+            end = self.time_end.float
+        elif isinstance(end, Timecode):
             end = end.float
         self.newAnnotations = True
-        # self.annotationsSceneUpdated.emit(start, end)
         self.annotationsScene.sceneChanged(start, end)
 
    # Signals
     quitting = Signal()
     timeChanged = Signal(Timecode)
     currentAnnotsChanged = Signal(list)
-    annotationsSceneUpdated = Signal(float, float)
     active_channel_changed = Signal(str)
 
 if __name__ == "__main__":
