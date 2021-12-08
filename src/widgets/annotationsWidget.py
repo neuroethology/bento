@@ -35,14 +35,6 @@ class AnnotationsView(QGraphicsView):
     def set_bento(self, bento):
         self.bento = bento
 
-    @Slot(float)
-    def updateScene(self):
-        # self.invalidate_scene() and self.update() don't seem to trigger a repaint
-        # if scene contents have changed but the view has not.  self.repaint() does
-        # trigger a repaint even when the view has not changed, so we use it here.
-        self.repaint()
-        self.updatePosition(self.bento.current_time)
-
     @Slot(Timecode)
     def updatePosition(self, t):
         pt = QPointF(t.float, self.scene().height/2.)
@@ -231,6 +223,6 @@ class AnnotationsScene(QGraphicsScene):
     def setSampleRate(self, sample_rate):
         self.sample_rate = sample_rate
 
-    @Slot()
-    def sceneChanged(self):
-        print("scene changed -- update views")
+    @Slot(float, float)
+    def sceneChanged(self, start, end):
+        self.invalidate(start, 0., end - start, self.height)
