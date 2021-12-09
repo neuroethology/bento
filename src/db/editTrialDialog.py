@@ -79,6 +79,8 @@ class EditTrialDialog(QDialog):
                 data_list = [elem.toDict() for elem in results]
                 model = EditableTableModel(self, data_list, header)
                 self.setVideoModel(model)
+                if len(data_list) > 0:
+                    self.video_data = data_list[0] # needed by add_neural()
 
                 selectionModel = self.ui.videosFileTableView.selectionModel()
                 if updateTrialNum:
@@ -247,8 +249,10 @@ class EditTrialDialog(QDialog):
             start_time = self.video_data['start_time']
         else:
             sample_rate = 30.0
-            # get start time from file create time
-            start_time = datetime.fromtimestamp(getmtime(file_path))
+            # get start time (seconds from midnight) from file create time
+            create_time = datetime.fromtimestamp(getmtime(file_path))
+            create_day_midnight = datetime.fromordinal(create_time.toordinal())
+            start_time = create_time.timestamp() - create_day_midnight.timestamp()
         start_frame = 1
         stop_frame = data.shape[1]
 

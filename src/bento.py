@@ -102,7 +102,6 @@ class Bento(QObject):
         self.current_time.set_fractional(False)
         self.active_channels = []
         self.quitting.connect(self.player.quit)
-        self.annotationsSceneUpdated.connect(self.mainWindow.ui.annotationsView.updateScene)
         self.timeChanged.connect(self.mainWindow.updateTime)
         self.currentAnnotsChanged.connect(self.mainWindow.updateAnnotLabel)
         self.active_channel_changed.connect(self.mainWindow.selectChannelByName)
@@ -395,14 +394,11 @@ class Bento(QObject):
         """
         processHotKey - start or finish a bout referenced by a hot key
         """
-        print(f"processHotKey: key {event.key()} pressed")
         if event.key() == Qt.Key_Escape:
-            print("Escape key pressed -- cancelling annotation.")
             self.pending_bout = None
             return
         shift = bool(event.modifiers() & Qt.ShiftModifier)
         do_delete = (event.key() == Qt.Key_Backspace)
-        print(f"processHotKey: shift = {shift}, delete_pending = {do_delete}")
 
         # Which behavior does the key correspond to?
         if do_delete:
@@ -410,24 +406,20 @@ class Bento(QObject):
         else:
             key = chr(event.key())
             key = key.upper() if shift else key.lower()
-            print(f"processHotKey: key = {key}")
             behs = [beh for beh in self.behaviors.from_hot_key(key) if beh.is_active()]
             if not behs:
                 # that hot key is not defined; do nothing
                 print(f"processHotKey: didn't match an active behavior, so doing nothing")
                 return
             beh = behs[0]
-        print(f"processHotKey: beh.get_name() = {beh.get_name()}")
 
         # Is there a pending bout?  If so, complete the annotation activity
-        print(f"processHotKey: self.pending_bout = {self.pending_bout}")
         if self.pending_bout:
             chan = self.active_channels[0]
             if self.pending_bout.start() > self.current_time:
                 # swap start and end before completing
                 self.pending_bout.set_end(self.pending_bout.start())
                 self.pending_bout.set_start(self.current_time)
-                print("processHotKey: swapping start and end")
             else:
                 self.pending_bout.set_end(self.current_time)
 
@@ -441,18 +433,18 @@ class Bento(QObject):
 
             elif self.pending_bout.name() == beh.get_name():
                 # insert the pending bout into the active channel (typical case)
-                print(f"processHotKey: adding new bout to chan {chan}")
                 self.annotations.add_bout(self.pending_bout, chan)
                 self.annotations.coalesce_bouts(
                     self.pending_bout.start(),
                     self.pending_bout.end(),
                     chan)
+            start = self.pending_bout.start()
+            end = self.pending_bout.end()
             self.pending_bout = None
-            self.noteAnnotationsChanged()
+            self.noteAnnotationsChanged(start, end)
         else:
             # Start a new annotation activity by saving a pending_bout
             self.pending_bout = Bout(self.current_time, self.current_time, beh)
-            print(f"processHotKey: pending_bout is now {self.pending_bout}")
 
     @Slot()
     def quit(self, event):
@@ -483,11 +475,6 @@ class Bento(QObject):
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
         return neuralWidget
-
-    # @Slot()
-    # def selectTrial(self):
-    #     self.selectTrialWindow = TrialDockWidget(self)
-    #     self.selectTrialWindow.show()
 
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
@@ -552,7 +539,7 @@ class Bento(QObject):
             #         widget.close()
             #     self.video_widgets.clear()
             #     return False
-            self.annotationsSceneUpdated.emit()
+            self.noteAnnotationsChanged(self.time_start, self.time_end)
             if loadPose:
                 print("Load pose data if any")
                 progress.setLabelText("Loading pose data...")
@@ -595,23 +582,21 @@ class Bento(QObject):
     def toggleBehaviorVisibility(self):
         self.behaviorsDialog.toggleVisibility()
 
-    @Slot(float, float)
-    def noteAnnotationsChanged(self, start=None, end=None):
-        if start == None:
-            start = self.time_start.float
-        elif isinstance(start, Timecode):
+    @Slot()
+    def noteAnnotationsChanged(self, start, end):
+        if isinstance(start, Timecode):
             start = start.float
-        if end == None:
-            end = self.time_end.float
-        elif isinstance(end, Timecode):
+        if isinstance(end, Timecode):
             end = end.float
         self.newAnnotations = True
+        # self.annotationsSceneUpdated.emit(start, end)
         self.annotationsScene.sceneChanged(start, end)
 
    # Signals
     quitting = Signal()
     timeChanged = Signal(Timecode)
     currentAnnotsChanged = Signal(list)
+    annotationsSceneUpdated = Signal(float, float)
     active_channel_changed = Signal(str)
 
 if __name__ == "__main__":
