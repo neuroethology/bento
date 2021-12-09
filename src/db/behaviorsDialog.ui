@@ -15,14 +15,25 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QCheckBox" name="hideInactiveBehaviorsCheckBox">
-     <property name="text">
-      <string>Hide inactive behaviors</string>
-     </property>
-     <property name="checked">
-      <bool>false</bool>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="buttonsHorizontalLayout">
+     <item>
+      <widget class="QCheckBox" name="hideInactiveBehaviorsCheckBox">
+       <property name="text">
+        <string>Hide inactive behaviors</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="addBehaviorPushButton">
+       <property name="text">
+        <string>Add New Behavior</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="BehaviorsTableView" name="behaviorsTableView">
