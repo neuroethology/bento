@@ -17,7 +17,7 @@ class Ui_videoFrame(object):
     def setupUi(self, videoFrame):
         if not videoFrame.objectName():
             videoFrame.setObjectName(u"videoFrame")
-        videoFrame.resize(798, 542)
+        #videoFrame.resize(798, 542)
         self.verticalLayout = QVBoxLayout(videoFrame)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)

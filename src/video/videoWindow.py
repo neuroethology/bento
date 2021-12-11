@@ -70,7 +70,7 @@ class VideoFrame(QFrame):
         self.aspect_ratio = 1.
 
     def resizeEvent(self, event):
-        self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.IgnoreAspectRatio)
+        self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
     def mouseReleaseEvent(self, event):
         viewport = self.ui.videoView.viewport()
@@ -98,7 +98,7 @@ class VideoFrame(QFrame):
         self.aspect_ratio = float(frame_height) / float(frame_width)
         print(f"aspect_ratio set to {self.aspect_ratio}")
         self.updateFrame(self.bento.current_time)
-        self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.IgnoreAspectRatio)
+        self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
     def sample_rate(self):
         if not self.reader:
