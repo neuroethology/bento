@@ -98,7 +98,6 @@ class VideoFrame(QFrame):
         self.aspect_ratio = float(frame_height) / float(frame_width)
         print(f"aspect_ratio set to {self.aspect_ratio}")
         self.updateFrame(self.bento.current_time)
-        self.ui.videoView.resize(frame_width, frame_height)
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
     def sample_rate(self):
