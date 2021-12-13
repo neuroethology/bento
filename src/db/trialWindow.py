@@ -245,6 +245,10 @@ class TrialDockWidget(QDockWidget):
 
         self.add_or_edit_trial(self.current_trial_id)
 
+        selectionModel = self.ui.trialTableView.selectionModel()
+        selectionModel.selectionChanged.connect(self.populateVideos)
+        selectionModel.selectionChanged.connect(self.populateAnnotations)
+
     @Slot()
     def add_or_edit_trial(self, trial_id=None):
         """
@@ -253,5 +257,6 @@ class TrialDockWidget(QDockWidget):
         """
         dialog = EditTrialDialog(self.bento, self.bento.session_id, trial_id)
         dialog.trialsChanged.connect(self.populateTrials)
+        dialog.trialsChanged.connect(self.populateSessions)
         dialog.exec_()
 
