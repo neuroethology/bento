@@ -1,5 +1,6 @@
 # behaviorsDialog.py
 
+from annot.behavior import Behavior
 from db.behaviorsDialog_ui import Ui_BehaviorsDialog
 from qtpy.QtCore import (QModelIndex, QPersistentModelIndex,
     QSortFilterProxyModel, Signal, Slot)
@@ -152,6 +153,7 @@ class BehaviorsDialog(QDialog):
         self.proxy_model.setFilterColumn(activeColumn)
 
         self.ui.hideInactiveBehaviorsCheckBox.stateChanged.connect(self.updateRowVisibility)
+        self.ui.addBehaviorPushButton.clicked.connect(self.addNewRow)
         self.updateRowVisibility(self.ui.hideInactiveBehaviorsCheckBox.isChecked())
         self.setBehaviorsModel(self.proxy_model)
         self.proxy_model.sort(self.base_model.header().index("name"), Qt.AscendingOrder)
@@ -186,6 +188,16 @@ class BehaviorsDialog(QDialog):
         if event.key() in (Qt.Key_Delete, Qt.Key_Backspace):
             self.deleteRows()
             event.accept()
+
+    def addNewRow(self):
+        """
+        Add a row to the model initialized as "New Behavior"
+        """
+        model = self.ui.behaviorsTableView.model()
+        model.beginInsertRows(model.index(0,0), 0, self.bento.behaviors.len())
+        self.bento.behaviors.addIfMissing("New_Behavior")
+        model.endInsertRows()
+        self.ui.behaviorsTableView.selectRow(0)
 
     def deleteRows(self):
         """

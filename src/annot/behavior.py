@@ -141,6 +141,11 @@ class Behaviors(QAbstractTableModel):
                 self._by_hot_key[hot_key] = []
             assert(isinstance(self._by_hot_key[hot_key], list))
             self._by_hot_key[hot_key].append(beh)
+        self.behaviors_changed.emit()
+        self.dataChanged.emit(
+            self.index(0, 0),
+            self.index(self.rowCount(), self.columnCount()),
+            [Qt.DisplayRole, Qt.EditRole, Qt.CheckStateRole])
 
     def load(self, f):
         line = f.readline()
