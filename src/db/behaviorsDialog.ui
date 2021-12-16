@@ -36,7 +36,7 @@
     </layout>
    </item>
    <item>
-    <widget class="BehaviorsTableView" name="behaviorsTableView">
+    <widget class="QTableView" name="behaviorsTableView">
      <property name="alternatingRowColors">
       <bool>true</bool>
      </property>
@@ -69,13 +69,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>BehaviorsTableView</class>
-   <extends>QTableView</extends>
-   <header>db.behaviorsTableView</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>

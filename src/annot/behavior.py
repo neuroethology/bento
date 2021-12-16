@@ -133,6 +133,8 @@ class Behaviors(QAbstractTableModel):
         }
 
     def add(self, beh: Behavior):
+        self.beginInsertRows(self.index(0, 0), 0, 0)
+        oldRowCount = self.rowCount()
         self._items.append(beh)
         self._by_name[beh.get_name()] = beh
         hot_key = beh.get_hot_key()
@@ -141,11 +143,11 @@ class Behaviors(QAbstractTableModel):
                 self._by_hot_key[hot_key] = []
             assert(isinstance(self._by_hot_key[hot_key], list))
             self._by_hot_key[hot_key].append(beh)
-        self.behaviors_changed.emit()
-        self.dataChanged.emit(
-            self.index(0, 0),
-            self.index(self.rowCount(), self.columnCount()),
-            [Qt.DisplayRole, Qt.EditRole, Qt.CheckStateRole])
+        newRowCount = self.rowCount()
+        self.endInsertRows()
+        if newRowCount != oldRowCount:
+            self.behaviors_changed.emit()
+            self.layoutChanged.emit()
 
     def load(self, f):
         line = f.readline()
@@ -252,6 +254,7 @@ class Behaviors(QAbstractTableModel):
             del(self._by_name[name])
             self._by_name[value] = beh
         self.behaviors_changed.emit()
+        self.dataChanged.emit(index, index, [role])
         return True
 
     def flags(self, index):

@@ -12,8 +12,6 @@ from qtpy.QtCore import *  # type: ignore
 from qtpy.QtGui import *  # type: ignore
 from qtpy.QtWidgets import *  # type: ignore
 
-from db.behaviorsTableView import BehaviorsTableView
-
 
 class Ui_BehaviorsDialog(object):
     def setupUi(self, BehaviorsDialog):
@@ -38,7 +36,7 @@ class Ui_BehaviorsDialog(object):
 
         self.verticalLayout.addLayout(self.buttonsHorizontalLayout)
 
-        self.behaviorsTableView = BehaviorsTableView(BehaviorsDialog)
+        self.behaviorsTableView = QTableView(BehaviorsDialog)
         self.behaviorsTableView.setObjectName(u"behaviorsTableView")
         self.behaviorsTableView.setAlternatingRowColors(True)
         self.behaviorsTableView.setTextElideMode(Qt.ElideNone)

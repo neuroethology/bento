@@ -2,7 +2,7 @@
 
 from annot.behavior import Behavior
 from db.behaviorsDialog_ui import Ui_BehaviorsDialog
-from qtpy.QtCore import (QModelIndex, QPersistentModelIndex,
+from qtpy.QtCore import (QAbstractItemModel, QModelIndex, QPersistentModelIndex,
     QSortFilterProxyModel, Signal, Slot)
 from qtpy.QtGui import QColor, QIntValidator, Qt
 from qtpy.QtWidgets import (QColorDialog, QDialog, QHeaderView, QLineEdit,
@@ -27,16 +27,14 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         super().setSourceModel(model)
         if model:
             self.sourceModel().dataChanged.connect(self.noteDataChanged)
+            self.sourceModel().layoutChanged.connect(self.noteLayoutChanged)
 
     def setFilterColumn(self, col):
         if col != self.filterColumn:
             self.filterColumn = col
             self.invalidateFilter()
             self.sort(self.currentSortCol, self.currentSortOrder)
-            self.dataChanged.emit(
-                self.index(0, 0),
-                self.index(self.sourceModel().rowCount(None)-1, self.sourceModel().columnCount(None)-1)
-                )
+            self.layoutChanged.emit()
 
     def setFilterActive(self, active):
         active = bool(active)
@@ -44,10 +42,7 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
             self.filterActive = active
             self.invalidateFilter()
             self.sort(self.currentSortCol, self.currentSortOrder)
-            self.dataChanged.emit(
-                self.index(0, 0),
-                self.index(self.sourceModel().rowCount(None)-1, self.sourceModel().columnCount(None)-1)
-                )
+            self.layoutChanged.emit()
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         if not self.filterActive or self.filterColumn == None:
@@ -72,6 +67,12 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         self.invalidateFilter()
         self.sort(self.currentSortCol, self.currentSortOrder)
         self.dataChanged.emit(self.mapFromSource(indexStart), self.mapFromSource(indexEnd))
+
+    @Slot(list)
+    def noteLayoutChanged(self, parents=list(), hint=QAbstractItemModel.NoLayoutChangeHint):
+        self.invalidateFilter()
+        self.sort(self.currentSortCol, self.currentSortOrder)
+        self.layoutChanged.emit(parents=parents, hint=hint)
 
     def removeRowSet(self, rows):
         srcRows = {self.mapToSource(self.index(row, 0)).row() for row in rows}
@@ -174,7 +175,7 @@ class BehaviorsDialog(QDialog):
     def createBehaviorsTableModel(self):
         model = self.bento.behaviors
         header = model.header()
-        model.setImmutable(header.index('name'))
+        # model.setImmutable(header.index('name'))
         return model
 
     @Slot(int)
@@ -193,10 +194,8 @@ class BehaviorsDialog(QDialog):
         """
         Add a row to the model initialized as "New Behavior"
         """
-        model = self.ui.behaviorsTableView.model()
-        model.beginInsertRows(model.index(0,0), 0, self.bento.behaviors.len())
+        print(f"addNewRow: behaviors.len = {self.bento.behaviors.len()+1}")
         self.bento.behaviors.addIfMissing("New_Behavior")
-        model.endInsertRows()
         self.ui.behaviorsTableView.selectRow(0)
 
     def deleteRows(self):
