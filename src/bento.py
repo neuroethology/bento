@@ -559,7 +559,7 @@ class Bento(QObject):
                         self.neural_widgets.append(neuralWidget)
                         if self.annotationsScene:
                             neuralWidget.overlayAnnotations(self.annotationsScene)
-                        if runningTime==0 and self.newAnnotations==True and len(videos)==0:
+                        if runningTime==0 and self.newAnnotations and len(videos)==0:
                             running_time = trial.neural_data[0].sample_rate * (trial.neural_data[0].stop_frame-trial.neural_data[0].start_frame)
                             self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
                         neuralWidget.show()

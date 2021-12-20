@@ -217,12 +217,14 @@ class TrialDockWidget(QDockWidget):
             annotateSelectionModel = self.ui.annotationTableView.selectionModel()
             annotation = None
             if videoSelectionModel and videoSelectionModel.hasSelection():
-                for selection in self.ui.videoTableView.selectionModel().selectedRows():
-                    videos.append(db_session.query(VideoData).where(VideoData.id == selection.siblingAtColumn(0).data()).one())
+                with self.bento.db_sessionMaker() as db_session:
+                    for selection in self.ui.videoTableView.selectionModel().selectedRows():
+                        videos.append(db_session.query(VideoData).where(VideoData.id == selection.siblingAtColumn(0).data()).one())
             if annotateSelectionModel:
-                annotation = db_session.query(AnnotationsData).where(
-                    AnnotationsData.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
-                    ).scalar()
+                with self.bento.db_sessionMaker() as db_session:
+                    annotation = db_session.query(AnnotationsData).where(
+                        AnnotationsData.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
+                        ).scalar()
             loadPose = self.ui.loadPoseCheckBox.isChecked()
             loadNeural = self.ui.loadNeuralCheckBox.isChecked()
             loadAudio = self.ui.loadAudioCheckBox.isChecked()
