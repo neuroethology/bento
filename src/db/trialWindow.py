@@ -210,14 +210,18 @@ class TrialDockWidget(QDockWidget):
                 return
             trial_id = trialSelectionModel.selectedRows()[0].siblingAtColumn(0).data()
             print(f"Load trial id {trial_id}")
+            with self.bento.db_sessionMaker() as db_session:
+                self.bento.trial_id = db_session.query(Trial).where(Trial.id == trial_id).one().id
             videos = []
             videoSelectionModel = self.ui.videoTableView.selectionModel()
+            annotateSelectionModel = self.ui.annotationTableView.selectionModel()
             annotation = None
             if videoSelectionModel and videoSelectionModel.hasSelection():
                 with self.bento.db_sessionMaker() as db_session:
-                    self.bento.trial_id = db_session.query(Trial).where(Trial.id == trial_id).one().id
                     for selection in self.ui.videoTableView.selectionModel().selectedRows():
                         videos.append(db_session.query(VideoData).where(VideoData.id == selection.siblingAtColumn(0).data()).one())
+            if annotateSelectionModel:
+                with self.bento.db_sessionMaker() as db_session:
                     annotation = db_session.query(AnnotationsData).where(
                         AnnotationsData.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
                         ).scalar()
