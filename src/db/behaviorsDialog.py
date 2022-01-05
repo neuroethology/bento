@@ -19,15 +19,17 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         self.currentSortOrder = Qt.AscendingOrder
         self.setFilterRole(Qt.ItemIsUserCheckable)
         self.setDynamicSortFilter(False)
+        self.base_model = None
 
     def __iter__(self):
         return CheckboxFilterProxyModelIterator(self)
 
-    def setSourceModel(self, model):
-        super().setSourceModel(model)
-        if model:
-            self.sourceModel().dataChanged.connect(self.noteDataChanged)
-            self.sourceModel().layoutChanged.connect(self.noteLayoutChanged)
+    # def setSourceModel(self, model):
+    #     self.base_model = model
+    #     super().setSourceModel(model)
+    #     if model:
+    #         self.sourceModel().dataChanged.connect(self.noteDataChanged)
+    #         self.sourceModel().layoutChanged.connect(self.noteLayoutChanged)
 
     def setFilterColumn(self, col):
         if col != self.filterColumn:
@@ -68,11 +70,11 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         self.sort(self.currentSortCol, self.currentSortOrder)
         self.dataChanged.emit(self.mapFromSource(indexStart), self.mapFromSource(indexEnd))
 
-    @Slot(list)
-    def noteLayoutChanged(self, parents=list(), hint=QAbstractItemModel.NoLayoutChangeHint):
-        self.invalidateFilter()
+    @Slot()
+    def noteLayoutChanged(self):
+        self.invalidate()
         self.sort(self.currentSortCol, self.currentSortOrder)
-        self.layoutChanged.emit(parents=parents, hint=hint)
+        self.layoutChanged.emit()
 
     def removeRowSet(self, rows):
         srcRows = {self.mapToSource(self.index(row, 0)).row() for row in rows}
@@ -174,7 +176,7 @@ class BehaviorsDialog(QDialog):
 
     def createBehaviorsTableModel(self):
         model = self.bento.behaviors
-        header = model.header()
+        # header = model.header()
         # model.setImmutable(header.index('name'))
         return model
 

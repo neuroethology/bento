@@ -3,7 +3,7 @@
 Overview comment here
 """
 
-from qtpy.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt, Signal, Slot
+from qtpy.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, QObject, Qt, Signal, Slot
 from qtpy.QtGui import QColor
 import os
 
@@ -104,6 +104,7 @@ class Behaviors(QAbstractTableModel):
     """
 
     behaviors_changed = Signal()
+    layout_changed = Signal()
 
     def __init__(self):
         super().__init__()
@@ -133,8 +134,8 @@ class Behaviors(QAbstractTableModel):
         }
 
     def add(self, beh: Behavior):
-        self.beginInsertRows(self.index(0, 0), 0, 0)
         oldRowCount = self.rowCount()
+        self.beginInsertRows(QModelIndex(), oldRowCount, oldRowCount)
         self._items.append(beh)
         self._by_name[beh.get_name()] = beh
         hot_key = beh.get_hot_key()
