@@ -1,5 +1,6 @@
 # bento.py
-
+# import faulthandler
+# faulthandler.enable()
 from timecode import Timecode
 from qtpy.QtCore import QMarginsF, QObject, QRectF, QTimer, Qt, Signal, Slot
 from qtpy.QtGui import QColor
@@ -594,6 +595,11 @@ class Bento(QObject):
             end = end.float
         self.newAnnotations = True
         self.annotationsScene.sceneChanged(start, end)
+
+    def deleteAnnotationsByName(self, behaviorName):
+        beh = self.behaviors.get(behaviorName)
+        for chan in self.annotations.channel_names():
+            self.annotations.truncate_or_remove_bouts(beh, self.time_start, self.time_end, chan)
 
    # Signals
     quitting = Signal()

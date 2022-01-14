@@ -76,10 +76,6 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         self.sort(self.currentSortCol, self.currentSortOrder)
         self.layoutChanged.emit()
 
-    def removeRowSet(self, rows):
-        srcRows = {self.mapToSource(self.index(row, 0)).row() for row in rows}
-        self.sourceModel().removeRowSet(srcRows)
-
 class CheckboxFilterProxyModelIterator():
     def __init__(self, model):
         self.model = model
@@ -196,18 +192,40 @@ class BehaviorsDialog(QDialog):
         """
         Add a row to the model initialized as "New Behavior"
         """
-        print(f"addNewRow: behaviors.len = {self.bento.behaviors.len()+1}")
-        self.bento.behaviors.addIfMissing("New_Behavior")
-        self.ui.behaviorsTableView.selectRow(0)
+        # print(f"addNewRow: behaviors.len = {self.bento.behaviors.len()+1}")
+        nameColumn = self.base_model.header().index("name")
+        if not self.bento.behaviors.get("New Behavior"):
+            if self.proxy_model.insertRows(0, 1, QModelIndex()):
+                for itemRow in range(self.proxy_model.rowCount()):
+                    index = self.proxy_model.index(itemRow, nameColumn, QModelIndex())
+                    if self.proxy_model.data(index) == '':
+                        self.proxy_model.setData(index, "New_Behavior", role=Qt.EditRole)
+                        self.ui.behaviorsTableView.selectRow(itemRow)
+                        self.ui.behaviorsTableView.scrollTo(index)
+                        break
 
     def deleteRows(self):
         """
         Delete all the selected rows from the model
         """
-        model = self.ui.behaviorsTableView.model()
-        rows = {index.row() for index in self.ui.behaviorsTableView.selectedIndexes()}
-        model.removeRowSet(rows)
-        self.ui.behaviorsTableView.clearSelection()
+        msgBox = QMessageBox(
+            QMessageBox.Question,
+            "Delete Rows",
+            "This will delete the selected behaviors and any bouts using them in the current trial.  Okay to continue?",
+            buttons=QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Yes:
+            selectedIndexes = self.ui.behaviorsTableView.selectedIndexes()
+            self.ui.behaviorsTableView.clearSelection()
+            model = self.ui.behaviorsTableView.model()
+            # Remove bouts with the selected behavior(s) from the trial data
+            nameColumn = self.base_model.header().index("name")
+            for ix in selectedIndexes:
+                name = model.data(ix.siblingAtColumn(nameColumn))
+                self.bento.deleteAnnotationsByName(name)
+            # Delete the behaviors
+            for ix in selectedIndexes:
+                model.removeRow(ix.row())
 
     @Slot()
     def accept(self):
