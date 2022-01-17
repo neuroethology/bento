@@ -3,7 +3,7 @@
 Overview comment here
 """
 
-from qtpy.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt, Signal, Slot
+from qtpy.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, QObject, Qt, Signal, Slot
 from qtpy.QtGui import QColor
 import os
 
@@ -15,7 +15,7 @@ class Behavior(QObject):
     color       The color with which to display this behavior
     """
 
-    def __init__(self, name: str, hot_key: str = '', color: QColor = None, active = False, visible = True):
+    def __init__(self, name: str, hot_key: str = '', color: QColor = QColor('gray'), active = False, visible = True):
         super().__init__()
         self._name = name
         self._hot_key = '' if hot_key == '_' else hot_key
@@ -104,6 +104,7 @@ class Behaviors(QAbstractTableModel):
     """
 
     behaviors_changed = Signal()
+    layout_changed = Signal()
 
     def __init__(self):
         super().__init__()
@@ -111,6 +112,7 @@ class Behaviors(QAbstractTableModel):
         self._by_name = {}
         self._by_hot_key = {}
         self._header = ['hot_key', 'color', 'name', 'active', 'visible']
+        self._searchList = [self._by_hot_key, None, self._by_name, None, None]
         self._delete_behavior = Behavior('_delete', color = QColor('black'))
         self._immutableColumns = set()
         self._booleanColumns = set([self._header.index('active'), self._header.index('visible')])
@@ -132,8 +134,11 @@ class Behaviors(QAbstractTableModel):
             Qt.UserRole: "UserRole"
         }
 
-    def add(self, beh: Behavior):
-        self._items.append(beh)
+    def add(self, beh: Behavior, row=-1):
+        if row < 0:
+            row = self.rowCount()
+        self.beginInsertRows(QModelIndex(), row, row)
+        self._items.insert(row, beh)
         self._by_name[beh.get_name()] = beh
         hot_key = beh.get_hot_key()
         if hot_key:
@@ -141,6 +146,12 @@ class Behaviors(QAbstractTableModel):
                 self._by_hot_key[hot_key] = []
             assert(isinstance(self._by_hot_key[hot_key], list))
             self._by_hot_key[hot_key].append(beh)
+        self.endInsertRows()
+        self.dataChanged.emit(
+            self.index(row, 0, QModelIndex()),
+            self.index(row, self.columnCount()-1, QModelIndex()),
+            [Qt.DisplayRole, Qt.EditRole])
+        self.behaviors_changed.emit()
 
     def load(self, f):
         line = f.readline()
@@ -160,6 +171,8 @@ class Behaviors(QAbstractTableModel):
             f.write(f"{h} {beh.get_name()} {color.redF()} {color.greenF()} {color.blueF()}" + os.linesep)
 
     def get(self, name):
+        if name not in self._by_name.keys():
+            return None
         return self._by_name[name]
 
     def from_hot_key(self, key):
@@ -206,8 +219,6 @@ class Behaviors(QAbstractTableModel):
         return None
 
     def rowCount(self, parent=None):
-        # if parent:
-        #     return 0
         return len(self._items)
 
     def columnCount(self, parent=None):
@@ -244,10 +255,32 @@ class Behaviors(QAbstractTableModel):
                 assert(isinstance(self._by_hot_key[value], list))
                 self._by_hot_key[value].append(beh)
         elif key == 'name' and value != name:
-            del(self._by_name[name])
+            if name in self._by_name.keys():
+                del(self._by_name[name])
             self._by_name[value] = beh
         self.behaviors_changed.emit()
+        self.dataChanged.emit(index, index, [role])
         return True
+
+    def insertRows(self, row, count, parent):
+        if count < 1 or row < 0 or row > self.rowCount():
+            return False
+        self.beginInsertRows(QModelIndex(), row, row)
+        for r in range(count):
+            self._items.insert(row, Behavior('', active=True))
+        self.endInsertRows()
+        return True
+
+    def removeRows(self, row, count, parent=QModelIndex()):
+        if count <= 0 or row < 0 or row + count > self.rowCount(parent):
+            return False
+        self.beginRemoveRows(parent, row, row + count - 1)
+        for item in self._items[row:row+count-1]:
+            self._by_name.pop(item.name)
+            self._by_hot_key.pop(item.hot_key)
+        for i in range(count):
+            self._items.pop(row)
+        self.endRemoveRows()
 
     def flags(self, index):
         f = super().flags(index)

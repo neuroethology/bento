@@ -1,7 +1,8 @@
 # behaviorsDialog.py
 
+from annot.behavior import Behavior
 from db.behaviorsDialog_ui import Ui_BehaviorsDialog
-from qtpy.QtCore import (QModelIndex, QPersistentModelIndex,
+from qtpy.QtCore import (QAbstractItemModel, QModelIndex, QPersistentModelIndex,
     QSortFilterProxyModel, Signal, Slot)
 from qtpy.QtGui import QColor, QIntValidator, Qt
 from qtpy.QtWidgets import (QColorDialog, QDialog, QHeaderView, QLineEdit,
@@ -18,24 +19,24 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         self.currentSortOrder = Qt.AscendingOrder
         self.setFilterRole(Qt.ItemIsUserCheckable)
         self.setDynamicSortFilter(False)
+        self.base_model = None
 
     def __iter__(self):
         return CheckboxFilterProxyModelIterator(self)
 
-    def setSourceModel(self, model):
-        super().setSourceModel(model)
-        if model:
-            self.sourceModel().dataChanged.connect(self.noteDataChanged)
+    # def setSourceModel(self, model):
+    #     self.base_model = model
+    #     super().setSourceModel(model)
+    #     if model:
+    #         self.sourceModel().dataChanged.connect(self.noteDataChanged)
+    #         self.sourceModel().layoutChanged.connect(self.noteLayoutChanged)
 
     def setFilterColumn(self, col):
         if col != self.filterColumn:
             self.filterColumn = col
             self.invalidateFilter()
             self.sort(self.currentSortCol, self.currentSortOrder)
-            self.dataChanged.emit(
-                self.index(0, 0),
-                self.index(self.sourceModel().rowCount(None)-1, self.sourceModel().columnCount(None)-1)
-                )
+            self.layoutChanged.emit()
 
     def setFilterActive(self, active):
         active = bool(active)
@@ -43,10 +44,7 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
             self.filterActive = active
             self.invalidateFilter()
             self.sort(self.currentSortCol, self.currentSortOrder)
-            self.dataChanged.emit(
-                self.index(0, 0),
-                self.index(self.sourceModel().rowCount(None)-1, self.sourceModel().columnCount(None)-1)
-                )
+            self.layoutChanged.emit()
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         if not self.filterActive or self.filterColumn == None:
@@ -72,9 +70,11 @@ class CheckboxFilterProxyModel(QSortFilterProxyModel):
         self.sort(self.currentSortCol, self.currentSortOrder)
         self.dataChanged.emit(self.mapFromSource(indexStart), self.mapFromSource(indexEnd))
 
-    def removeRowSet(self, rows):
-        srcRows = {self.mapToSource(self.index(row, 0)).row() for row in rows}
-        self.sourceModel().removeRowSet(srcRows)
+    @Slot()
+    def noteLayoutChanged(self):
+        self.invalidate()
+        self.sort(self.currentSortCol, self.currentSortOrder)
+        self.layoutChanged.emit()
 
 class CheckboxFilterProxyModelIterator():
     def __init__(self, model):
@@ -152,6 +152,7 @@ class BehaviorsDialog(QDialog):
         self.proxy_model.setFilterColumn(activeColumn)
 
         self.ui.hideInactiveBehaviorsCheckBox.stateChanged.connect(self.updateRowVisibility)
+        self.ui.addBehaviorPushButton.clicked.connect(self.addNewRow)
         self.updateRowVisibility(self.ui.hideInactiveBehaviorsCheckBox.isChecked())
         self.setBehaviorsModel(self.proxy_model)
         self.proxy_model.sort(self.base_model.header().index("name"), Qt.AscendingOrder)
@@ -171,8 +172,8 @@ class BehaviorsDialog(QDialog):
 
     def createBehaviorsTableModel(self):
         model = self.bento.behaviors
-        header = model.header()
-        model.setImmutable(header.index('name'))
+        # header = model.header()
+        # model.setImmutable(header.index('name'))
         return model
 
     @Slot(int)
@@ -187,14 +188,44 @@ class BehaviorsDialog(QDialog):
             self.deleteRows()
             event.accept()
 
+    def addNewRow(self):
+        """
+        Add a row to the model initialized as "New Behavior"
+        """
+        # print(f"addNewRow: behaviors.len = {self.bento.behaviors.len()+1}")
+        nameColumn = self.base_model.header().index("name")
+        if not self.bento.behaviors.get("New Behavior"):
+            if self.proxy_model.insertRows(0, 1, QModelIndex()):
+                for itemRow in range(self.proxy_model.rowCount()):
+                    index = self.proxy_model.index(itemRow, nameColumn, QModelIndex())
+                    if self.proxy_model.data(index) == '':
+                        self.proxy_model.setData(index, "New_Behavior", role=Qt.EditRole)
+                        self.ui.behaviorsTableView.selectRow(itemRow)
+                        self.ui.behaviorsTableView.scrollTo(index)
+                        break
+
     def deleteRows(self):
         """
         Delete all the selected rows from the model
         """
-        model = self.ui.behaviorsTableView.model()
-        rows = {index.row() for index in self.ui.behaviorsTableView.selectedIndexes()}
-        model.removeRowSet(rows)
-        self.ui.behaviorsTableView.clearSelection()
+        msgBox = QMessageBox(
+            QMessageBox.Question,
+            "Delete Rows",
+            "This will delete the selected behaviors and any bouts using them in the current trial.  Okay to continue?",
+            buttons=QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Yes:
+            selectedIndexes = self.ui.behaviorsTableView.selectedIndexes()
+            self.ui.behaviorsTableView.clearSelection()
+            model = self.ui.behaviorsTableView.model()
+            # Remove bouts with the selected behavior(s) from the trial data
+            nameColumn = self.base_model.header().index("name")
+            for ix in selectedIndexes:
+                name = model.data(ix.siblingAtColumn(nameColumn))
+                self.bento.deleteAnnotationsByName(name)
+            # Delete the behaviors
+            for ix in selectedIndexes:
+                model.removeRow(ix.row())
 
     @Slot()
     def accept(self):
