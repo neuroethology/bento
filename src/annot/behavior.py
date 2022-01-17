@@ -267,7 +267,7 @@ class Behaviors(QAbstractTableModel):
             return False
         self.beginInsertRows(QModelIndex(), row, row)
         for r in range(count):
-            self._items.insert(row, Behavior(''))
+            self._items.insert(row, Behavior('', active=True))
         self.endInsertRows()
         return True
 
