@@ -19,7 +19,7 @@ class AnimalDialog(DBDialog):
 
     def __init__(self, bento):
         dialogConfig = {
-            'newItemName': "New Camera",
+            'newItemName': "New Animal",
             'dbClass': "Animal",
             # 'comboBoxName': "cameraComboBox",
             'selectionKey': "animal_id",
