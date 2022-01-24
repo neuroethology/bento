@@ -19,7 +19,7 @@ Bento constructs a database that keeps track of your data files. You can choose 
 ## Preparing the database
 Before you can start adding actual experiments, you'll need to provide a little background information for the database.
 
-### Adding experimenters
+### Adding investigators
 
 ### Adding animals
 
