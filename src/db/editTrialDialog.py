@@ -4,10 +4,11 @@ from db.schema_sqlalchemy import Camera, Trial, Session, VideoData, NeuralData, 
 from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from annot.annot import Annotations
-from qtpy.QtCore import Signal, Slot
+from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtGui import QIntValidator
 from qtpy.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
 from widgets.tableModel import EditableTableModel
+from widgets.deleteableTableView import DeleteableTableView
 from timecode import Timecode
 from os.path import expanduser, getmtime, basename
 from datetime import date, datetime
@@ -179,7 +180,12 @@ class EditTrialDialog(QDialog):
         if model:
             for ix, entry in enumerate(iter(model)):
                 tableIndex = model.createIndex(ix, 0)
-                if model.isDirty(tableIndex):
+                if self.ui.videosFileTableView.isRowHidden(ix):
+                    # delete the entry from the DB
+                    print(f"Delete videos row {ix} from DB")
+                    if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
+                        db_sess.delete(trial.video_data[ix])
+                elif model.isDirty(tableIndex):
                     print(f"item at row {ix} is dirty")
                     if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
                         trial.video_data[ix].fromDict(entry, db_sess)
@@ -311,7 +317,12 @@ class EditTrialDialog(QDialog):
             for ix, entry in enumerate(iter(model)):
                 print(f"updateNeural ix = {ix}, entry = {entry}")
                 tableIndex = model.createIndex(ix, 0)
-                if model.isDirty(tableIndex):
+                if self.ui.neuralsTableView.isRowHidden(ix):
+                    # delete the entry from the DB
+                    print(f"Delete neural data row {ix} from DB")
+                    if ix < len(trial.neural_data) and trial.neural_data[ix].id == entry['id']:
+                        db_sess.delete(trial.neural_data[ix])
+                elif model.isDirty(tableIndex):
                     print(f"item at row {ix} is dirty")
                     if ix < len(trial.neural_data) and trial.neural_data[ix].id == entry['id']:
                         print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
@@ -420,7 +431,12 @@ class EditTrialDialog(QDialog):
             for ix, entry in enumerate(iter(model)):
                 print(f"updateAnnotations ix = {ix}, entry = {entry}")
                 tableIndex = model.createIndex(ix, 0)
-                if model.isDirty(tableIndex):
+                if self.ui.annotationsTableView.isRowHidden(ix):
+                    # delete the entry from the DB
+                    print(f"Delete annotation row {ix} from DB")
+                    if ix < len(trial.annotations) and trial.annotations[ix].id == entry['id']:
+                        db_sess.delete(trial.annotations[ix])
+                elif model.isDirty(tableIndex):
                     print(f"item at row {ix} is dirty")
                     if ix < len(trial.annotations) and trial.annotations[ix].id == entry['id']:
                         print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
