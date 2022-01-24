@@ -115,7 +115,7 @@ class Bento(QObject):
                 self.config.password(),
                 self.config.host(),
                 self.config.port(),
-                self.config.usePrivateDB)
+                self.config.usePrivateDB())
         except Exception as e:
             print(f"Caught Exception {e}.  Probably config data invalid")
             QMessageBox.about(self.mainWindow, "Error", f"Config data invalid.  {e}")
