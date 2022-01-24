@@ -180,7 +180,7 @@ class EditTrialDialog(QDialog):
         if model:
             for ix, entry in enumerate(iter(model)):
                 tableIndex = model.createIndex(ix, 0)
-                if self.ui.annotationsTableView.isRowHidden(ix):
+                if self.ui.videosFileTableView.isRowHidden(ix):
                     # delete the entry from the DB
                     print(f"Delete videos row {ix} from DB")
                     if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
@@ -317,7 +317,7 @@ class EditTrialDialog(QDialog):
             for ix, entry in enumerate(iter(model)):
                 print(f"updateNeural ix = {ix}, entry = {entry}")
                 tableIndex = model.createIndex(ix, 0)
-                if self.ui.annotationsTableView.isRowHidden(ix):
+                if self.ui.neuralsTableView.isRowHidden(ix):
                     # delete the entry from the DB
                     print(f"Delete neural data row {ix} from DB")
                     if ix < len(trial.neural_data) and trial.neural_data[ix].id == entry['id']:
