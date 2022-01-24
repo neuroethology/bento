@@ -124,6 +124,7 @@ class TrialDockWidget(QDockWidget):
         selectionModel = self.ui.sessionTableView.selectionModel()
         if selectionModel.hasSelection():
             if len(selectionModel.selectedRows()) > 1:
+                QMessageBox.about(self, "Error", "More than one Session is selected!")
                 return
             self.bento.session_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
             self.addOrEditSession(self.bento.session_id)
@@ -270,6 +271,7 @@ class TrialDockWidget(QDockWidget):
         selectionModel = self.ui.trialTableView.selectionModel()
         if selectionModel.hasSelection():
             if len(selectionModel.selectedRows()) > 1:
+                QMessageBox.about(self, "Error", "More than one Trial is selected!")
                 return
             self.current_trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
             self.addOrEditTrial(self.current_trial_id)
