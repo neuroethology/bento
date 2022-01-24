@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>723</width>
+    <width>607</width>
     <height>850</height>
    </rect>
   </property>
@@ -15,122 +15,46 @@
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
-    <item row="9" column="0" colspan="3">
-     <widget class="QTableView" name="annotationTableView">
-      <property name="editTriggers">
-       <set>QAbstractItemView::NoEditTriggers</set>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="addNewSessionPushButton">
+      <property name="text">
+       <string>Add New Session...</string>
       </property>
-      <property name="showDropIndicator" stdset="0">
-       <bool>false</bool>
-      </property>
-      <property name="dragDropOverwriteMode">
-       <bool>false</bool>
-      </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::MultiSelection</enum>
-      </property>
-      <property name="selectionBehavior">
-       <enum>QAbstractItemView::SelectRows</enum>
-      </property>
-      <attribute name="horizontalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
      </widget>
     </item>
-    <item row="0" column="0" colspan="3">
-     <layout class="QHBoxLayout" name="investigatorHorizontalLayout">
+    <item row="8" column="0">
+     <widget class="QLabel" name="annotationsViewLabel">
+      <property name="text">
+       <string>Select Annotation to Display</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="0">
+     <layout class="QVBoxLayout" name="loadCheckBoxesVerticalLayout">
       <item>
-       <widget class="QCheckBox" name="useInvestigatorCheckBox">
+       <widget class="QCheckBox" name="loadPoseCheckBox">
         <property name="text">
-         <string>Filter by Investigator:</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
+         <string>Load Pose Data</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="investigatorComboBox"/>
+       <widget class="QCheckBox" name="loadNeuralCheckBox">
+        <property name="text">
+         <string>Load Neural Data</string>
+        </property>
+       </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+       <widget class="QCheckBox" name="loadAudioCheckBox">
+        <property name="text">
+         <string>Load Audio Data</string>
         </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
+       </widget>
       </item>
      </layout>
     </item>
-    <item row="4" column="2">
-     <widget class="QPushButton" name="addOrEditTrialPushButton">
-      <property name="text">
-       <string>Add or Edit Trial...</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="0">
-     <widget class="QLabel" name="videoViewLabel">
-      <property name="text">
-       <string>Select Videos to Display</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="0" colspan="3">
-     <widget class="QTableView" name="sessionTableView">
-      <attribute name="horizontalHeaderDefaultSectionSize">
-       <number>60</number>
-      </attribute>
-      <attribute name="horizontalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
-     </widget>
-    </item>
-    <item row="5" column="0" colspan="3">
-     <widget class="QTableView" name="trialTableView">
-      <property name="editTriggers">
-       <set>QAbstractItemView::NoEditTriggers</set>
-      </property>
-      <property name="showDropIndicator" stdset="0">
-       <bool>false</bool>
-      </property>
-      <property name="dragDropOverwriteMode">
-       <bool>false</bool>
-      </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::SingleSelection</enum>
-      </property>
-      <property name="selectionBehavior">
-       <enum>QAbstractItemView::SelectRows</enum>
-      </property>
-      <property name="textElideMode">
-       <enum>Qt::ElideNone</enum>
-      </property>
-      <attribute name="horizontalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
-     </widget>
-    </item>
-    <item row="2" column="0">
-     <widget class="QLabel" name="sessionViewLabel">
-      <property name="text">
-       <string>Select Session:</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="2">
-     <widget class="QPushButton" name="addOrEditSessionPushButton">
-      <property name="text">
-       <string>Add or Edit Session...</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0" colspan="3">
+    <item row="1" column="0" colspan="4">
      <layout class="QHBoxLayout" name="dateRangeHorizontalLayout">
       <item>
        <widget class="QCheckBox" name="useDateRangeCheckBox">
@@ -175,46 +99,7 @@
       </item>
      </layout>
     </item>
-    <item row="8" column="0">
-     <widget class="QLabel" name="annotationsViewLabel">
-      <property name="text">
-       <string>Select Annotation to Display</string>
-      </property>
-     </widget>
-    </item>
-    <item row="4" column="0">
-     <widget class="QLabel" name="trialViewLabel">
-      <property name="text">
-       <string>Select Trial to Load:</string>
-      </property>
-     </widget>
-    </item>
-    <item row="13" column="0">
-     <layout class="QVBoxLayout" name="loadCheckBoxesVerticalLayout">
-      <item>
-       <widget class="QCheckBox" name="loadPoseCheckBox">
-        <property name="text">
-         <string>Load Pose Data</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="loadNeuralCheckBox">
-        <property name="text">
-         <string>Load Neural Data</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="loadAudioCheckBox">
-        <property name="text">
-         <string>Load Audio Data</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item row="7" column="0" colspan="3">
+    <item row="7" column="0" colspan="4">
      <widget class="QTableView" name="videoTableView">
       <property name="editTriggers">
        <set>QAbstractItemView::NoEditTriggers</set>
@@ -239,10 +124,171 @@
       </attribute>
      </widget>
     </item>
-    <item row="14" column="2">
+    <item row="4" column="0">
+     <widget class="QLabel" name="trialViewLabel">
+      <property name="text">
+       <string>Select Trial to Load:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="2">
+     <widget class="QPushButton" name="editTrialPushButton">
+      <property name="text">
+       <string>Edit Selected Trial...</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0" colspan="4">
+     <layout class="QHBoxLayout" name="investigatorHorizontalLayout">
+      <item>
+       <widget class="QCheckBox" name="useInvestigatorCheckBox">
+        <property name="text">
+         <string>Filter by Investigator:</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="investigatorComboBox"/>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item row="4" column="3">
+     <widget class="QPushButton" name="addNewTrialPushButton">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>Add New Trial...</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0">
+     <widget class="QLabel" name="videoViewLabel">
+      <property name="text">
+       <string>Select Videos to Display</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="4">
+     <widget class="QTableView" name="trialTableView">
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="dragDropOverwriteMode">
+       <bool>false</bool>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::SingleSelection</enum>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <property name="textElideMode">
+       <enum>Qt::ElideNone</enum>
+      </property>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
+     </widget>
+    </item>
+    <item row="14" column="3">
      <widget class="QDialogButtonBox" name="buttonBox">
       <property name="standardButtons">
        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Open</set>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0">
+     <widget class="QLabel" name="sessionViewLabel">
+      <property name="text">
+       <string>Select Session:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="0" colspan="4">
+     <widget class="QTableView" name="annotationTableView">
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="dragDropOverwriteMode">
+       <bool>false</bool>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::MultiSelection</enum>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
+     </widget>
+    </item>
+    <item row="3" column="0" colspan="4">
+     <widget class="QTableView" name="sessionTableView">
+      <attribute name="horizontalHeaderDefaultSectionSize">
+       <number>60</number>
+      </attribute>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <spacer name="horizontalSpacer_3">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="2" column="1">
+     <spacer name="horizontalSpacer_4">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="editSessionPushButton">
+      <property name="text">
+       <string>Edit Selected Session...</string>
       </property>
      </widget>
     </item>

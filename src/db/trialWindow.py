@@ -22,8 +22,10 @@ class TrialDockWidget(QDockWidget):
         self.bento = bento
         self.ui = Ui_TrialDockWidget()
         self.ui.setupUi(self)
-        self.ui.addOrEditSessionPushButton.clicked.connect(self.addOrEditSession)
-        self.ui.addOrEditTrialPushButton.clicked.connect(self.addOrEditTrial)
+        self.ui.addNewSessionPushButton.clicked.connect(self.addNewSession)
+        self.ui.editSessionPushButton.clicked.connect(self.editSession)
+        self.ui.addNewTrialPushButton.clicked.connect(self.addNewTrial)
+        self.ui.editTrialPushButton.clicked.connect(self.editTrial)
         self.ui.investigatorComboBox.currentTextChanged.connect(self.populateSessions)
         self.ui.useInvestigatorCheckBox.clicked.connect(self.populateSessions)
         self.ui.useDateRangeCheckBox.clicked.connect(self.populateSessions)
@@ -95,13 +97,10 @@ class TrialDockWidget(QDockWidget):
             selectionModel.selectionChanged.connect(self.populateVideos)
             selectionModel.selectionChanged.connect(self.populateAnnotations)
 
-    @Slot()
-    def addOrEditSession(self):
+    def addOrEditSession(self, session_id):
         """
         Open the newSession Dialog
         """
-        if len(self.ui.sessionTableView.selectedIndexes()) == 0:
-            self.bento.session_id = None
         investigator = self.ui.investigatorComboBox.currentText()
         investigator_id = self.bento.investigator_id
         if self.ui.useInvestigatorCheckBox.isChecked() and investigator:
@@ -114,6 +113,23 @@ class TrialDockWidget(QDockWidget):
         dialog = EditSessionDialog(self.bento, investigator_id, self.bento.session_id)
         dialog.sessionChanged.connect(self.populateSessions)
         dialog.exec()
+
+    @Slot()
+    def addNewSession(self):
+        self.bento.session_id = None
+        self.addOrEditSession(self.bento.session_id)
+
+    @Slot()
+    def editSession(self):
+        selectionModel = self.ui.sessionTableView.selectionModel()
+        if selectionModel.hasSelection():
+            if len(selectionModel.selectedRows()) > 1:
+                QMessageBox.about(self, "Error", "More than one Session is selected!")
+                return
+            self.bento.session_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
+        else:
+            self.bento.session_id = None
+        self.addOrEditSession(self.bento.session_id)
 
     @Slot()
     def populateTrials(self):
@@ -233,11 +249,25 @@ class TrialDockWidget(QDockWidget):
         else:
             print("No trial selected!")
 
-    @Slot()
-    def addOrEditTrial(self):
+    def addOrEditTrial(self, trial_id=None):
         """
         Open the editTrial Dialog
         """
+        dialog = EditTrialDialog(self.bento, self.bento.session_id, trial_id)
+        dialog.trialsChanged.connect(self.populateTrials)
+        dialog.trialsChanged.connect(self.populateSessions)
+        dialog.exec_()
+
+        selectionModel = self.ui.trialTableView.selectionModel()
+        selectionModel.selectionChanged.connect(self.populateVideos)
+        selectionModel.selectionChanged.connect(self.populateAnnotations)
+
+    @Slot()
+    def addNewTrial(self):
+        self.addOrEditTrial()
+
+    @Slot()
+    def editTrial(self):
         selectionModel = self.ui.trialTableView.selectionModel()
         if selectionModel.hasSelection():
             if len(selectionModel.selectedRows()) > 1:
@@ -246,21 +276,5 @@ class TrialDockWidget(QDockWidget):
             self.current_trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
         else:
             self.current_trial_id = None
-
-        self.add_or_edit_trial(self.current_trial_id)
-
-        selectionModel = self.ui.trialTableView.selectionModel()
-        selectionModel.selectionChanged.connect(self.populateVideos)
-        selectionModel.selectionChanged.connect(self.populateAnnotations)
-
-    @Slot()
-    def add_or_edit_trial(self, trial_id=None):
-        """
-        Add a new experiment trial to the database
-        associated with the selected session
-        """
-        dialog = EditTrialDialog(self.bento, self.bento.session_id, trial_id)
-        dialog.trialsChanged.connect(self.populateTrials)
-        dialog.trialsChanged.connect(self.populateSessions)
-        dialog.exec_()
+        self.addOrEditTrial(self.current_trial_id)
 
