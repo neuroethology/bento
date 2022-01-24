@@ -124,12 +124,11 @@ class TrialDockWidget(QDockWidget):
         selectionModel = self.ui.sessionTableView.selectionModel()
         if selectionModel.hasSelection():
             if len(selectionModel.selectedRows()) > 1:
-                QMessageBox.about(self, "Error", "More than one Session is selected!")
                 return
             self.bento.session_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
+            self.addOrEditSession(self.bento.session_id)
         else:
-            self.bento.session_id = None
-        self.addOrEditSession(self.bento.session_id)
+            QMessageBox.about(self, "Error", "No Session is selected!")
 
     @Slot()
     def populateTrials(self):
@@ -271,10 +270,9 @@ class TrialDockWidget(QDockWidget):
         selectionModel = self.ui.trialTableView.selectionModel()
         if selectionModel.hasSelection():
             if len(selectionModel.selectedRows()) > 1:
-                QMessageBox.about(self, "Error", "More than one Trial is selected!")
                 return
             self.current_trial_id = selectionModel.selectedRows()[0].siblingAtColumn(0).data()
+            self.addOrEditTrial(self.current_trial_id)
         else:
-            self.current_trial_id = None
-        self.addOrEditTrial(self.current_trial_id)
+            QMessageBox.about(self, "Error", "No Trial is selected!")
 
