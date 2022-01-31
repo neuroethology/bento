@@ -488,6 +488,9 @@ class Annotations(QObject):
     def _read_ethovision(self, f):
         print("Ethovision annotations not yet supported")
 
+    def clear_channels(self):
+        self._channels.clear()
+    
     def channel_names(self):
         return list(self._channels.keys())
 
