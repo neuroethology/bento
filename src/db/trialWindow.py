@@ -236,7 +236,7 @@ class TrialDockWidget(QDockWidget):
                 with self.bento.db_sessionMaker() as db_session:
                     for selection in self.ui.videoTableView.selectionModel().selectedRows():
                         videos.append(db_session.query(VideoData).where(VideoData.id == selection.siblingAtColumn(0).data()).one())
-            if annotateSelectionModel:
+            if annotateSelectionModel and annotateSelectionModel.hasSelection():
                 with self.bento.db_sessionMaker() as db_session:
                     annotation = db_session.query(AnnotationsData).where(
                         AnnotationsData.id == self.ui.annotationTableView.currentIndex().siblingAtColumn(0).data()
