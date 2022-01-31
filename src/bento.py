@@ -183,6 +183,7 @@ class Bento(QObject):
             self.annotationsScene.setSceneRect(self.annotationsScene.sceneRect() + QMarginsF(0., 0., 0., float(height)))
             self.annotationsScene.height = self.annotationsScene.sceneRect().height()
             self.mainWindow.ui.annotationsView.setScaleAndShow(1., float(len(self.annotations.channel_names())))
+            self.setActiveChannel(chanName)
 
     @Slot()
     def setActiveChannel(self, chanName):
@@ -489,6 +490,7 @@ class Bento(QObject):
         neuralWidget = NeuralFrame(self)
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
+        self.active_channel_changed.connect(neuralWidget.setActiveChannel)
         return neuralWidget
 
     @Slot()

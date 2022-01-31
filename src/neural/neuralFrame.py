@@ -14,6 +14,7 @@ class NeuralFrame(QFrame):
     openReader = Signal(str)
     quitting = Signal()
     neuralSceneUpdated = Signal()
+    active_channel_changed = Signal(str)
 
     def __init__(self, bento):
         # super(NeuralDockWidget, self).__init__()
@@ -25,6 +26,7 @@ class NeuralFrame(QFrame):
         bento.quitting.connect(self.close)
         self.quitting.connect(self.bento.quit)
         self.neuralScene = NeuralScene()
+        self.active_channel_changed.connect(self.neuralScene.setActiveChannel)
         self.ui.neuralView.setScene(self.neuralScene)
         self.ui.neuralView.set_bento(bento)
         self.ui.neuralView.scale(10., self.ui.neuralView.height())
@@ -36,6 +38,8 @@ class NeuralFrame(QFrame):
         self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
         self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
+        self.annotations = self.bento.annotations
+        self.activeChannel = None 
 
     def load(self, neuralData, base_dir):
         if isabs(neuralData.file_path):
@@ -60,7 +64,15 @@ class NeuralFrame(QFrame):
         self.updateTime(self.bento.time_start)
 
     def overlayAnnotations(self, annotationsScene):
-        self.neuralScene.overlayAnnotations(annotationsScene, self.neuralScene)
+        self.neuralScene.overlayAnnotations(annotationsScene, 
+                                            self.neuralScene,
+                                            self.ui.annotationsView,
+                                            self.annotations)
+
+    @Slot(str)
+    def setActiveChannel(self, chan):
+        self.activeChannel = chan
+        self.active_channel_changed.emit(self.activeChannel)
 
     @Slot(Timecode)
     def updateTime(self, t):
