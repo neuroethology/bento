@@ -321,7 +321,7 @@ class NeuralScene(QGraphicsScene):
         return max(0., min(1., val))
 
     def overlayAnnotations(self, annotationsScene, parentScene, annotationsView, annotations):
-        self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene)
+        self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene, annotationsView, annotations)
         self.annotations.setZValue(-1.) # draw below neural data
         self.active_channel_changed.connect(self.annotations.setActiveItem)
         self.addItem(self.annotations)
