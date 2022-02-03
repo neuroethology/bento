@@ -1,4 +1,5 @@
 # annot.py
+from random import sample
 import timecode as tc
 from annot.behavior import Behavior
 from sortedcontainers import SortedKeyList
@@ -334,6 +335,8 @@ class Annotations(QObject):
         current_channel = None
         current_bout = None
 
+        self._format = 'Caltech'
+
         line = f.readline()
         while line:
             if found_annotation_names and not new_behaviors_activated:
@@ -499,6 +502,8 @@ class Annotations(QObject):
             self._channels[ch] = Channel()
 
     def add_bout(self, bout, channel):
+        if bout.name() not in self.annotation_names:
+            self.annotation_names.append(bout.name())
         self._channels[channel].add(bout)
         if bout.end() > self._time_end:
             self._time_end = bout.end()
@@ -508,16 +513,32 @@ class Annotations(QObject):
             return tc.Timecode('30.0', '0:0:0:0')
         return tc.Timecode(self._sample_rate, frames=self._time_start)
 
+    def set_time_start(self, t):
+        if not isinstance(t, tc.Timecode):
+            raise ValueError("Expected a TimeCode")
+        self._time_start = t
+
     def time_end(self):
         if not self._time_end or not self._sample_rate:
             return tc.Timecode('30.0', '23:59:59:29')
         return tc.Timecode(self._sample_rate, frames=self._time_end)
 
+    def set_time_end(self, t):
+        if not isinstance(t, tc.Timecode):
+            raise ValueError("Expected a Timecode")
+        self._time_end = t
+
     def sample_rate(self):
         return self._sample_rate
 
+    def set_sample_rate(self, sample_rate):
+        self._sample_rate = sample_rate
+
     def format(self):
         return self._format
+
+    def set_format(self, format):
+        self._format = format
 
     def delete_bouts_by_name(self, behavior_name):
         deleted_names = set()
