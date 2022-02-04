@@ -143,8 +143,8 @@ class Bento(QObject):
                     self.setActiveChannel(self.annotations.channel_names()[0])
                 self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
                 self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
-                self.time_start = self.annotations.time_start()
-                self.time_end = self.annotations.time_end()
+                self.time_start = self.annotations.time_start_frame()
+                self.time_end = self.annotations.time_end_frame()
                 loaded = True
             except Exception as e:
                 pass
@@ -207,6 +207,7 @@ class Bento(QObject):
             buttons=QMessageBox.Save | QMessageBox.Cancel)
         result = msgBox.exec()
         if result == QMessageBox.Save:
+            self.annotations.ensure_active_behaviors()
             self.annotations.delete_inactive_bouts()
             with self.db_sessionMaker() as db_sess:
                 base_directory = db_sess.query(Session).filter(Session.id == self.session_id).one().base_directory
@@ -223,8 +224,8 @@ class Bento(QObject):
                     trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
                     self.annotations.set_sample_rate(
                         trial.video_data[0].sample_rate if len(trial.video_data) > 0 else 30.0)
-                    self.annotations.set_time_start(self.time_start)
-                    self.annotations.set_time_end(self.time_end)
+                    self.annotations.set_time_start_frame(self.time_start)
+                    self.annotations.set_time_end_frame(self.time_end)
                     self.annotations.set_format("Caltech")
                     with open(fileName, 'w') as file:
                         self.annotations.write_caltech(

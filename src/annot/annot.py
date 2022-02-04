@@ -299,8 +299,8 @@ class Annotations(QObject):
         self._channels = {}
         self._behaviors = behaviors
         self._movies = []
-        self._time_start = None
-        self._time_end = None
+        self._time_start_frame = None
+        self._time_end_frame = None
         self._sample_rate = None
         self._stimulus = None
         self._format = None
@@ -365,20 +365,20 @@ class Annotations(QObject):
             elif line.lower().startswith("annotation start frame"):
                 items = line.split()
                 if len(items) > 3:
-                    self._time_start = int(items[3])
-                    if self._time_end and self._sample_rate:
+                    self._time_start_frame = int(items[3])
+                    if self._time_end_frame and self._sample_rate:
                         found_timecode = True
             elif line.lower().startswith("annotation stop frame"):
                 items = line.split()
                 if len(items) > 3:
-                    self._time_end = int(items[3])
-                    if self._time_start and self._sample_rate:
+                    self._time_end_frame = int(items[3])
+                    if self._time_start_frame and self._sample_rate:
                         found_timecode = True
             elif line.lower().startswith("annotation framerate"):
                 items = line.split()
                 if len(items) > 2:
                     self._sample_rate = float(items[2])
-                    if self._time_start and self._time_end:
+                    if self._time_start_frame and self._time_end_frame:
                         found_timecode = True
             elif line.lower().startswith("list of channels"):
                 line = f.readline()
@@ -450,8 +450,8 @@ class Annotations(QObject):
         f.write('\n\n')
 
         f.write(f"Stimulus name: {stimulus}\n")
-        f.write(f"Annotation start frame: {self._time_start}\n")
-        f.write(f"Annotation stop frame: {self._time_end}\n")
+        f.write(f"Annotation start frame: {self._time_start_frame}\n")
+        f.write(f"Annotation stop frame: {self._time_end_frame}\n")
         f.write(f"Annotation framerate: {self._sample_rate}\n")
         f.write("\n")
 
@@ -505,28 +505,34 @@ class Annotations(QObject):
         if bout.name() not in self.annotation_names:
             self.annotation_names.append(bout.name())
         self._channels[channel].add(bout)
-        if bout.end() > self._time_end:
-            self._time_end = bout.end()
+        if bout.end() > self._time_end_frame:
+            self._time_end_frame = bout.end()
 
-    def time_start(self):
-        if not self._time_start or not self._sample_rate:
+    def time_start_frame(self):
+        if not self._time_start_frame or not self._sample_rate:
             return tc.Timecode('30.0', '0:0:0:0')
-        return tc.Timecode(self._sample_rate, frames=self._time_start)
+        return tc.Timecode(self._sample_rate, frames=self._time_start_frame)
 
-    def set_time_start(self, t):
-        if not isinstance(t, tc.Timecode):
-            raise ValueError("Expected a TimeCode")
-        self._time_start = t
+    def set_time_start_frame(self, t):
+        if isinstance(t, int):
+            self._time_start_frame = t
+        elif isinstance(t, tc.Timecode):
+            self._time_start_frame = t.frames
+        else:
+            raise TypeError("Expected a frame number or Timecode")
 
-    def time_end(self):
-        if not self._time_end or not self._sample_rate:
+    def time_end_frame(self):
+        if not self._time_end_frame or not self._sample_rate:
             return tc.Timecode('30.0', '23:59:59:29')
-        return tc.Timecode(self._sample_rate, frames=self._time_end)
+        return tc.Timecode(self._sample_rate, frames=self._time_end_frame)
 
-    def set_time_end(self, t):
-        if not isinstance(t, tc.Timecode):
-            raise ValueError("Expected a Timecode")
-        self._time_end = t
+    def set_time_end_frame(self, t):
+        if isinstance(t, int):
+            self._time_end_frame = t
+        elif isinstance(t, tc.Timecode):
+            self._time_end_frame = t.frames
+        else:
+            raise TypeError("Expected a frame number or Timecode")
 
     def sample_rate(self):
         return self._sample_rate
@@ -556,13 +562,18 @@ class Annotations(QObject):
 
     def ensure_and_activate_behaviors(self, toActivate):
         behaviorSetUpdated = False
-        for behavior in toActivate:
-            behaviorSetUpdated |= self._behaviors.addIfMissing(behavior)
-            self.annotation_names.append(behavior)
-            self._behaviors.get(behavior).set_active(True)
+        for behaviorName in toActivate:
+            behaviorSetUpdated |= self._behaviors.addIfMissing(behaviorName)
+            self.annotation_names.append(behaviorName)
+            self._behaviors.get(behaviorName).set_active(True)
         if behaviorSetUpdated:
             self.annotations_changed.emit()
         self.active_annotations_changed.emit()
+
+    def ensure_active_behaviors(self):
+        for behavior in self._behaviors:
+            if behavior.is_active() and behavior.get_name() not in self.annotation_names:
+                self.annotation_names.append(behavior.get_name())
 
     def truncate_or_remove_bouts(self, behavior, start, end, chan):
         """
