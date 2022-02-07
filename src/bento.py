@@ -148,7 +148,7 @@ class Bento(QObject):
                 self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
                 height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
                 self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()) + QMarginsF(0., 0., 0., float(height)))
-                self.mainWindow.ui.annotationsView.setScaleAndShow(1., float(len(self.annotations.channel_names())))
+                self.mainWindow.ui.annotationsView.setVScaleAndShow(float(len(self.annotations.channel_names())))
                 self.time_start = self.annotations.time_start()
                 self.time_end = self.annotations.time_end()
                 loaded = True
@@ -182,7 +182,7 @@ class Bento(QObject):
             height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
             self.annotationsScene.setSceneRect(self.annotationsScene.sceneRect() + QMarginsF(0., 0., 0., float(height)))
             self.annotationsScene.height = self.annotationsScene.sceneRect().height()
-            self.mainWindow.ui.annotationsView.setScaleAndShow(1., float(len(self.annotations.channel_names())))
+            self.mainWindow.ui.annotationsView.setVScaleAndShow(float(len(self.annotations.channel_names())))
             self.setActiveChannel(chanName)
 
     @Slot()

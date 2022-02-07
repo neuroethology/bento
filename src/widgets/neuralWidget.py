@@ -57,7 +57,7 @@ class QGraphicsSubSceneItem(QGraphicsItem):
 
     @Slot()
     def updateScene(self):
-        self.subSceneView.setScaleAndShow(1., self.subScene.sceneRect().height())
+        self.subSceneView.setVScaleAndShow(self.subScene.sceneRect().height())
         self.update()
 
 class NeuralView(QGraphicsView):

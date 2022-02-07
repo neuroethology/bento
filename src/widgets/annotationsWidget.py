@@ -24,7 +24,7 @@ class AnnotationsView(QGraphicsView):
         self.start_x = 0.
         self.scale_h = 1.
         self.scale_v = 10.
-        self.max_scale_v = 50.
+        #self.v_factor = self.height()
         self.scale(self.scale_v, self.scale_h)
         self.sample_rate = 30.
         self.time_x = Timecode(str(self.sample_rate), '0:0:0:1')
@@ -36,6 +36,9 @@ class AnnotationsView(QGraphicsView):
 
     def set_bento(self, bento):
         self.bento = bento
+
+    #def set_v_factor(self, v_factor):
+    #    self.v_factor = self.height
 
     @Slot(Timecode)
     def updatePosition(self, t):
@@ -76,11 +79,10 @@ class AnnotationsView(QGraphicsView):
         self.setHScale(hScale)
         self.show()
 
-    @Slot(float, float)
-    def setScaleAndShow(self, hScale, vScale):
-        self.scale_h = self.transform().m11()/hScale
-        self.scale_v = max(self.max_scale_v, self.transform().m22())/vScale
-        self.setScale(self.scale_h, self.scale_v)
+    @Slot(float)
+    def setVScaleAndShow(self, v_factor):
+        self.scale_v = self.height()/v_factor
+        self.setVScale(self.scale_v)
         self.show()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
