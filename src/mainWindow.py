@@ -143,6 +143,9 @@ class MainWindow(QMainWindow):
         for chanName in self.bento.annotations.channel_names():
             self.ui.channelComboBox.addItem(chanName)
 
+    def clearChannelsCombo(self):
+        self.ui.channelComboBox.clear()
+
     @Slot(str)
     def selectChannelByName(self, chanName):
         self.ui.channelComboBox.setCurrentText(chanName)

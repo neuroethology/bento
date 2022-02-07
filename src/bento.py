@@ -132,17 +132,23 @@ class Bento(QObject):
 
     def load_or_init_annotations(self, fn, sample_rate = 30., running_time = None):
         self.annotationsScene.setSampleRate(sample_rate)
+        self.annotations.clear_channels()
+        self.active_channels.clear()
+        self.mainWindow.clearChannelsCombo()
         loaded = False
         if isinstance(fn, str) and len(fn) > 0:
             print(f"Try loading annotations from {fn}")
             try:
+                self.annotationsScene.clear()
                 self.annotations.read(fn)
                 if self.annotations.channel_names():
                     self.mainWindow.addChannelToCombo(self.annotations.channel_names())
                     print(f"channel_names: {self.annotations.channel_names()}")
                     self.setActiveChannel(self.annotations.channel_names()[0])
                 self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
-                self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
+                height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
+                self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()) + QMarginsF(0., 0., 0., float(height)))
+                self.mainWindow.ui.annotationsView.setVScaleAndShow(float(len(self.annotations.channel_names())))
                 self.time_start = self.annotations.time_start_frame()
                 self.time_end = self.annotations.time_end_frame()
                 loaded = True
@@ -152,9 +158,12 @@ class Bento(QObject):
                 traceback.print_exc()
         if not loaded:
             print("Initializing new annotations")
-            self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 0.)))
+            self.active_channels.clear()
+            self.annotationsScene.clear()
+            self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 1.)))
             self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
             self.newAnnotations = True
+            self.annotationsScene.loaded = True
         self.annotations.active_annotations_changed.connect(self.noteAnnotationsChanged)
         self.set_time(self.time_start)
 
@@ -168,7 +177,13 @@ class Bento(QObject):
         if chanName not in self.annotations.channel_names():
             self.annotations.addEmptyChannel(chanName)
             self.mainWindow.addChannelToCombo(chanName)
-            self.annotationsScene.setSceneRect(self.annotationsScene.sceneRect() + QMarginsF(0., 0., 0., 1.))
+            self.annotationsScene.addItem(self.annotations.channel(chanName))
+            self.annotations.channel(chanName).set_top(float(len(self.annotations.channel_names())-1.))
+            height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
+            self.annotationsScene.setSceneRect(self.annotationsScene.sceneRect() + QMarginsF(0., 0., 0., float(height)))
+            self.annotationsScene.height = self.annotationsScene.sceneRect().height()
+            self.mainWindow.ui.annotationsView.setVScaleAndShow(float(len(self.annotations.channel_names())))
+            self.setActiveChannel(chanName)
 
     @Slot()
     def setActiveChannel(self, chanName):
@@ -503,6 +518,7 @@ class Bento(QObject):
         neuralWidget = NeuralFrame(self)
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
+        self.active_channel_changed.connect(neuralWidget.setActiveChannel)
         return neuralWidget
 
     @Slot()
