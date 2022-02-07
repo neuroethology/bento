@@ -42,6 +42,8 @@ class QGraphicsSubSceneItem(QGraphicsItem):
         else:
             self.activeItem = self.annotations.channel(chan).top()
 
+        self.update()
+
     def boundingRect(self):
         rect = self.transform.mapRect(self.subScene.sceneRect()) if self.subScene else QRectF()
         return rect

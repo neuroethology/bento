@@ -24,6 +24,7 @@ class AnnotationsView(QGraphicsView):
         self.start_x = 0.
         self.scale_h = 1.
         self.scale_v = 10.
+        self.max_scale_v = 50.
         self.scale(self.scale_v, self.scale_h)
         self.sample_rate = 30.
         self.time_x = Timecode(str(self.sample_rate), '0:0:0:1')
@@ -78,7 +79,7 @@ class AnnotationsView(QGraphicsView):
     @Slot(float, float)
     def setScaleAndShow(self, hScale, vScale):
         self.scale_h = self.transform().m11()/hScale
-        self.scale_v = (self.transform().m11()/2)/vScale
+        self.scale_v = max(self.max_scale_v, self.transform().m22())/vScale
         self.setScale(self.scale_h, self.scale_v)
         self.show()
 
