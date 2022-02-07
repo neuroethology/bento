@@ -10,7 +10,7 @@ from annot.behavior import Behaviors
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
-from db.schema_sqlalchemy import Investigator, Session, Trial, new_session, create_tables
+from db.schema_sqlalchemy import AnnotationsData, Investigator, Session, Trial, new_session, create_tables
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
@@ -22,7 +22,7 @@ from db.behaviorsDialog import BehaviorsDialog
 from db.bento_xls import import_bento_xls_file
 from neural.neuralFrame import NeuralFrame
 from channelDialog import ChannelDialog
-from os.path import expanduser, isabs, sep
+from os.path import expanduser, isabs, sep, relpath, splitext
 from utils import fix_path, padded_rectf
 import sys, traceback, time
 
@@ -149,8 +149,8 @@ class Bento(QObject):
                 height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
                 self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()) + QMarginsF(0., 0., 0., float(height)))
                 self.mainWindow.ui.annotationsView.setVScaleAndShow(float(len(self.annotations.channel_names())))
-                self.time_start = self.annotations.time_start()
-                self.time_end = self.annotations.time_end()
+                self.time_start = self.annotations.time_start_frame()
+                self.time_end = self.annotations.time_end_frame()
                 loaded = True
             except Exception as e:
                 pass
@@ -222,6 +222,7 @@ class Bento(QObject):
             buttons=QMessageBox.Save | QMessageBox.Cancel)
         result = msgBox.exec()
         if result == QMessageBox.Save:
+            self.annotations.ensure_active_behaviors()
             self.annotations.delete_inactive_bouts()
             with self.db_sessionMaker() as db_sess:
                 base_directory = db_sess.query(Session).filter(Session.id == self.session_id).one().base_directory
@@ -230,18 +231,45 @@ class Bento(QObject):
                 caption="Annotation File Name",
                 dir=base_directory)
             if fileName:
+                # ensure a ".annot" extension
+                _, ext = splitext(fileName)
+                if ext != ".annot":
+                    fileName += ".annot"
                 with self.db_sessionMaker() as db_sess:
                     trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+                    self.annotations.set_sample_rate(
+                        trial.video_data[0].sample_rate if len(trial.video_data) > 0 else 30.0)
+                    self.annotations.set_time_start_frame(self.time_start)
+                    self.annotations.set_time_end_frame(self.time_end)
+                    self.annotations.set_format("Caltech")
                     with open(fileName, 'w') as file:
                         self.annotations.write_caltech(
                             file,
                             [video_data.file_path for video_data in trial.video_data],
                             trial.stimulus
                             )
-                    if self.newAnnotations:
-                        db_sess.add(self.annotations)
+                    # Is the annotation filename a new one, or does it exist already?
+                    existingAnnot = None
+                    for annot in trial.annotations:
+                        if annot.file_path == fileName:
+                            existingAnnot = annot
+                            break
+                    if self.newAnnotations or not existingAnnot:
+                        investigator = db_sess.query(Investigator).filter(Investigator.id == self.investigator_id).one()
+                        # For unknown reasons, using self.annotations.time_start() behaves differently than self.time_start
+                        newAnnot = AnnotationsData()
+                        newAnnot.file_path = relpath(fileName, base_directory)
+                        newAnnot.sample_rate = self.annotations.sample_rate()
+                        newAnnot.format = self.annotations.format()
+                        newAnnot.start_time = self.time_start.float
+                        newAnnot.start_frame = self.time_start.frame_number
+                        newAnnot.stop_frame = self.time_end.frame_number
+                        newAnnot.annotator_name = investigator.user_name
+                        newAnnot.method = "manual"
+                        newAnnot.trial_id = self.trial_id
+                        db_sess.add(newAnnot)
                         db_sess.commit()
-                        trial.annotations.append(self.annotations)
+                        trial.annotations.append(newAnnot)
                         db_sess.commit()
                         self.newAnnotations = False
 
