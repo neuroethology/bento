@@ -398,7 +398,7 @@ class Annotations(QObject):
                     to_activate.append(line)
                     line = f.readline().strip()
                 found_annotation_names = True
-            elif line.lower().startswith("ch"):
+            elif line.strip().lower().endswith("---"):
                 for ch_name in channel_names:
                     if line.startswith(ch_name):
                         self._channels[ch_name] = Channel()
