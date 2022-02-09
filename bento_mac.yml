@@ -5,15 +5,16 @@ channels:
 dependencies:
   - aom=3.2.0
   - brotli=1.0.9
+  - brotli-bin=1.0.9
   - bzip2=1.0.8
   - c-ares=1.18.1
-  - ca-certificates=2021.10.26
+  - ca-certificates=2021.10.8
   - cairo=1.16.0
   - certifi=2021.10.8
   - cffi=1.15.0
   - cryptography=35.0.0
   - cycler=0.10.0
-  - ffmpeg=4.4.1
+  - ffmpeg=4.3.2
   - fontconfig=2.13.1
   - fonttools=4.25.0
   - freetype=2.11.0
@@ -36,6 +37,9 @@ dependencies:
   - lcms2=2.12
   - lerc=3.0
   - libblas=3.9.0
+  - libbrotlicommon=1.0.9
+  - libbrotlidec=1.0.9
+  - libbrotlienc=1.0.9
   - libcblas=3.9.0
   - libclang=11.1.0
   - libcurl=7.79.1
@@ -78,25 +82,20 @@ dependencies:
   - nettle=3.7.3
   - nspr=4.32
   - nss=3.71
-  - numpy=1.21.4
+  - numpy=1.22.2
   - olefile=0.46
-  - opencv=4.5.3
   - openh264=2.1.1
   - openjpeg=2.4.0
   - openssl=1.1.1l
   - pcre=8.45
-  - pillow=8.3.1
   - pip=21.2.4
   - pixman=0.40.0
   - progressbar=2.5
-  - py-opencv=4.5.3
   - pycparser=2.20
   - pyparsing=3.0.4
-  - pyside2=5.13.2
   - python=3.9.7
   - python-dateutil=2.8.2
   - python_abi=3.9
-  - qt=5.12.9
   - qtpy=1.11.2
   - readline=8.1
   - scikit-video=1.1.11
@@ -123,5 +122,9 @@ dependencies:
     - future==0.18.2
     - h5py==3.5.0
     - imageio==2.10.3
+    - opencv-contrib-python-headless==4.5.5.62
+    - pillow==9.0.1
     - pymatreader==0.0.25
+    - pyside2==5.15.1
+    - shiboken2==5.15.1
     - xmltodict==0.12.0
