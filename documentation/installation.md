@@ -4,7 +4,7 @@ Bento requires Python version XX or above, and can be run on Windows, MacOS, or 
 
 **Follow the instructions below to install GuPPy :** <br>
 
-1. Download the Bento code.<br>
+1. Download the [Bento](https://github.com/neuroethology/bento/tree/main) code.<br>
 
 2. Install [Anaconda](https://www.anaconda.com/products/individual#macos). Install Anaconda based on your operating system (Mac, Windows or Linux) by following the prompts when you run the downloaded installation file.
 
