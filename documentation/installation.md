@@ -15,7 +15,7 @@ Bento requires Python version XX or above, and can be run on Windows, MacOS, or 
 ```
 cd path_to_bento_folder
 ```
-	- Ex : cd /Users/KennedyLab/all_codes/bento
+ - Ex : cd /Users/KennedyLab/all_codes/bento
 
 5. Execute the following command to install all the dependencies/packages required for Bento.<br>
    - Note : filename in the command should be replaced by <b>bento_windows.yml</b> or <b>bento_mac.yml</b> or <b>bento_ubuntu.yml</b> (based on your OS) <br>
