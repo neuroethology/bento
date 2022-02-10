@@ -21,7 +21,7 @@ Before you can start adding actual experiments, you'll need to provide a little 
 
 ### Adding investigators
 
-1. Click on **Database** in the menu bar and then click on **Investigator...**. **Investigator Dialog** will pop up.
+1. Click on **Database** in the menu bar and then click on **Investigator...** option. **Investigator Dialog** will pop up.
 2. Select **New Investigator** in the **Investigator** field.
 3. Type relevant information in all the fields and hit **Apply** button.
 4. After hitting **Apply** button, you can see an investigator information popping up when you select the added investigator.
@@ -29,7 +29,7 @@ Before you can start adding actual experiments, you'll need to provide a little 
 
 ### Adding animals
 
-1. Click on **Database** in the menu bar and then click on **Animal...**. **Animal Dialog** will pop up.
+1. Click on **Database** in the menu bar and then click on **Animal...** option. **Animal Dialog** will pop up.
 2. Select relevant investigator in the **Investigator** field.
 3. In the **Animal** table, click on the first row which says **New Animal**.
 4. Add information such as **Animal Services ID**, **Nickname**, **Date of Birth**, **Sex** and **Genotype**.
