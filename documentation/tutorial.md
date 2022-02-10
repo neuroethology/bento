@@ -46,6 +46,12 @@ Before you can start adding actual experiments, you'll need to provide a little 
 
 ### Adding camera profiles
 
+1. Click on **Database** in the menu bar and then click on **Camera...** options. **Camera Dialog** will pop up.
+2. Select **New Camera** in the **Camera** field.
+3. Type relevant information in the all the fields and hit **Apply** button.
+4. After hitting **Apply** button, you can see camera information popping up when you select the added camera.
+5. You can add multiple cameras based on your requirement. Repeat steps 1-4, every time you need to add a new camera.
+
 
 ## Populating the database
 Now that you have experimenters, animals, and cameras on record, you can start using Bento to organize your experimental data.
