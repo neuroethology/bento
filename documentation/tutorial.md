@@ -27,6 +27,8 @@ Before you can start adding actual experiments, you'll need to provide a little 
 4. After hitting **Apply** button, you can see an investigator information popping up when you select the added investigator.
 5. You can add multiple investigators based on your requirement. Repeat steps 1-4, every time you need to add a new investigator.
 
+![alt-text](../_gifs/adding_investigator.gif)
+
 ### Adding animals
 
 1. Click on **Database** in the menu bar and then click on **Animal...** option. **Animal Dialog** will pop up.
