@@ -21,7 +21,7 @@ Before you can start adding actual experiments, you'll need to provide a little 
 
 ### Adding investigators
 
-1. Add an investigator by clicking on **Database** in the menu bar and then click on **Investigator...**. An ***Investigator Dialog*** will pop up.
+1. Add an investigator by clicking on **Database** in the menu bar and then click on **Investigator...**. An **Investigator Dialog** will pop up.
 2. Select **New Investigator** in the **Investigator** field.
 3. Type relevant information in all the fields and hit **Apply** button.
 4. After hitting **Apply** button, you can see an investigator information popping up when you select the added investigator.
