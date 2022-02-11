@@ -64,9 +64,9 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 ### Adding a Session
 
-1. Click on **SelectTrial...** button on the main window. **Trial Selection Window** will pop up.
+1. Click on **Select Trial...** button on the main window. **Trial Selection Window** will pop up.
 2. Select an investigator by clicking on the drop down menu at the top.
-3. Click on **Add or Edit Session...** button. **Add or Edit Session Dialog** will pop up.
+3. Click on **Add New Session...** button. **Add or Edit Session Dialog** will pop up.
 4. Select an animal in the **Animal** table by selecting a row corresponding to that animal.
 5. Select a base directory where your data is located by clicking on **Select...** button corresponding to **Base Directory** field.
 6. Click **OK** button. You will see a session added in the **Session** table.
@@ -76,10 +76,15 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 ### Adding and populating a Trial
 
-1. Click on **SelectTrial...** button on the main window. **Trial Selection Window** will pop up.
+1. Click on **Select Trial...** button on the main window. **Trial Selection Window** will pop up.
 2. Select an investigator by clicking on the drop down menu at the top.
 3. Select a session in the **Select Session** table by clicking the corresponding row.
-4. Click on **Add or Edit Trial...** button. 
+4. Click on **Add New Trial...** button. **Add or Edit Trial dialog** will pop up.
+5. Add Stimulus in the **Stimulus** field.
+6. You can add **Video files**, **Annotation files** and **Neural Files** in the window. **Pose files** and **Audio files** are not yet supported.
+7. Click **OK** button. You will see a trial in the added in the **Trial** table along with files you selected for the trial.
+7. You can add multiple trials under the same session. Repeat steps 1-7, every time you need to add a trial under a particular session.
+
 
 ### Syncing up multiple data files
 
