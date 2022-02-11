@@ -64,7 +64,22 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 ### Adding a Session
 
+1. Click on **SelectTrial...** button on the main window. **Trial Selection Window** will pop up.
+2. Select an investigator by clicking on the drop down menu at the top.
+3. Click on **Add or Edit Session...** button. **Add or Edit Session Dialog** will pop up.
+4. Select an animal in the **Animal** table by selecting a row corresponding to that animal.
+5. Select a base directory where your data is located by clicking on **Select...** button corresponding to **Base Directory** field.
+6. Click **OK** button. You will see a session added in the **Session** table.
+7. You can add sessions for all the animals. Repeat steps 1-6, every time you need to add a new session.
+
+![alt-text](_gifs/adding_session.gif)
+
 ### Adding and populating a Trial
+
+1. Click on **SelectTrial...** button on the main window. **Trial Selection Window** will pop up.
+2. Select an investigator by clicking on the drop down menu at the top.
+3. Select a session in the **Select Session** table by clicking the corresponding row.
+4. Click on **Add or Edit Trial...** button. 
 
 ### Syncing up multiple data files
 
