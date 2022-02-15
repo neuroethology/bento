@@ -109,7 +109,7 @@ class VideoFrame(QFrame):
     def running_time(self):
         if not self.reader:
             return 0.
-        return float(self.reader.header['fps'] * self.reader.header['numFrames'])
+        return float(self.reader.header['numFrames']) / float(self.reader.header['fps'])
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
@@ -150,7 +150,7 @@ class VideoFrame(QFrame):
             self.pixmapItem.setPixmap(convert_to_Qt_format)
         else:
             raise Exception(f"video format {self.ext} not supported")
-        
+
         if isinstance(self.scene, VideoScene):
             self.scene.setAnnots(self.active_annots)
         self.show()

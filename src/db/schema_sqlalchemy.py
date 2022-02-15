@@ -224,7 +224,7 @@ class AnnotationsData(Base):
             'sample_rate': self.sample_rate,
             'format': self.format,
             'start_time': self.start_time,
-            'start_frame': self.start_time,
+            'start_frame': self.start_frame,
             'stop_frame': self.stop_frame,
             'annotator_name': self.annotator_name,
             'method': self.method,

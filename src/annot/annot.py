@@ -299,8 +299,8 @@ class Annotations(QObject):
         self._channels = {}
         self._behaviors = behaviors
         self._movies = []
-        self._time_start_frame = None
-        self._time_end_frame = None
+        self._start_frame = None
+        self._end_frame = None
         self._sample_rate = None
         self._stimulus = None
         self._format = None
@@ -365,20 +365,20 @@ class Annotations(QObject):
             elif line.lower().startswith("annotation start frame"):
                 items = line.split()
                 if len(items) > 3:
-                    self._time_start_frame = int(items[3])
-                    if self._time_end_frame and self._sample_rate:
+                    self._start_frame = int(items[3])
+                    if self._end_frame and self._sample_rate:
                         found_timecode = True
             elif line.lower().startswith("annotation stop frame"):
                 items = line.split()
                 if len(items) > 3:
-                    self._time_end_frame = int(items[3])
-                    if self._time_start_frame and self._sample_rate:
+                    self._end_frame = int(items[3])
+                    if self._start_frame and self._sample_rate:
                         found_timecode = True
             elif line.lower().startswith("annotation framerate"):
                 items = line.split()
                 if len(items) > 2:
                     self._sample_rate = float(items[2])
-                    if self._time_start_frame and self._time_end_frame:
+                    if self._start_frame and self._end_frame:
                         found_timecode = True
             elif line.lower().startswith("list of channels"):
                 line = f.readline()
@@ -450,8 +450,8 @@ class Annotations(QObject):
         f.write('\n\n')
 
         f.write(f"Stimulus name: {stimulus}\n")
-        f.write(f"Annotation start frame: {self._time_start_frame}\n")
-        f.write(f"Annotation stop frame: {self._time_end_frame}\n")
+        f.write(f"Annotation start frame: {self._start_frame}\n")
+        f.write(f"Annotation stop frame: {self._end_frame}\n")
         f.write(f"Annotation framerate: {self._sample_rate}\n")
         f.write("\n")
 
@@ -493,7 +493,7 @@ class Annotations(QObject):
 
     def clear_channels(self):
         self._channels.clear()
-    
+
     def channel_names(self):
         return list(self._channels.keys())
 
@@ -508,32 +508,43 @@ class Annotations(QObject):
         if bout.name() not in self.annotation_names:
             self.annotation_names.append(bout.name())
         self._channels[channel].add(bout)
-        if bout.end() > self._time_end_frame:
-            self._time_end_frame = bout.end()
+        if bout.end() > self.end_time():
+            self.set_end_frame(bout.end())
 
-    def time_start_frame(self):
-        if not self._time_start_frame or not self._sample_rate:
+    def start_time(self):
+        """
+        At some point we will need to support a start time distinct from
+        frame number, perhaps derived from the OS file modify time
+        or the start time of the corresponding video (or other media) file
+        """
+        if not self._start_frame or not self._sample_rate:
             return tc.Timecode('30.0', '0:0:0:0')
-        return tc.Timecode(self._sample_rate, frames=self._time_start_frame)
+        return tc.Timecode(self._sample_rate, frames=self._start_frame)
 
-    def set_time_start_frame(self, t):
+    def start_frame(self):
+        return self._start_frame
+
+    def set_start_frame(self, t):
         if isinstance(t, int):
-            self._time_start_frame = t
+            self._start_frame = t
         elif isinstance(t, tc.Timecode):
-            self._time_start_frame = t.frames
+            self._start_frame = t.frames
         else:
             raise TypeError("Expected a frame number or Timecode")
 
-    def time_end_frame(self):
-        if not self._time_end_frame or not self._sample_rate:
+    def end_time(self):
+        if not self._end_frame or not self._sample_rate:
             return tc.Timecode('30.0', '23:59:59:29')
-        return tc.Timecode(self._sample_rate, frames=self._time_end_frame)
+        return tc.Timecode(self._sample_rate, frames=self._end_frame)
 
-    def set_time_end_frame(self, t):
+    def end_frame(self):
+        return self._end_frame
+
+    def set_end_frame(self, t):
         if isinstance(t, int):
-            self._time_end_frame = t
+            self._end_frame = t
         elif isinstance(t, tc.Timecode):
-            self._time_end_frame = t.frames
+            self._end_frame = t.frames
         else:
             raise TypeError("Expected a frame number or Timecode")
 

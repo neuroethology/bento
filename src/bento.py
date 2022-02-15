@@ -149,8 +149,8 @@ class Bento(QObject):
                 height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
                 self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()) + QMarginsF(0., 0., 0., float(height)))
                 self.mainWindow.ui.annotationsView.setVScaleAndShow(float(len(self.annotations.channel_names())))
-                self.time_start = self.annotations.time_start_frame()
-                self.time_end = self.annotations.time_end_frame()
+                self.time_start = self.annotations.start_time()
+                self.time_end = self.annotations.end_time()
                 loaded = True
             except Exception as e:
                 pass
@@ -162,6 +162,9 @@ class Bento(QObject):
             self.annotationsScene.clear()
             self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 1.)))
             self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
+            self.annotations.set_sample_rate(sample_rate)
+            self.annotations.set_start_frame(self.time_start)
+            self.annotations.set_end_frame(self.time_end)
             self.newAnnotations = True
             self.annotationsScene.loaded = True
         self.annotations.active_annotations_changed.connect(self.noteAnnotationsChanged)
@@ -239,8 +242,9 @@ class Bento(QObject):
                     trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
                     self.annotations.set_sample_rate(
                         trial.video_data[0].sample_rate if len(trial.video_data) > 0 else 30.0)
-                    self.annotations.set_time_start_frame(self.time_start)
-                    self.annotations.set_time_end_frame(self.time_end)
+                    # The following will need to change when video and annotation frame rates can be different
+                    self.annotations.set_start_frame(self.time_start)
+                    self.annotations.set_end_frame(self.time_end)
                     self.annotations.set_format("Caltech")
                     with open(fileName, 'w') as file:
                         self.annotations.write_caltech(
