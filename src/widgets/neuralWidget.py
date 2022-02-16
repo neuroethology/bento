@@ -28,6 +28,7 @@ class QGraphicsSubSceneItem(QGraphicsItem):
         self.subSceneView = subSceneView
         self.annotations = annotations
         self.activeItem = 0.
+        self.subSceneView.setVScaleAndShow(self.subScene.sceneRect().height())
         duration = min(self.parentScene.sceneRect().right(), self.subScene.sceneRect().right())
         targetRectF = QRectF(0., 0., duration, self.parentScene.height())
         sourceRectF = QRectF(0., 0., duration, 1.)

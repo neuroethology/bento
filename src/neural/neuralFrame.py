@@ -1,7 +1,7 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
-from qtpy.QtCore import Signal, Slot
+from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtWidgets import QFrame
 import time
 from timecode import Timecode
@@ -37,6 +37,7 @@ class NeuralFrame(QFrame):
         self.ui.annotationsView.set_bento(bento)
         self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
+        self.ui.annotationsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
         self.annotations = self.bento.annotations
         self.activeChannel = None 
