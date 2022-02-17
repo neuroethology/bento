@@ -108,7 +108,7 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 > Note : Assuming you are a loading a trial with no annotation file in it. You can also load a trial with an exisiing annotation file and do all the steps. 
 
-1. Load a trial as mentioned in [Loading data from a trial](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md/Loading-data-from-a-trial)
+1. Load a trial as mentioned in [Loading data from a trial](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Loading-data-from-a-trial)
 
 ### Creating a new behavior
 
