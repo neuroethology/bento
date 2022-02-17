@@ -82,13 +82,25 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 4. Click on **Add New Trial...** button. **Add or Edit Trial dialog** will pop up.
 5. Add Stimulus in the **Stimulus** field.
 6. You can add **Video files**, **Annotation files** and **Neural Files** in the window. **Pose files** and **Audio files** are not yet supported.
-7. Click **OK** button. You will see a trial in the added in the **Trial** table along with files you selected for the trial.
-7. You can add multiple trials under the same session. Repeat steps 1-7, every time you need to add a trial under a particular session.
+7. Click **OK** button. You will see a trial added in the **Trial** table along with files you selected for the trial.
+8. You can add multiple trials under the same session. Repeat steps 1-7, every time you need to add a trial under a particular session.
 
+![alt-text](_gifs/adding_trials.gif)
 
 ### Syncing up multiple data files
 
 ## Loading data from a trial
+
+> Note : Assuming you have already added a session and trial.
+
+1. Click on **Select Trial...** button on the main window. **Trial Selection Window** will pop up.
+2. Select an investigator by clicking on the drop down menu at the top.
+3. Select a session in the **Select Session** table by clicking the corresponding row. Selecting a session will pop up trials in that session.
+4. Select a trial in the **Select Trial** table by clicking the corresponding row. 
+5. Click **Open** button. You will see multiple windows pop up based on the number of files in your trials.
+6. Repeat steps 1-5, every time you need to load a new trial.
+
+![alt-text](_gifs/loading_trial.gif)
 
 ## Annotating a trial
 
