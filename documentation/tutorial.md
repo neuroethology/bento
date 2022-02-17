@@ -141,6 +141,11 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 ### Adding annotations
 
+> Note : Assuming you are a loading a trial with no annotation file in it. You can also load a trial with an exisiing annotation file and do all the steps. 
+
+1. Add a channel as mentioned in [Creating a new annotation channel](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Creating-a-new-annotation-channel)
+2. [Create new behaviors](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Creating-a-new-behavior) or [edit behavior properties](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Editing-behavior-properties) based on your requirement for adding annotations.
+
 ### Deleting annotations
 
 ### Saving annotations
