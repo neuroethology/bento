@@ -2,10 +2,13 @@
 
 from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
-from PySide6.QtCore import Signal, Slot, QMargins, Qt
-from PySide6.QtGui import QBrush, QFontMetrics, QPixmap
-from PySide6.QtWidgets import QFrame, QGraphicsScene
+import video.mp4Io as mp4Io
+from qtpy.QtCore import Signal, Slot, QMargins, Qt
+from qtpy.QtGui import QBrush, QFontMetrics, QPixmap, QImage
+from qtpy.QtWidgets import QFrame, QGraphicsScene
 from timecode import Timecode
+import os
+import time
 
 class VideoScene(QGraphicsScene):
     """
@@ -83,13 +86,18 @@ class VideoFrame(QFrame):
             print("too tall")
 
     def load_video(self, fn):
-        self.reader = seqIo.seqIo_reader(fn)
+        self.ext = os.path.basename(fn).rsplit('.',1)[-1]
+        if self.ext=='mp4' or self.ext=='avi':
+            self.reader = mp4Io.mp4Io_reader(fn)
+        elif self.ext=='seq':
+            self.reader = seqIo.seqIo_reader(fn)
+        else:
+            raise Exception(f"video format {self.ext} not supported.")
         frame_width = self.reader.header['width']
         frame_height = self.reader.header['height']
         self.aspect_ratio = float(frame_height) / float(frame_width)
         print(f"aspect_ratio set to {self.aspect_ratio}")
         self.updateFrame(self.bento.current_time)
-        self.ui.videoView.resize(frame_width, frame_height)
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
     def sample_rate(self):
@@ -101,7 +109,7 @@ class VideoFrame(QFrame):
     def running_time(self):
         if not self.reader:
             return 0.
-        return float(self.reader.header['fps'] * self.reader.header['numFrames'])
+        return float(self.reader.header['numFrames']) / float(self.reader.header['fps'])
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
@@ -131,8 +139,18 @@ class VideoFrame(QFrame):
         myTc = Timecode(self.reader.header['fps'], start_seconds=t.float)
         i = min(myTc.frames, self.reader.header['numFrames']-1)
         image, _ = self.reader.getFrame(i, decode=False)
-        self.pixmap.loadFromData(image.tobytes())
-        self.pixmapItem.setPixmap(self.pixmap)
+        if self.ext=='seq':
+            self.pixmap.loadFromData(image.tobytes())
+            self.pixmapItem.setPixmap(self.pixmap)
+        elif self.ext=='mp4' or self.ext=='avi':
+            h, w, ch = image.shape
+            bytes_per_line = ch * w
+            convert_to_Qt_format = QImage(image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            convert_to_Qt_format = QPixmap.fromImage(convert_to_Qt_format)
+            self.pixmapItem.setPixmap(convert_to_Qt_format)
+        else:
+            raise Exception(f"video format {self.ext} not supported")
+
         if isinstance(self.scene, VideoScene):
             self.scene.setAnnots(self.active_annots)
         self.show()

@@ -3,15 +3,24 @@
 ################################################################################
 ## Form generated from reading UI file 'editTrialDialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.1.2
+## Created by: Qt User Interface Compiler version 6.2.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import *  # type: ignore
-from PySide6.QtGui import *  # type: ignore
-from PySide6.QtWidgets import *  # type: ignore
+from qtpy.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from qtpy.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from qtpy.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
+    QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QPushButton, QSizePolicy, QSpacerItem, QTreeView,
+    QVBoxLayout, QWidget)
 
+from widgets.deleteableTableView import DeleteableTableView
 
 class Ui_EditTrialDialog(object):
     def setupUi(self, EditTrialDialog):
@@ -60,7 +69,7 @@ class Ui_EditTrialDialog(object):
 
         self.videosHorizontalLayout.addWidget(self.videosLabel)
 
-        self.videosFileTableView = QTableView(EditTrialDialog)
+        self.videosFileTableView = DeleteableTableView(EditTrialDialog)
         self.videosFileTableView.setObjectName(u"videosFileTableView")
 
         self.videosHorizontalLayout.addWidget(self.videosFileTableView)
@@ -90,7 +99,7 @@ class Ui_EditTrialDialog(object):
 
         self.annotationsHorizontalLayout.addWidget(self.annotationsLabel)
 
-        self.annotationsTableView = QTableView(EditTrialDialog)
+        self.annotationsTableView = DeleteableTableView(EditTrialDialog)
         self.annotationsTableView.setObjectName(u"annotationsTableView")
 
         self.annotationsHorizontalLayout.addWidget(self.annotationsTableView)
@@ -121,7 +130,7 @@ class Ui_EditTrialDialog(object):
 
         self.posesHorizontalLayout.addWidget(self.posesLabel)
 
-        self.posesTableView = QTableView(EditTrialDialog)
+        self.posesTableView = DeleteableTableView(EditTrialDialog)
         self.posesTableView.setObjectName(u"posesTableView")
 
         self.posesHorizontalLayout.addWidget(self.posesTableView)
@@ -152,7 +161,7 @@ class Ui_EditTrialDialog(object):
 
         self.neuralsHorizontalLayout.addWidget(self.neuralsLabel)
 
-        self.neuralsTableView = QTableView(EditTrialDialog)
+        self.neuralsTableView = DeleteableTableView(EditTrialDialog)
         self.neuralsTableView.setObjectName(u"neuralsTableView")
 
         self.neuralsHorizontalLayout.addWidget(self.neuralsTableView)
@@ -214,7 +223,7 @@ class Ui_EditTrialDialog(object):
 
         self.othersHorizontalLayout.addWidget(self.othersLabel)
 
-        self.othersTableView = QTableView(EditTrialDialog)
+        self.othersTableView = DeleteableTableView(EditTrialDialog)
         self.othersTableView.setObjectName(u"othersTableView")
 
         self.othersHorizontalLayout.addWidget(self.othersTableView)

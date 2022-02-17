@@ -8,9 +8,9 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import *  # type: ignore
-from PySide6.QtGui import *  # type: ignore
-from PySide6.QtWidgets import *  # type: ignore
+from qtpy.QtCore import *  # type: ignore
+from qtpy.QtGui import *  # type: ignore
+from qtpy.QtWidgets import *  # type: ignore
 
 
 class Ui_AnimalDialog(object):
@@ -50,27 +50,13 @@ class Ui_AnimalDialog(object):
 
         self.animalTableView = QTableView(AnimalDialog)
         self.animalTableView.setObjectName(u"animalTableView")
+        self.animalTableView.setSelectionMode(QAbstractItemView.SingleSelection)
         self.animalTableView.horizontalHeader().setStretchLastSection(True)
 
         self.animalHorizontalLayout.addWidget(self.animalTableView)
 
 
         self.verticalLayout.addLayout(self.animalHorizontalLayout)
-
-        self.nicknameHorizontalLayout = QHBoxLayout()
-        self.nicknameHorizontalLayout.setObjectName(u"nicknameHorizontalLayout")
-        self.nicknameLabel = QLabel(AnimalDialog)
-        self.nicknameLabel.setObjectName(u"nicknameLabel")
-
-        self.nicknameHorizontalLayout.addWidget(self.nicknameLabel)
-
-        self.nicknameLineEdit = QLineEdit(AnimalDialog)
-        self.nicknameLineEdit.setObjectName(u"nicknameLineEdit")
-
-        self.nicknameHorizontalLayout.addWidget(self.nicknameLineEdit)
-
-
-        self.verticalLayout.addLayout(self.nicknameHorizontalLayout)
 
         self.asiHorizontalLayout = QHBoxLayout()
         self.asiHorizontalLayout.setObjectName(u"asiHorizontalLayout")
@@ -86,6 +72,21 @@ class Ui_AnimalDialog(object):
 
 
         self.verticalLayout.addLayout(self.asiHorizontalLayout)
+
+        self.nicknameHorizontalLayout = QHBoxLayout()
+        self.nicknameHorizontalLayout.setObjectName(u"nicknameHorizontalLayout")
+        self.nicknameLabel = QLabel(AnimalDialog)
+        self.nicknameLabel.setObjectName(u"nicknameLabel")
+
+        self.nicknameHorizontalLayout.addWidget(self.nicknameLabel)
+
+        self.nicknameLineEdit = QLineEdit(AnimalDialog)
+        self.nicknameLineEdit.setObjectName(u"nicknameLineEdit")
+
+        self.nicknameHorizontalLayout.addWidget(self.nicknameLineEdit)
+
+
+        self.verticalLayout.addLayout(self.nicknameHorizontalLayout)
 
         self.dobHorizontalLayout = QHBoxLayout()
         self.dobHorizontalLayout.setObjectName(u"dobHorizontalLayout")
@@ -187,7 +188,7 @@ class Ui_AnimalDialog(object):
         self.buttonBox = QDialogButtonBox(AnimalDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Discard|QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
 
         self.verticalLayout.addWidget(self.buttonBox)
 
@@ -204,9 +205,9 @@ class Ui_AnimalDialog(object):
         AnimalDialog.setWindowTitle(QCoreApplication.translate("AnimalDialog", u"Animal", None))
         self.investigatorLabel.setText(QCoreApplication.translate("AnimalDialog", u"Investigator: ", None))
         self.animalLabel.setText(QCoreApplication.translate("AnimalDialog", u"Animal:", None))
-        self.nicknameLabel.setText(QCoreApplication.translate("AnimalDialog", u"Nickname: ", None))
         self.asiLabel.setText(QCoreApplication.translate("AnimalDialog", u"Animal Services ID: ", None))
         self.asiLineEdit.setInputMask("")
+        self.nicknameLabel.setText(QCoreApplication.translate("AnimalDialog", u"Nickname: ", None))
         self.dobLabel.setText(QCoreApplication.translate("AnimalDialog", u"Date of Birth: ", None))
         self.dobDateEdit.setDisplayFormat(QCoreApplication.translate("AnimalDialog", u"yyyy-MM-dd", None))
         self.sexLabel.setText(QCoreApplication.translate("AnimalDialog", u"Sex: ", None))

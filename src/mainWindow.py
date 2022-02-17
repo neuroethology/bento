@@ -3,9 +3,9 @@
 from mainWindow_ui import Ui_MainWindow
 import timecode as tc
 
-from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QMainWindow, QMenuBar
-from db.sessionWindow import SessionDockWidget
+from qtpy.QtCore import Qt, QEvent, Signal, Slot
+from qtpy.QtWidgets import QMainWindow, QMenuBar
+from db.trialWindow import TrialDockWidget
 
 class MainWindow(QMainWindow):
 
@@ -15,6 +15,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.bento = bento
+        self.flag = "close"
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.ui.stepButton.clicked.connect(bento.incrementTime)
@@ -29,7 +30,7 @@ class MainWindow(QMainWindow):
         bento.quitting.connect(self.close)
         self.quitting.connect(bento.quit)
 
-        self.ui.sessionPushButton.clicked.connect(self.selectSession)
+        self.ui.trialPushButton.clicked.connect(self.selectTrial)
         self.ui.playButton.clicked.connect(bento.player.togglePlayer)
         self.ui.halveFrameRateButton.clicked.connect(bento.player.halveFrameRate)
         self.ui.doubleFrameRateButton.clicked.connect(bento.player.doubleFrameRate)
@@ -72,6 +73,13 @@ class MainWindow(QMainWindow):
         self.windowsMenu = self.menuBar.addMenu("Windows")
         self.toggleBehaviorVisibilityAction = self.windowsMenu.addAction("Show/Hide Behavior List")
         self.toggleBehaviorVisibilityAction.triggered.connect(bento.toggleBehaviorVisibility)
+
+    def closeEvent(self, event):
+        if event.type()==QEvent.Type.Close and self.flag=="close":
+            self.bento.quit(event)
+        else:
+            pass
+        event.accept()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
@@ -117,9 +125,9 @@ class MainWindow(QMainWindow):
         self.show()
 
     @Slot()
-    def selectSession(self):
-        self.bento.sessionWindow = SessionDockWidget(self.bento)
-        self.bento.sessionWindow.show()
+    def selectTrial(self):
+        self.bento.trialWindow = TrialDockWidget(self.bento)
+        self.bento.trialWindow.show()
 
     def addChannelToCombo(self, chanName):
         if isinstance(chanName, list):
@@ -134,6 +142,9 @@ class MainWindow(QMainWindow):
     def populateChannelsCombo(self):
         for chanName in self.bento.annotations.channel_names():
             self.ui.channelComboBox.addItem(chanName)
+
+    def clearChannelsCombo(self):
+        self.ui.channelComboBox.clear()
 
     @Slot(str)
     def selectChannelByName(self, chanName):

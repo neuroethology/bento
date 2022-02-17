@@ -1,7 +1,7 @@
 # tableModel.py
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex
-from PySide6.QtGui import Qt, QColor
+from qtpy.QtCore import QAbstractTableModel, QModelIndex
+from qtpy.QtGui import Qt, QColor
 import operator
 
 class TableModel(QAbstractTableModel):
@@ -116,7 +116,7 @@ class EditableTableModel(TableModel):
         return True
 
     def isDirty(self, index):
-        # has "dirty' key and its value is True
+        # has 'dirty' key and its value is True
         return 'dirty' in self.mylist[index.row()] and self.mylist[index.row()]['dirty']
 
     def setDirty(self, index):
@@ -131,17 +131,29 @@ class EditableTableModel(TableModel):
     def setImmutable(self, column):
         self.immutableColumns.add(column)
 
-    def removeRowSet(self, rows):
-        l = list(rows)
-        l.sort()
-        for row in reversed(l): # reversed so that the removal process doesn't change later indices
-            self.beginRemoveRows(self.index(row, 0), row, row)
-            del self.mylist[row]
-            self.endRemoveRows()
-        self.dataChanged.emit(
-            self.index(0, 0),
-            self.index(len(self.mylist)-1, len(self.header)-1),
-            [Qt.DisplayRole])
+    # def insertRows(self, row, count, parent=QModelIndex()):
+    #     if row < 0 or row >= self.rowCount(parent):
+    #         return False
+    #     self.beginInsertRows(parent, row, row + count -1)
+    #     # Insert new row here.
+    #     # How should it be initialized?  Items could be tuples, lists or dicts.
+    #     # How do we update the underlying database table, if any?
+    #     self.endInsertRows()
+    #     return False    # for now
+
+    # def removeRows(self, row, count, parent=QModelIndex()):
+    #     if count <= 0 or row < 0 or row + count >= self.rowCount(parent):
+    #         return False
+
+    #     # Do we expect that any related DB entry will already have been deleted?
+    #     # We don't know here which schema object corresponds to the model.
+    #     self.beginRemoveRows(parent, row, row+count-1)
+    #     for r in range(row+count-1, row-1, -1):
+    #         # in reverse order to avoid changing row index out from under ourselves
+
+    #         del self.mylist[r]
+    #     self.endRemoveRows()
+    #     return True
 
 class TableModelIterator():
     def __init__(self, mylist):
@@ -158,4 +170,3 @@ class TableModelIterator():
         item = self.mylist[self.ix]
         self.ix += 1
         return item
-

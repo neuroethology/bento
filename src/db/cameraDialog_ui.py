@@ -8,16 +8,16 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import *  # type: ignore
-from PySide6.QtGui import *  # type: ignore
-from PySide6.QtWidgets import *  # type: ignore
+from qtpy.QtCore import *  # type: ignore
+from qtpy.QtGui import *  # type: ignore
+from qtpy.QtWidgets import *  # type: ignore
 
 
 class Ui_CameraDialog(object):
     def setupUi(self, CameraDialog):
         if not CameraDialog.objectName():
             CameraDialog.setObjectName(u"CameraDialog")
-        CameraDialog.resize(415, 228)
+        CameraDialog.resize(420, 228)
         self.verticalLayout = QVBoxLayout(CameraDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.cameraHorizontalLayout = QHBoxLayout()
@@ -110,7 +110,7 @@ class Ui_CameraDialog(object):
         self.buttonBox = QDialogButtonBox(CameraDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Discard|QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Apply|QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
 
         self.verticalLayout.addWidget(self.buttonBox)
 

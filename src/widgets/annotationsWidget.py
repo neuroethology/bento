@@ -2,9 +2,10 @@
 """
 """
 
-from PySide6.QtCore import Qt, QPointF, QRectF, Slot
-from PySide6.QtGui import QBrush, QPen, QKeyEvent, QMouseEvent, QWheelEvent
-from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
+from qtpy.QtCore import Qt, QPointF, QRectF, Slot
+from qtpy.QtGui import (QBrush, QPen, QKeyEvent, QMouseEvent,
+    QTransform, QWheelEvent)
+from qtpy.QtWidgets import QGraphicsScene, QGraphicsView
 from timecode import Timecode
 
 class AnnotationsView(QGraphicsView):
@@ -22,23 +23,22 @@ class AnnotationsView(QGraphicsView):
         self.bento = None
         self.start_x = 0.
         self.scale_h = 1.
-        self.scale(10., self.scale_h)
+        self.scale_v = 10.
+        #self.v_factor = self.height()
+        self.scale(self.scale_v, self.scale_h)
         self.sample_rate = 30.
         self.time_x = Timecode(str(self.sample_rate), '0:0:0:1')
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.ticksScale = 1.
+        self.setInteractive(False)
+        self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
     def set_bento(self, bento):
         self.bento = bento
 
-    @Slot(float)
-    def updateScene(self):
-        # self.invalidate_scene() and self.update() don't seem to trigger a repaint
-        # if scene contents have changed but the view has not.  self.repaint() does
-        # trigger a repaint even when the view has not changed, so we use it here.
-        self.repaint()
-        self.updatePosition(self.bento.current_time)
+    #def set_v_factor(self, v_factor):
+    #    self.v_factor = self.height
 
     @Slot(Timecode)
     def updatePosition(self, t):
@@ -77,6 +77,12 @@ class AnnotationsView(QGraphicsView):
     def setHScaleAndShow(self, hScale):
         self.scale_h = hScale
         self.setHScale(hScale)
+        self.show()
+
+    @Slot(float)
+    def setVScaleAndShow(self, v_factor):
+        self.scale_v = self.height()/v_factor
+        self.setVScale(self.scale_v)
         self.show()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -127,7 +133,13 @@ class AnnotationsView(QGraphicsView):
         if not bout:
             return
         now = self.bento.get_time().float
-        painter.setBrush(QBrush(bout.color(), bs=Qt.FDiagPattern))
+        brush = QBrush(bout.color(), bs=Qt.DiagCrossPattern)
+        painterTransform = painter.transform()
+        brushTransform = QTransform.fromScale(
+            1./painterTransform.m11(),
+            1./painterTransform.m22())
+        brush.setTransform(brushTransform)
+        painter.setBrush(brush)
         painter.setPen(Qt.NoPen)
         painter.drawRect(QRectF(QPointF(bout.start().float, rect.top()), QPointF(now, rect.bottom())))
         painter.setBrush(Qt.NoBrush)
@@ -222,6 +234,6 @@ class AnnotationsScene(QGraphicsScene):
     def setSampleRate(self, sample_rate):
         self.sample_rate = sample_rate
 
-    @Slot()
-    def sceneChanged(self):
-        print("scene changed -- update views")
+    @Slot(float, float)
+    def sceneChanged(self, start, end):
+        self.invalidate(start, 0., end - start, self.height)

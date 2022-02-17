@@ -2,8 +2,8 @@
 
 from db.schema_sqlalchemy import Investigator
 from db.surgeryDialog_ui import Ui_SurgeryDialog
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QDialog, QDialogButtonBox
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import QDialog, QDialogButtonBox
 
 from db.schema_sqlalchemy import Surgery, LateralityEnum
 from datetime import date
@@ -25,7 +25,7 @@ class SurgeryDialog(QDialog):
 
     @Slot()
     def accept(self):
-        with self.bento.db_sessionMaker().begin() as db_sess:
+        with self.bento.db_sessionMaker() as db_sess:
             surgery = Surgery()
             surgery.animal_id = self.animal_id
             surgery.investigator_id = self.investigator_id
@@ -52,6 +52,7 @@ class SurgeryDialog(QDialog):
             surgery.anesthesia = self.ui.anesthesiaLineEdit.text()
             surgery.follow_up_care = self.ui.followUpLineEdit.text()
             db_sess.add(surgery)
+            db_sess.commit()
         super().accept()
 
     @Slot()

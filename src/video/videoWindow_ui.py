@@ -8,9 +8,9 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import *  # type: ignore
-from PySide6.QtGui import *  # type: ignore
-from PySide6.QtWidgets import *  # type: ignore
+from qtpy.QtCore import *  # type: ignore
+from qtpy.QtGui import *  # type: ignore
+from qtpy.QtWidgets import *  # type: ignore
 
 
 class Ui_videoFrame(object):
@@ -18,6 +18,11 @@ class Ui_videoFrame(object):
         if not videoFrame.objectName():
             videoFrame.setObjectName(u"videoFrame")
         videoFrame.resize(798, 542)
+        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(videoFrame.sizePolicy().hasHeightForWidth())
+        videoFrame.setSizePolicy(sizePolicy)
         self.verticalLayout = QVBoxLayout(videoFrame)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -30,11 +35,11 @@ class Ui_videoFrame(object):
         self.showPoseCheckBox = QCheckBox(videoFrame)
         self.showPoseCheckBox.setObjectName(u"showPoseCheckBox")
         self.showPoseCheckBox.setEnabled(False)
-        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.showPoseCheckBox.sizePolicy().hasHeightForWidth())
-        self.showPoseCheckBox.setSizePolicy(sizePolicy)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.showPoseCheckBox.sizePolicy().hasHeightForWidth())
+        self.showPoseCheckBox.setSizePolicy(sizePolicy1)
 
         self.horizontalLayout.addWidget(self.showPoseCheckBox)
 

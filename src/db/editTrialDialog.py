@@ -4,14 +4,16 @@ from db.schema_sqlalchemy import Camera, Trial, Session, VideoData, NeuralData, 
 from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from annot.annot import Annotations
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
+from qtpy.QtCore import Qt, Signal, Slot
+from qtpy.QtGui import QIntValidator
+from qtpy.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
 from widgets.tableModel import EditableTableModel
+from widgets.deleteableTableView import DeleteableTableView
 from timecode import Timecode
-from os.path import expanduser, getmtime, sep
+from os.path import expanduser, getmtime, basename
 from datetime import date, datetime
 from video.seqIo import seqIo_reader
+from video.mp4Io import mp4Io_reader
 import pymatreader as pmr
 import warnings
 # from caiman.utils.utils import load_dict_from_hdf5
@@ -78,6 +80,8 @@ class EditTrialDialog(QDialog):
                 data_list = [elem.toDict() for elem in results]
                 model = EditableTableModel(self, data_list, header)
                 self.setVideoModel(model)
+                if len(data_list) > 0:
+                    self.video_data = data_list[0] # needed by add_neural()
 
                 selectionModel = self.ui.videosFileTableView.selectionModel()
                 if updateTrialNum:
@@ -96,8 +100,14 @@ class EditTrialDialog(QDialog):
         """
         print(f"Add video file {file_path}")
         # Get various data from video file
+        ext = basename(file_path).rsplit('.', 1)[-1]
         try:
-            reader = seqIo_reader(file_path, buildTable=False)
+            if ext=='mp4'or ext=='avi':
+                reader = mp4Io_reader(file_path)
+            elif ext=='seq':
+                reader = seqIo_reader(file_path, buildTable=False)
+            else:
+                raise Exception(f"video format {ext} not supported.")
         except Exception:
             print(f"Error trying to open video file {file_path}")
             raise
@@ -112,17 +122,17 @@ class EditTrialDialog(QDialog):
         if file_path.startswith(baseDir):
             file_path = file_path[len(baseDir):]
 
-        this_camera = None
-        for camera in available_cameras:
-            if file_path.lower().find(camera[0].lower()) >= 0:
-                this_camera = camera[0]
+        this_camera_position = None
+        for camera_position in available_cameras:
+            if file_path.lower().find(camera_position[0].lower()) >= 0:
+                this_camera_position = camera_position[0]
                 break
         item = {
             'id': None,
             'file_path': file_path,
             'sample_rate': sample_rate,
             'start_time': start_time,
-            'camera': this_camera,
+            'camera_position': this_camera_position,
             'trial_id': self.trial_id,
             #TODO: pose_data?
             'dirty': True
@@ -151,13 +161,15 @@ class EditTrialDialog(QDialog):
             available_cameras = db_sess.execute(select(Camera.position)).all()
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
+        # Qt converts paths to platform-specific separators under the hood,
+        # so it's correct to use forward-slash ("/") here across all platforms
+        if not baseDir.endswith("/"):
+            baseDir += "/"
         videoFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Video Files to add to Trial",
             baseDir,
-            "Seq files (*.seq);;Generic video files (*.avi)",
+            "Seq files (*.seq);;mp4 files (*.mp4);;Generic video files (*.avi)",
             "Seq files (*.seq)")
         if len(videoFiles) > 0:
             for file_path in videoFiles:
@@ -168,7 +180,12 @@ class EditTrialDialog(QDialog):
         if model:
             for ix, entry in enumerate(iter(model)):
                 tableIndex = model.createIndex(ix, 0)
-                if model.isDirty(tableIndex):
+                if self.ui.videosFileTableView.isRowHidden(ix):
+                    # delete the entry from the DB
+                    print(f"Delete videos row {ix} from DB")
+                    if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
+                        db_sess.delete(trial.video_data[ix])
+                elif model.isDirty(tableIndex):
                     print(f"item at row {ix} is dirty")
                     if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
                         trial.video_data[ix].fromDict(entry, db_sess)
@@ -238,8 +255,10 @@ class EditTrialDialog(QDialog):
             start_time = self.video_data['start_time']
         else:
             sample_rate = 30.0
-            # get start time from file create time
-            start_time = datetime.fromtimestamp(getmtime(file_path))
+            # get start time (seconds from midnight) from file create time
+            create_time = datetime.fromtimestamp(getmtime(file_path))
+            create_day_midnight = datetime.fromordinal(create_time.toordinal())
+            start_time = create_time.timestamp() - create_day_midnight.timestamp()
         start_frame = 1
         stop_frame = data.shape[1]
 
@@ -278,8 +297,10 @@ class EditTrialDialog(QDialog):
                 baseDir = session.base_directory
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
+        # Qt converts paths to platform-specific separators under the hood,
+        # so it's correct to use forward-slash ("/") here across all platforms
+        if not baseDir.endswith("/"):
+            baseDir += "/"
         neuralFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Neural Files to add to Trial",
@@ -296,7 +317,12 @@ class EditTrialDialog(QDialog):
             for ix, entry in enumerate(iter(model)):
                 print(f"updateNeural ix = {ix}, entry = {entry}")
                 tableIndex = model.createIndex(ix, 0)
-                if model.isDirty(tableIndex):
+                if self.ui.neuralsTableView.isRowHidden(ix):
+                    # delete the entry from the DB
+                    print(f"Delete neural data row {ix} from DB")
+                    if ix < len(trial.neural_data) and trial.neural_data[ix].id == entry['id']:
+                        db_sess.delete(trial.neural_data[ix])
+                elif model.isDirty(tableIndex):
                     print(f"item at row {ix} is dirty")
                     if ix < len(trial.neural_data) and trial.neural_data[ix].id == entry['id']:
                         print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
@@ -380,9 +406,9 @@ class EditTrialDialog(QDialog):
             'file_path': file_path,
             'sample_rate': sample_rate,
             'format': annotations.format(),
-            'start_time': annotations.time_start().float,
-            'start_frame': annotations.time_start().frame_number,
-            'stop_frame': annotations.time_end().frame_number,
+            'start_time': self.bento.time_start.float,
+            'start_frame': annotations.start_frame(),
+            'stop_frame': annotations.end_frame(),
             'annotator_name': annotator_name,
             'method': "manual",
             'trial_id': self.trial_id,
@@ -405,7 +431,12 @@ class EditTrialDialog(QDialog):
             for ix, entry in enumerate(iter(model)):
                 print(f"updateAnnotations ix = {ix}, entry = {entry}")
                 tableIndex = model.createIndex(ix, 0)
-                if model.isDirty(tableIndex):
+                if self.ui.annotationsTableView.isRowHidden(ix):
+                    # delete the entry from the DB
+                    print(f"Delete annotation row {ix} from DB")
+                    if ix < len(trial.annotations) and trial.annotations[ix].id == entry['id']:
+                        db_sess.delete(trial.annotations[ix])
+                elif model.isDirty(tableIndex):
                     print(f"item at row {ix} is dirty")
                     if ix < len(trial.annotations) and trial.annotations[ix].id == entry['id']:
                         print(f"Existing db entry for id {entry['id']} at index {ix}; updating in place")
@@ -432,8 +463,10 @@ class EditTrialDialog(QDialog):
                 baseDir = session.base_directory
         if not baseDir:
             baseDir = expanduser("~")
-        if not baseDir.endswith(sep):
-            baseDir += sep
+        # Qt converts paths to platform-specific separators under the hood,
+        # so it's correct to use forward-slash ("/") here across all platforms
+        if not baseDir.endswith("/"):
+            baseDir += "/"
         annotationFiles, _ = QFileDialog.getOpenFileNames(
             self,
             "Select Annotation Files to add to Trial",

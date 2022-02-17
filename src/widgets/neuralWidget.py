@@ -3,10 +3,10 @@
 """
 
 from os import X_OK
-from PySide6.QtCore import Qt, QPointF, QRectF, Signal, Slot
-from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
+from qtpy.QtCore import Qt, QPointF, QRectF, Signal, Slot
+from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
     QGraphicsScene, QGraphicsView, QMessageBox)
-from PySide6.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
+from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent)
 import pymatreader as pmr
 from timecode import Timecode
@@ -21,16 +21,28 @@ class QGraphicsSubSceneItem(QGraphicsItem):
     allows annotations to be overlaid on top of other data.
     """
 
-    def __init__(self, subScene, parentScene):
+    def __init__(self, subScene, parentScene, subSceneView, annotations):
         super().__init__()
         self.subScene = subScene
         self.parentScene = parentScene
+        self.subSceneView = subSceneView
+        self.annotations = annotations
+        self.activeItem = 0.
         duration = min(self.parentScene.sceneRect().right(), self.subScene.sceneRect().right())
         targetRectF = QRectF(0., 0., duration, self.parentScene.height())
         sourceRectF = QRectF(0., 0., duration, 1.)
         self.transform = QTransform()
         self.transform.scale(1., targetRectF.height() / sourceRectF.height())
         self.subScene.changed.connect(self.updateScene)
+
+    @Slot(str)
+    def setActiveItem(self, chan):
+        if chan=='':
+            self.activeItem = 0.
+        else:
+            self.activeItem = self.annotations.channel(chan).top()
+
+        self.update()
 
     def boundingRect(self):
         rect = self.transform.mapRect(self.subScene.sceneRect()) if self.subScene else QRectF()
@@ -40,11 +52,12 @@ class QGraphicsSubSceneItem(QGraphicsItem):
         if self.subScene:
             duration = min(self.parentScene.sceneRect().right(), self.subScene.sceneRect().right())
             targetRectF = QRectF(0., 0., duration, self.parentScene.height())
-            sourceRectF = QRectF(0., 0., duration, 1.)
+            sourceRectF = QRectF(0., float(self.activeItem), duration, 1.)
             self.subScene.render(painter, target=targetRectF, source=sourceRectF, aspectRatioMode=Qt.IgnoreAspectRatio)
 
     @Slot()
     def updateScene(self):
+        self.subSceneView.setVScaleAndShow(self.subScene.sceneRect().height())
         self.update()
 
 class NeuralView(QGraphicsView):
@@ -67,6 +80,8 @@ class NeuralView(QGraphicsView):
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.verticalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.ticksScale = 1.
+        self.setInteractive(False)
+        self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
     def set_bento(self, bento):
         self.bento = bento
@@ -198,6 +213,7 @@ class NeuralScene(QGraphicsScene):
     Object allowing display of Calcium data along with annotations
     """
 
+    active_channel_changed = Signal(str)
     def __init__(self):
         super().__init__()
         self.setBackgroundBrush(QBrush(Qt.white))
@@ -206,6 +222,7 @@ class NeuralScene(QGraphicsScene):
         self.traces = QGraphicsItemGroup()
         self.heatmap = None
         self.annotations = None
+        self.activeChannel = None
 
     """
     .mat files can be either old-style (MatLab 7.2 and earlier), in which case we need to use
@@ -248,7 +265,9 @@ class NeuralScene(QGraphicsScene):
         self.heatmapImage.fill(Qt.white)
         for chan in range(self.num_chans):
             self.loadChannel(data, chan)
+
         self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
+
         # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
         # to the time scale
         transform = QTransform()
@@ -277,16 +296,18 @@ class NeuralScene(QGraphicsScene):
         pen = QPen()
         pen.setWidth(0)
         trace = QPainterPath()
+        trace.reserve(self.stop_frame - self.start_frame + 1)
         y = float(chan) + self.normalize(data[chan][self.start_frame])
         trace.moveTo(self.time_start.float, y)
+        time_start_float = self.time_start.float
         for ix in range(self.start_frame + 1, self.stop_frame):
-            t = Timecode(str(self.sample_rate), frames=ix - self.start_frame) + self.time_start
+            t = (ix - self.start_frame)/self.sample_rate + time_start_float
             val = self.normalize(data[chan][ix])
             # Add a section to the trace path
             y = float(chan) + val
             self.min_y = min(self.min_y, y)
             self.max_y = max(self.max_y, y)
-            trace.lineTo(t.float, y)
+            trace.lineTo(t, y)
             # Draw onto the heatmap
             hsv = QColor()
             hsv.setHsvF(self.clip(val), 1., 0.5, 0.5)
@@ -301,14 +322,20 @@ class NeuralScene(QGraphicsScene):
     def clip(self, val):
         return max(0., min(1., val))
 
-    def overlayAnnotations(self, annotationsScene, parentScene):
-        self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene)
+    def overlayAnnotations(self, annotationsScene, parentScene, annotationsView, annotations):
+        self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene, annotationsView, annotations)
         self.annotations.setZValue(-1.) # draw below neural data
+        self.active_channel_changed.connect(self.annotations.setActiveItem)
         self.addItem(self.annotations)
         transparentWhite = QColor(Qt.white)
         transparentWhite.setAlphaF(0.7)
         rectItem = self.addRect(QRectF(self.sceneRect()), brush=QBrush(transparentWhite))
         rectItem.setZValue(-1.) # draw below neural data
+
+    @Slot(str)
+    def setActiveChannel(self, chan):
+        self.activeChannel = chan
+        self.active_channel_changed.emit(self.activeChannel)
 
     @Slot(bool)
     def showTraces(self, enabled):

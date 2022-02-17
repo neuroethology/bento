@@ -49,24 +49,13 @@
      </item>
      <item>
       <widget class="QTableView" name="animalTableView">
+       <property name="selectionMode">
+        <enum>QAbstractItemView::SingleSelection</enum>
+       </property>
        <attribute name="horizontalHeaderStretchLastSection">
         <bool>true</bool>
        </attribute>
       </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="nicknameHorizontalLayout">
-     <item>
-      <widget class="QLabel" name="nicknameLabel">
-       <property name="text">
-        <string>Nickname: </string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="nicknameLineEdit"/>
      </item>
     </layout>
    </item>
@@ -85,6 +74,20 @@
         <string/>
        </property>
       </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="nicknameHorizontalLayout">
+     <item>
+      <widget class="QLabel" name="nicknameLabel">
+       <property name="text">
+        <string>Nickname: </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="nicknameLineEdit"/>
      </item>
     </layout>
    </item>
@@ -227,7 +230,7 @@
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Apply|QDialogButtonBox::Discard|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>
@@ -274,12 +277,12 @@
    <slot>update()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>214</x>
-     <y>388</y>
+     <x>321</x>
+     <y>585</y>
     </hint>
     <hint type="destinationlabel">
-     <x>214</x>
-     <y>204</y>
+     <x>321</x>
+     <y>302</y>
     </hint>
    </hints>
   </connection>

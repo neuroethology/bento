@@ -29,10 +29,13 @@ class Animal(Base):
     genotype = Column(String(128))  # genetic strain
     nickname = Column(String(128))  # investigator-specific identifier
     investigator_id = Column(Integer, ForeignKey('investigator.id'))
+    sessions = relationship("Session")
+    surgeries = relationship("Surgery",
+        cascade='all, delete, delete-orphan')
 
     def __repr__(self):
-        return "<Animal(nickname='%s', id='%d', dob='%s', sex='%s', genotype='%s')>" % (
-            self.nickname, self.animal_services_id, self.dob, self.sex, self.genotype)
+        return "<Animal(asid='%d', dnickname='%s', ob='%s', sex='%s', genotype='%s')>" % (
+            self.animal_services_id, self.nickname, self.dob, self.sex, self.genotype)
 
 class Investigator(Base):
     """ mapper for the investigator table """
@@ -45,6 +48,7 @@ class Investigator(Base):
     institution = Column(String(64))
     e_mail = Column(String(128))
     sessions = relationship('Session')
+    animals = relationship('Animal')
 
     def __repr__(self):
         return "<Investigator(user_name='%s', last_name='%s', first_name='%s', institution='%s', e_mail='%s')>" % (
@@ -60,6 +64,7 @@ class Camera(Base):
     model = Column(String(128))
     lens = Column(String(128))
     position = Column(String(128))
+    videos = relationship('VideoData', back_populates='camera')
 
     def __repr__(self):
         return "<Camera(id='%d', name='%s', model='%s', kebs='%s', position='%s')>" % (
@@ -131,10 +136,10 @@ class VideoData(Base):
     sample_rate = Column(Float)
     start_time = Column(Float)   # needs to be convertible to timecode
     camera_id = Column(Integer, ForeignKey('camera.id'))
-    camera = relationship('Camera')
     trial = Column(Integer, ForeignKey('trial.id'))
+    camera = relationship('Camera')
     pose_data = relationship('PoseData')
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera', 'trial_id']
+    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera_position', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -155,7 +160,7 @@ class VideoData(Base):
             'file_path': self.file_path,
             'sample_rate': self.sample_rate,
             'start_time': self.start_time,
-            'camera': self.camera.position,
+            'camera_position': self.camera.position,
             'trial_id': self.trial
             #TODO: camera?  pose_data?
         }
@@ -163,9 +168,9 @@ class VideoData(Base):
     def fromDict(self, d, db_sess):
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        camera = db_sess.query(Camera).where(func.lower(Camera.position) == func.lower(d['camera'])).scalar()
+        camera = db_sess.query(Camera).where(func.lower(Camera.position) == func.lower(d['camera_position'])).scalar()
         if not camera:
-            raise RuntimeError(f"No camera with position {d['camera']}")
+            raise RuntimeError(f"No camera with position {d['camera_position']}")
         if 'id' in d.keys() and d['id']:
             self.id = d['id']
         self.file_path = d['file_path']
@@ -219,7 +224,7 @@ class AnnotationsData(Base):
             'sample_rate': self.sample_rate,
             'format': self.format,
             'start_time': self.start_time,
-            'start_frame': self.start_time,
+            'start_frame': self.start_frame,
             'stop_frame': self.stop_frame,
             'annotator_name': self.annotator_name,
             'method': self.method,

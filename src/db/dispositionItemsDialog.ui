@@ -1,58 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>BehaviorsDialog</class>
- <widget class="QDialog" name="BehaviorsDialog">
+ <class>DispositionItemsDialog</class>
+ <widget class="QDialog" name="DispositionItemsDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>583</width>
-    <height>1027</height>
+    <width>400</width>
+    <height>300</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Behaviors</string>
+   <string>Dialog</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="buttonsHorizontalLayout">
-     <item>
-      <widget class="QCheckBox" name="hideInactiveBehaviorsCheckBox">
-       <property name="text">
-        <string>Hide inactive behaviors</string>
-       </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="addBehaviorPushButton">
-       <property name="text">
-        <string>Add New Behavior</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <widget class="QLabel" name="dispositionLabel">
+     <property name="text">
+      <string notr="true">TextLabel</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item>
-    <widget class="QTableView" name="behaviorsTableView">
-     <property name="alternatingRowColors">
-      <bool>true</bool>
-     </property>
-     <property name="textElideMode">
-      <enum>Qt::ElideNone</enum>
-     </property>
-     <property name="sortingEnabled">
-      <bool>true</bool>
-     </property>
-     <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-      <bool>true</bool>
-     </attribute>
-     <attribute name="horizontalHeaderStretchLastSection">
-      <bool>true</bool>
-     </attribute>
-    </widget>
+    <widget class="QComboBox" name="assignToComboBox"/>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -60,7 +36,7 @@
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Save</set>
+      <set>QDialogButtonBox::Cancel</set>
      </property>
      <property name="centerButtons">
       <bool>false</bool>
@@ -74,7 +50,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>BehaviorsDialog</receiver>
+   <receiver>DispositionItemsDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -90,7 +66,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>BehaviorsDialog</receiver>
+   <receiver>DispositionItemsDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

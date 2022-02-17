@@ -2,8 +2,8 @@
 
 from db.schema_sqlalchemy import Investigator
 from db.setInvestigatorDialog_ui import Ui_SetInvestigatorDialog
-from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QDialog
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import QDialog
 
 class SetInvestigatorDialog(QDialog):
 
@@ -32,7 +32,7 @@ class SetInvestigatorDialog(QDialog):
                         #TODO: put up alert box here to warn that there are duplicate investigators
                         pass
                 elif len(investigators) > 0:
-                    investigator = investigators[0].id
+                    investigator = investigators[0]
             print(f"setting investigator_id to {investigator.id}")
             self.investigator_id = investigator.id
             self.ui.investigatorComboBox.setCurrentText(investigator.user_name)

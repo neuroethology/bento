@@ -3,9 +3,9 @@
 from db.schema_sqlalchemy import Session, Animal
 from sqlalchemy import func
 from db.editSessionDialog_ui import Ui_EditSessionDialog
-from PySide6.QtCore import Signal, Slot, QItemSelectionModel
-from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import QDialog, QFileDialog, QAbstractItemView, QHeaderView
+from qtpy.QtCore import Signal, Slot, QItemSelectionModel
+from qtpy.QtGui import QIntValidator
+from qtpy.QtWidgets import QDialog, QFileDialog, QAbstractItemView, QHeaderView
 from widgets.tableModel import TableModel
 from os.path import expanduser
 from datetime import date
@@ -20,18 +20,20 @@ class EditSessionDialog(QDialog):
         self.bento = bento
         self.session_id = session_id
         self.investigator_id = investigator_id
+        selectedAnimal = None
         if session_id:
             with self.bento.db_sessionMaker() as db_sess:
                 session = db_sess.query(Session).filter(Session.id == session_id).scalar()
                 if session:
-                    self.investigator_id = session.id
+                    self.investigator_id = session.investigator_id
+                    selectedAnimal = session.animal_id
         self.ui = Ui_EditSessionDialog()
         self.ui.setupUi(self)
         self.quitting.connect(self.bento.quit)
         self.ui.selectBaseDirPushButton.clicked.connect(self.selectBaseDir)
         self.ui.sessionNumLineEdit.setValidator(QIntValidator())
 
-        self.populateAnimalTableView(not bool(session_id))
+        self.populateAnimalTableView(not bool(session_id), selectedAnimal)
         if session_id:
             with self.bento.db_sessionMaker() as db_sess:
                 session = db_sess.query(Session).filter(Session.id == session_id).scalar()
@@ -40,18 +42,23 @@ class EditSessionDialog(QDialog):
                     return
         self.ui.dateEdit.setDate(date.today())
 
-    def populateAnimalTableView(self, updateSessionNum):
+    def populateAnimalTableView(self, updateSessionNum, selectedAnimal=None):
         header = ['ID', 'Nickname', 'Animal Services ID', 'Date of Birth', 'Sex', 'Genotype']
+        selectedRow = None
         with self.bento.db_sessionMaker() as db_sess:
             results = db_sess.query(Animal).filter(Animal.investigator_id == self.investigator_id).all()
-            data_list = [(
-                elem.id,
-                elem.nickname,
-                str(elem.animal_services_id),
-                elem.dob.isoformat(),
-                elem.sex.value,
-                elem.genotype
-                ) for elem in results]
+            data_list = []
+            for ix, elem in enumerate(results):
+                data_list.append((
+                    elem.id,
+                    elem.nickname,
+                    str(elem.animal_services_id),
+                    elem.dob.isoformat(),
+                    elem.sex.value,
+                    elem.genotype
+                    ))
+                if selectedAnimal == elem.id:
+                    selectedRow = ix
         oldModel = self.ui.animalTableView.selectionModel()
         model = TableModel(self, data_list, header)
         self.ui.animalTableView.setModel(model)
@@ -61,6 +68,8 @@ class EditSessionDialog(QDialog):
         self.ui.animalTableView.setSortingEnabled(False)
         self.ui.animalTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ui.animalTableView.setAutoScroll(False)
+        if selectedRow != None:
+            self.ui.animalTableView.setCurrentIndex(model.index(selectedRow, 0))
         if oldModel:
             oldModel.deleteLater()
 

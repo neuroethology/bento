@@ -1,8 +1,8 @@
 # OpenFileDialog.py
 
-from PySide6.QtCore import *
-from PySide6.QtGui import *
-from PySide6.QtWidgets import *
+from qtpy.QtCore import *
+from qtpy.QtGui import *
+from qtpy.QtWidgets import *
 
 class FileDialog(QFileDialog):
     """

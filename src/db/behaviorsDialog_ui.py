@@ -8,11 +8,9 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import *  # type: ignore
-from PySide6.QtGui import *  # type: ignore
-from PySide6.QtWidgets import *  # type: ignore
-
-from db.behaviorsTableView import BehaviorsTableView
+from qtpy.QtCore import *  # type: ignore
+from qtpy.QtGui import *  # type: ignore
+from qtpy.QtWidgets import *  # type: ignore
 
 
 class Ui_BehaviorsDialog(object):
@@ -22,13 +20,23 @@ class Ui_BehaviorsDialog(object):
         BehaviorsDialog.resize(583, 1027)
         self.verticalLayout = QVBoxLayout(BehaviorsDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.buttonsHorizontalLayout = QHBoxLayout()
+        self.buttonsHorizontalLayout.setObjectName(u"buttonsHorizontalLayout")
         self.hideInactiveBehaviorsCheckBox = QCheckBox(BehaviorsDialog)
         self.hideInactiveBehaviorsCheckBox.setObjectName(u"hideInactiveBehaviorsCheckBox")
         self.hideInactiveBehaviorsCheckBox.setChecked(False)
 
-        self.verticalLayout.addWidget(self.hideInactiveBehaviorsCheckBox)
+        self.buttonsHorizontalLayout.addWidget(self.hideInactiveBehaviorsCheckBox)
 
-        self.behaviorsTableView = BehaviorsTableView(BehaviorsDialog)
+        self.addBehaviorPushButton = QPushButton(BehaviorsDialog)
+        self.addBehaviorPushButton.setObjectName(u"addBehaviorPushButton")
+
+        self.buttonsHorizontalLayout.addWidget(self.addBehaviorPushButton)
+
+
+        self.verticalLayout.addLayout(self.buttonsHorizontalLayout)
+
+        self.behaviorsTableView = QTableView(BehaviorsDialog)
         self.behaviorsTableView.setObjectName(u"behaviorsTableView")
         self.behaviorsTableView.setAlternatingRowColors(True)
         self.behaviorsTableView.setTextElideMode(Qt.ElideNone)
@@ -57,5 +65,6 @@ class Ui_BehaviorsDialog(object):
     def retranslateUi(self, BehaviorsDialog):
         BehaviorsDialog.setWindowTitle(QCoreApplication.translate("BehaviorsDialog", u"Behaviors", None))
         self.hideInactiveBehaviorsCheckBox.setText(QCoreApplication.translate("BehaviorsDialog", u"Hide inactive behaviors", None))
+        self.addBehaviorPushButton.setText(QCoreApplication.translate("BehaviorsDialog", u"Add New Behavior", None))
     # retranslateUi
 
