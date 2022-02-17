@@ -145,7 +145,32 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 1. Add a channel as mentioned in [Creating a new annotation channel](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Creating-a-new-annotation-channel)
 2. [Create new behaviors](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Creating-a-new-behavior) or [edit behavior properties](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Editing-behavior-properties) based on your requirement for adding annotations.
+3. For adding annotations, select the channel for which you need to add annotations.
+4. Click on the rectangular annotations view, press the **hot_key** corresponding to the behavior.
+5. After pressing the **hot_key**, drag the cursor in the view for the length of time you need to add an annotation.
+6. Press the same **hot_key** again. You will see an added annotation on the annotation view.
+7. Repeat steps 1-6, every time you need to add annotations.
+
+![alt-text](_gifs/adding_annotations.gif)
 
 ### Deleting annotations
 
+1. For deleting annotations, select the channel for which you need to delete the annotations.
+2. Click on the rectangular annotations view, press the **Back Space Key**.
+3. After pressing the **Back Space Key**, drag the cursor along the annotation which you want to delete.
+4. Press the **Back Space Key** again. You will see that annotation has been deleted.
+5. Repeat steps 1-4, every time you need to delete annotations.
+
+![alt-text](_gifs/deleting_annotations.gif)
+
 ### Saving annotations
+
+> Note : Assuming you have annotated a trial.
+
+1. Saving annotations is important so that you can use it in future.
+2. For saving annotations, click on **File** in the menu bar and then click on **Saving Annotations...** option
+3. A message box will appear saying "This will delete inactive behaviors". Click on **Save** button.
+4. Choose a path where you want to save it and give a name to a file. Bento will take .annot format by itself.
+5. Finally, click on **Save** button in the **Annotation File Name** dialog.
+
+![alt-text](_gifs/saving_annotations.gif)
