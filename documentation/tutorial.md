@@ -111,14 +111,14 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 1. Load a trial as mentioned in [Loading data from a trial](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Loading-data-from-a-trial).
 2. In the **Main Window**, click on **New Channel** button. **New Channel Dialog** will pop up.
 3. Add any relevant channel name in the **Channel Name** text box and click **OK** button.
-4. You will see a channel added in the drop down menu left to the **New Channel** button.
+4. You will see a channel added in the drop down box left to the **New Channel** button.
 5. You can add multiple channels for the same trial. Repeat steps 1-4, every time you need to add a channel.
 
 ![alt-text](_gifs/adding_annotation_channel.gif)
 
 ### Creating a new behavior
 
-1. In the **Behaviors** window, click on **Add New Behavior** button. There will be new row added in the table with name **New_Behavior**.
+1. In the **Behaviors** window, click on **Add New Behavior** button. There will be a new row added in the table with a name **New_Behavior**.
 2. Double click on the name and edit the name by giving a relevant name to a behavior.
 3. You can keep the **active** checkbox ticked if you are gonna use that behavior for annotation.
 4. Provide a **unique** character key in the **hot_key** cell if you are gonna use that behavior for annotation.
@@ -129,6 +129,15 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 ![alt-text](_gifs/adding_behavior.gif)
 
 ### Editing behavior properties
+
+1. In the **Behaviors** window, you can edit **hot_key**, **color**, **name** and **active** fields. Details about **visible** field is in section **Adding Annotations**.
+2. To edit **hot_key**, double click on the cell and edit the character key. Make sure to provide **unique** character keys to different behaviors.
+3. To edit **color**, double click on the cell and **Colors** dialog will pop up. Set a color of your choice.
+4. To edit **name**, double click on the cell and change the name based on your requirement.
+5. Tick checkbox **active** if you want use that behavior in the annotations.
+6. Click **Save** button after making all the edits.
+
+![alt-text](_gifs/editing_behavior.gif)
 
 ### Adding annotations
 
