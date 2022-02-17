@@ -108,9 +108,25 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 > Note : Assuming you are a loading a trial with no annotation file in it. You can also load a trial with an exisiing annotation file and do all the steps. 
 
-1. Load a trial as mentioned in [Loading data from a trial](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Loading-data-from-a-trial)
+1. Load a trial as mentioned in [Loading data from a trial](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Loading-data-from-a-trial).
+2. In the **Main Window**, click on **New Channel** button. **New Channel Dialog** will pop up.
+3. Add any relevant channel name in the **Channel Name** text box and click **OK** button.
+4. You will see a channel added in the drop down menu left to the **New Channel** button.
+5. You can add multiple channels for the same trial. Repeat steps 1-4, every time you need to add a channel.
+
+![alt-text](_gifs/adding_annotation_channel.gif)
 
 ### Creating a new behavior
+
+1. In the **Behaviors** window, click on **Add New Behavior** button. There will be new row added in the table with name **New_Behavior**.
+2. Double click on the name and edit the name by giving a relevant name to a behavior.
+3. You can keep the **active** checkbox ticked if you are gonna use that behavior for annotation.
+4. Provide a **unique** character key in the **hot_key** cell if you are gonna use that behavior for annotation.
+5. Double click on **color** cell and **Colors** dialog will pop up. Set a color of your choice for the behavior.
+6. Click **Save** button so that this added new behavior will pop up every time you launch Bento.
+7. You can add multiple behaviors. Repeat steps 1-6, every time you need to add a new behavior.
+
+![alt-text](_gifs/adding_behavior.gif)
 
 ### Editing behavior properties
 
