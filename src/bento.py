@@ -7,6 +7,7 @@ from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QApplication, QFileDialog, QMessageBox, QProgressDialog
 from annot.annot import Annotations, Bout
 from annot.behavior import Behaviors
+from pose.pose import load_poses
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
@@ -511,19 +512,22 @@ class Bento(QObject):
             time.sleep(3./30.)  # wait for threads to shut down
             QApplication.instance().quit()
 
-    def newVideoWidget(self, video_path):
+    def newVideoWidget(self, video_path: str) -> VideoFrame:
         video = VideoFrame(self)
         video.load_video(video_path)
         self.timeChanged.connect(video.updateFrame)
         self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
-    def newNeuralWidget(self, neuralData, base_dir):
+    def newNeuralWidget(self, neuralData, base_dir: str) -> NeuralFrame:
         neuralWidget = NeuralFrame(self)
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
         self.active_channel_changed.connect(neuralWidget.setActiveChannel)
         return neuralWidget
+
+    def load_poses(self, pose_path: str) -> object:
+        return None
 
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
@@ -531,7 +535,7 @@ class Bento(QObject):
         progressTotal = (
             len(videos) +
             (1 if annotation else 0) +
-            (1 if loadPose else 0) +
+            (len(videos) if loadPose else 0) +  # potentially one pose per video
             (1 if loadNeural else 0) +
             (1 if loadAudio else 0))
         progressCompleted = 0
@@ -556,6 +560,29 @@ class Bento(QObject):
                     path = video_data.file_path
                 widget = self.newVideoWidget(fix_path(path))
                 self.video_widgets.append(widget)
+                trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+                if loadPose:
+                    # if len(trial.pose_data) > 0:
+                    #     progress.setLabelText(f"Loading pose data for video #{ix}...")
+                    #     progress.setValue(progressCompleted)
+                    #     pose_data = self.load_pose_data()
+                    #     if pose_data:
+                    #         for pose_item in pose_data:
+                    #             if pose_item.id == video_data.id:
+                    #                 if not isabs(pose_item.file_path):
+                    #                     pose_path = base_dir + pose_item.file_path
+                    #                 else:
+                    #                     pose_path = pose_item.file_path
+                    #                 pose_keypoints = self.load_pose_data(pose_path)
+                    #                 widget.setPoseData(pose_keypoints)
+                    #                 break
+                    #     progressCompleted += 1
+                    # else:
+                    #     print("No pose data in trial to load.")
+                    pose_path = '/Users/drumph/Develop/bento/test_data/Bento_test_data/180222_Esr1_457/output_v1_7/Mouse457_20180222_18-06-26/Mouse457_20180222_18-06-26_pose_top_v1_7.mat'
+                    pose_keypoints = load_poses(self.mainWindow, pose_path)
+                    widget.set_pose_data(pose_keypoints)
+
                 qr = widget.frameGeometry()
                 # qr.moveCenter(self.screen_center + spacing)
                 qr.moveCenter(self.screen_center)
@@ -578,7 +605,6 @@ class Bento(QObject):
             progress.setLabelText("Loading annotations...")
             progress.setValue(progressCompleted)
             self.load_or_init_annotations(annot_path, sample_rate, runningTime)
-            progressCompleted += 1
             # try:
             #     self.load_or_init_annotations(annot_path, sample_rate, runningTime)
             # except Exception as e:
@@ -588,16 +614,10 @@ class Bento(QObject):
             #         widget.close()
             #     self.video_widgets.clear()
             #     return False
+            progressCompleted += 1
             self.noteAnnotationsChanged(self.time_start, self.time_end)
-            if loadPose:
-                print("Load pose data if any")
-                progress.setLabelText("Loading pose data...")
-                progress.setValue(progressCompleted)
-                # if self.trial_id.pose_data:
-                #     print(f"Load pose from {self.trial_id.pose_data[0].file_path}")
-                # else:
-                #     print("No pose data in trial.")
-                progressCompleted += 1
+
+            # load neural data
             if loadNeural:
                 with self.db_sessionMaker() as db_sess:
                     trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
