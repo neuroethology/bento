@@ -21,26 +21,30 @@ class VideoScene(QGraphicsScene):
         self.annots = None
         self.pose_keypoints = None
         self.pose_polys = None
+        self.pose_frame_ix = 0
+        self.pose_colors = [Qt.blue, Qt.green]
 
     def setAnnots(self, annots):
         self.annots = annots
 
-    def setPose(self, pose_polys):
+    def setPosePolys(self, pose_polys):
         self.pose_polys = pose_polys
 
-    def drawPose(self, painter, color, poly):
-        painter.setPen(QPen(color, 2.0))
-        painter.drawPolyline(poly)
-        painter.setBrush(Qt.red)
-        painter.setPen(Qt.NoPen)
-        painter.drawEllipse(poly.first(), 5.0, 5.0) # red dot on nose
+    def setPoseFrameIx(self, ix):
+        self.pose_frame_ix = ix
+
+    def drawPoses(self, painter):
+        if self.pose_polys:
+            for mouse_ix in range(len(self.pose_polys[self.pose_frame_ix])):
+                painter.setPen(QPen(self.pose_colors[mouse_ix], 2.0))
+                painter.drawPolyline(self.pose_polys[self.pose_frame_ix][mouse_ix])
+                painter.setBrush(Qt.red)
+                painter.setPen(Qt.NoPen)
+                painter.drawEllipse(self.pose_polys[self.pose_frame_ix][mouse_ix].first(), 5.0, 5.0) # red dot on nose
 
     def drawForeground(self, painter, rect):
         # add poses
-        colors = [Qt.blue, Qt.green]
-        if self.pose_polys:
-            for mouse_ix in range(len(self.pose_polys)):
-                self.drawPose(painter, colors[mouse_ix], self.pose_polys[mouse_ix])
+        self.drawPoses(painter)
         # add annotations
         font = painter.font()
         pointSize = font.pointSize()+10
@@ -89,8 +93,7 @@ class VideoFrame(QFrame):
         self.aspect_ratio = 1.
 
         # data related to pose
-        self.pose_keypoints = None
-        self.pose_polys = None
+        self.pose_polys_frames = 0
 
     def resizeEvent(self, event):
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
@@ -124,7 +127,8 @@ class VideoFrame(QFrame):
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
     def set_pose_data(self, pose_polys):
-        self.pose_polys = pose_polys
+        self.scene.setPosePolys(pose_polys)
+        self.pose_polys_frames = len(pose_polys)
 
     def sample_rate(self):
         if not self.reader:
@@ -177,10 +181,9 @@ class VideoFrame(QFrame):
         else:
             raise Exception(f"video format {self.ext} not supported")
 
-        if self.pose_polys:
-            # get the pose for this frame and set it into the scene
-            pose_frame = min(myTc.frames, len(self.pose_polys))
-            self.scene.setPose(self.pose_polys[pose_frame])
+        if self.pose_polys_frames > 0:
+            # get the frame number for this frame and set it into the scene
+            self.scene.setPoseFrameIx(min(myTc.frames, self.pose_polys_frames))
 
         if isinstance(self.scene, VideoScene):
             self.scene.setAnnots(self.active_annots)
