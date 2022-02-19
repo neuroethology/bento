@@ -20,38 +20,27 @@ class VideoScene(QGraphicsScene):
         super().__init__(parent)
         self.annots = None
         self.pose_keypoints = None
+        self.pose_polys = None
 
     def setAnnots(self, annots):
         self.annots = annots
 
-    def setPose(self, pose_keypoints):
-        self.pose_keypoints = pose_keypoints
+    def setPose(self, pose_polys):
+        self.pose_polys = pose_polys
 
-    def drawPose(self, painter, color, pose_x, pose_y):
-        nose = QPointF(pose_x[0], pose_y[0])
-        poly = QPolygonF()
-        poly.append(nose)    # nose
-        poly.append(QPointF(pose_x[1], pose_y[1]))    # left ear
-        poly.append(QPointF(pose_x[3], pose_y[3]))    # neck
-        poly.append(QPointF(pose_x[4], pose_y[4]))    # left hip
-        poly.append(QPointF(pose_x[6], pose_y[6]))    # tail
-        poly.append(QPointF(pose_x[5], pose_y[5]))    # right hip
-        poly.append(QPointF(pose_x[3], pose_y[3]))    # neck
-        poly.append(QPointF(pose_x[2], pose_y[2]))    # right ear
-        poly.append(nose)    # nose
+    def drawPose(self, painter, color, poly):
         painter.setPen(QPen(color, 2.0))
         painter.drawPolyline(poly)
         painter.setBrush(Qt.red)
         painter.setPen(Qt.NoPen)
-        painter.drawEllipse(nose, 5.0, 5.0) # red dot on nose
+        painter.drawEllipse(poly.first(), 5.0, 5.0) # red dot on nose
 
     def drawForeground(self, painter, rect):
         # add poses
         colors = [Qt.blue, Qt.green]
-        if isinstance(self.pose_keypoints, np.ndarray):
-            for mouse_ix in range(len(self.pose_keypoints)):
-                pose = self.pose_keypoints[mouse_ix]
-                self.drawPose(painter, colors[mouse_ix], pose[0], pose[1])
+        if self.pose_polys:
+            for mouse_ix in range(len(self.pose_polys)):
+                self.drawPose(painter, colors[mouse_ix], self.pose_polys[mouse_ix])
         # add annotations
         font = painter.font()
         pointSize = font.pointSize()+10
@@ -101,6 +90,7 @@ class VideoFrame(QFrame):
 
         # data related to pose
         self.pose_keypoints = None
+        self.pose_polys = None
 
     def resizeEvent(self, event):
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
@@ -133,8 +123,8 @@ class VideoFrame(QFrame):
         self.updateFrame(self.bento.current_time)
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
-    def set_pose_data(self, pose_keypoints):
-        self.pose_keypoints = pose_keypoints
+    def set_pose_data(self, pose_polys):
+        self.pose_polys = pose_polys
 
     def sample_rate(self):
         if not self.reader:
@@ -187,10 +177,10 @@ class VideoFrame(QFrame):
         else:
             raise Exception(f"video format {self.ext} not supported")
 
-        if isinstance(self.pose_keypoints, np.ndarray):
+        if self.pose_polys:
             # get the pose for this frame and set it into the scene
-            pose_frame = min(myTc.frames, len(self.pose_keypoints))
-            self.scene.setPose(self.pose_keypoints[pose_frame])
+            pose_frame = min(myTc.frames, len(self.pose_polys))
+            self.scene.setPose(self.pose_polys[pose_frame])
 
         if isinstance(self.scene, VideoScene):
             self.scene.setAnnots(self.active_annots)

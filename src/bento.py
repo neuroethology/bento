@@ -573,15 +573,18 @@ class Bento(QObject):
                     #                     pose_path = base_dir + pose_item.file_path
                     #                 else:
                     #                     pose_path = pose_item.file_path
-                    #                 pose_keypoints = self.load_pose_data(pose_path)
-                    #                 widget.setPoseData(pose_keypoints)
+                    #                 pose_polys = load_poses(self.mainWindow, pose_path)
+                    #                 widget.set_pose_data(pose_polys)
                     #                 break
                     #     progressCompleted += 1
                     # else:
                     #     print("No pose data in trial to load.")
-                    pose_path = '/Users/drumph/Develop/bento/test_data/Bento_test_data/180222_Esr1_457/output_v1_7/Mouse457_20180222_18-06-26/Mouse457_20180222_18-06-26_pose_top_v1_7.mat'
-                    pose_keypoints = load_poses(self.mainWindow, pose_path)
-                    widget.set_pose_data(pose_keypoints)
+
+                    # temporary path hack till database and gui stuff is done
+                    if 'top' in path.lower():
+                        pose_path = '/Users/drumph/Develop/bento/test_data/Bento_test_data/180222_Esr1_457/output_v1_7/Mouse457_20180222_18-06-26/Mouse457_20180222_18-06-26_pose_top_v1_7.mat'
+                        pose_polys = load_poses(self.mainWindow, pose_path)
+                        widget.set_pose_data(pose_polys)
 
                 qr = widget.frameGeometry()
                 # qr.moveCenter(self.screen_center + spacing)
