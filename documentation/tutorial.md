@@ -15,7 +15,7 @@ Bento constructs a database that keeps track of your data files. You can choose 
 ### Setting up a private database
 
 1. When you launch Bento for the first time, a **Config** dialog box will pop up with **Use Private Database** checkbox checked.
-2. To set up private database, keep the checkbox checked and click **Save*** button.
+2. To set up private database, keep the checkbox checked and click **Save** button.
 3. It will create a database in your local machine.
 
 ![alt-text](_gifs/setting_private_database.gif)
