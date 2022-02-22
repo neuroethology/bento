@@ -1,7 +1,7 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
-from qtpy.QtCore import Signal, Slot
+from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtWidgets import QFrame
 import time
 from timecode import Timecode
@@ -14,6 +14,7 @@ class NeuralFrame(QFrame):
     openReader = Signal(str)
     quitting = Signal()
     neuralSceneUpdated = Signal()
+    active_channel_changed = Signal(str)
 
     def __init__(self, bento):
         # super(NeuralDockWidget, self).__init__()
@@ -25,6 +26,7 @@ class NeuralFrame(QFrame):
         bento.quitting.connect(self.close)
         self.quitting.connect(self.bento.quit)
         self.neuralScene = NeuralScene()
+        self.active_channel_changed.connect(self.neuralScene.setActiveChannel)
         self.ui.neuralView.setScene(self.neuralScene)
         self.ui.neuralView.set_bento(bento)
         self.ui.neuralView.scale(10., self.ui.neuralView.height())
@@ -35,7 +37,11 @@ class NeuralFrame(QFrame):
         self.ui.annotationsView.set_bento(bento)
         self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
+        self.ui.annotationsView.setVScaleAndShow(bento.annotationsScene.sceneRect().height())
         self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
+        bento.annotationsSceneHeightChanged.connect(self.ui.annotationsView.setVScaleAndShow)
+        self.annotations = self.bento.annotations
+        self.activeChannel = None 
 
     def load(self, neuralData, base_dir):
         if isabs(neuralData.file_path):
@@ -60,7 +66,14 @@ class NeuralFrame(QFrame):
         self.updateTime(self.bento.time_start)
 
     def overlayAnnotations(self, annotationsScene):
-        self.neuralScene.overlayAnnotations(annotationsScene, self.neuralScene)
+        self.neuralScene.overlayAnnotations(annotationsScene, 
+                                            self.neuralScene,
+                                            self.annotations)
+
+    @Slot(str)
+    def setActiveChannel(self, chan):
+        self.activeChannel = chan
+        self.active_channel_changed.emit(self.activeChannel)
 
     @Slot(Timecode)
     def updateTime(self, t):

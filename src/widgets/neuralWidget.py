@@ -21,16 +21,27 @@ class QGraphicsSubSceneItem(QGraphicsItem):
     allows annotations to be overlaid on top of other data.
     """
 
-    def __init__(self, subScene, parentScene):
+    def __init__(self, subScene, parentScene, annotations):
         super().__init__()
         self.subScene = subScene
         self.parentScene = parentScene
+        self.annotations = annotations
+        self.activeItem = 0.
         duration = min(self.parentScene.sceneRect().right(), self.subScene.sceneRect().right())
         targetRectF = QRectF(0., 0., duration, self.parentScene.height())
         sourceRectF = QRectF(0., 0., duration, 1.)
         self.transform = QTransform()
         self.transform.scale(1., targetRectF.height() / sourceRectF.height())
         self.subScene.changed.connect(self.updateScene)
+
+    @Slot(str)
+    def setActiveItem(self, chan):
+        if chan=='':
+            self.activeItem = 0.
+        else:
+            self.activeItem = self.annotations.channel(chan).top()
+
+        self.update()
 
     def boundingRect(self):
         rect = self.transform.mapRect(self.subScene.sceneRect()) if self.subScene else QRectF()
@@ -40,7 +51,7 @@ class QGraphicsSubSceneItem(QGraphicsItem):
         if self.subScene:
             duration = min(self.parentScene.sceneRect().right(), self.subScene.sceneRect().right())
             targetRectF = QRectF(0., 0., duration, self.parentScene.height())
-            sourceRectF = QRectF(0., 0., duration, 1.)
+            sourceRectF = QRectF(0., float(self.activeItem), duration, 1.)
             self.subScene.render(painter, target=targetRectF, source=sourceRectF, aspectRatioMode=Qt.IgnoreAspectRatio)
 
     @Slot()
@@ -200,6 +211,7 @@ class NeuralScene(QGraphicsScene):
     Object allowing display of Calcium data along with annotations
     """
 
+    active_channel_changed = Signal(str)
     def __init__(self):
         super().__init__()
         self.setBackgroundBrush(QBrush(Qt.white))
@@ -208,6 +220,7 @@ class NeuralScene(QGraphicsScene):
         self.traces = QGraphicsItemGroup()
         self.heatmap = None
         self.annotations = None
+        self.activeChannel = None
 
     """
     .mat files can be either old-style (MatLab 7.2 and earlier), in which case we need to use
@@ -307,14 +320,20 @@ class NeuralScene(QGraphicsScene):
     def clip(self, val):
         return max(0., min(1., val))
 
-    def overlayAnnotations(self, annotationsScene, parentScene):
-        self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene)
+    def overlayAnnotations(self, annotationsScene, parentScene, annotations):
+        self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene, annotations)
         self.annotations.setZValue(-1.) # draw below neural data
+        self.active_channel_changed.connect(self.annotations.setActiveItem)
         self.addItem(self.annotations)
         transparentWhite = QColor(Qt.white)
         transparentWhite.setAlphaF(0.7)
         rectItem = self.addRect(QRectF(self.sceneRect()), brush=QBrush(transparentWhite))
         rectItem.setZValue(-1.) # draw below neural data
+
+    @Slot(str)
+    def setActiveChannel(self, chan):
+        self.activeChannel = chan
+        self.active_channel_changed.emit(self.activeChannel)
 
     @Slot(bool)
     def showTraces(self, enabled):

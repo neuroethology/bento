@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
         self.ui.annotationsView.setScene(bento.annotationsScene)
         bento.annotationsScene.sceneRectChanged.connect(self.ui.annotationsView.update)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
+        bento.annotationsSceneHeightChanged.connect(self.ui.annotationsView.setVScaleAndShow)
         self.populateChannelsCombo()
         self.ui.channelComboBox.currentTextChanged.connect(bento.setActiveChannel)
         self.ui.newChannelPushButton.clicked.connect(bento.newChannel)
@@ -142,6 +143,9 @@ class MainWindow(QMainWindow):
     def populateChannelsCombo(self):
         for chanName in self.bento.annotations.channel_names():
             self.ui.channelComboBox.addItem(chanName)
+
+    def clearChannelsCombo(self):
+        self.ui.channelComboBox.clear()
 
     @Slot(str)
     def selectChannelByName(self, chanName):

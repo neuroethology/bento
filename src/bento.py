@@ -10,7 +10,7 @@ from annot.behavior import Behaviors
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
-from db.schema_sqlalchemy import Investigator, Session, Trial, new_session, create_tables
+from db.schema_sqlalchemy import AnnotationsData, Investigator, Session, Trial, new_session, create_tables
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
@@ -22,7 +22,7 @@ from db.behaviorsDialog import BehaviorsDialog
 from db.bento_xls import import_bento_xls_file
 from neural.neuralFrame import NeuralFrame
 from channelDialog import ChannelDialog
-from os.path import expanduser, isabs, sep
+from os.path import expanduser, isabs, sep, relpath, splitext
 from utils import fix_path, padded_rectf
 import sys, traceback, time
 
@@ -115,7 +115,7 @@ class Bento(QObject):
                 self.config.password(),
                 self.config.host(),
                 self.config.port(),
-                self.config.usePrivateDB)
+                self.config.usePrivateDB())
         except Exception as e:
             print(f"Caught Exception {e}.  Probably config data invalid")
             QMessageBox.about(self.mainWindow, "Error", f"Config data invalid.  {e}")
@@ -132,19 +132,25 @@ class Bento(QObject):
 
     def load_or_init_annotations(self, fn, sample_rate = 30., running_time = None):
         self.annotationsScene.setSampleRate(sample_rate)
+        self.annotations.clear_channels()
+        self.active_channels.clear()
+        self.mainWindow.clearChannelsCombo()
         loaded = False
         if isinstance(fn, str) and len(fn) > 0:
             print(f"Try loading annotations from {fn}")
             try:
+                self.annotationsScene.clear()
                 self.annotations.read(fn)
                 if self.annotations.channel_names():
                     self.mainWindow.addChannelToCombo(self.annotations.channel_names())
                     print(f"channel_names: {self.annotations.channel_names()}")
                     self.setActiveChannel(self.annotations.channel_names()[0])
                 self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
-                self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()))
-                self.time_start = self.annotations.time_start()
-                self.time_end = self.annotations.time_end()
+                height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
+                self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()) + QMarginsF(0., 0., 0., float(height)))
+                self.annotationsSceneHeightChanged.emit(float(self.annotationsScene.sceneRect().height()))
+                self.time_start = self.annotations.start_time()
+                self.time_end = self.annotations.end_time()
                 loaded = True
             except Exception as e:
                 pass
@@ -152,9 +158,15 @@ class Bento(QObject):
                 traceback.print_exc()
         if not loaded:
             print("Initializing new annotations")
-            self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 0.)))
+            self.active_channels.clear()
+            self.annotationsScene.clear()
+            self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 1.)))
             self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
+            self.annotations.set_sample_rate(sample_rate)
+            self.annotations.set_start_frame(self.time_start)
+            self.annotations.set_end_frame(self.time_end)
             self.newAnnotations = True
+            self.annotationsScene.loaded = True
         self.annotations.active_annotations_changed.connect(self.noteAnnotationsChanged)
         self.set_time(self.time_start)
 
@@ -168,7 +180,13 @@ class Bento(QObject):
         if chanName not in self.annotations.channel_names():
             self.annotations.addEmptyChannel(chanName)
             self.mainWindow.addChannelToCombo(chanName)
-            self.annotationsScene.setSceneRect(self.annotationsScene.sceneRect() + QMarginsF(0., 0., 0., 1.))
+            self.annotationsScene.addItem(self.annotations.channel(chanName))
+            self.annotations.channel(chanName).set_top(float(len(self.annotations.channel_names())-1.))
+            height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
+            self.annotationsScene.setSceneRect(self.annotationsScene.sceneRect() + QMarginsF(0., 0., 0., float(height)))
+            self.annotationsScene.height = self.annotationsScene.sceneRect().height()
+            self.annotationsSceneHeightChanged.emit(float(self.annotationsScene.sceneRect().height()))
+            self.setActiveChannel(chanName)
 
     @Slot()
     def setActiveChannel(self, chanName):
@@ -207,6 +225,7 @@ class Bento(QObject):
             buttons=QMessageBox.Save | QMessageBox.Cancel)
         result = msgBox.exec()
         if result == QMessageBox.Save:
+            self.annotations.ensure_active_behaviors()
             self.annotations.delete_inactive_bouts()
             with self.db_sessionMaker() as db_sess:
                 base_directory = db_sess.query(Session).filter(Session.id == self.session_id).one().base_directory
@@ -215,18 +234,46 @@ class Bento(QObject):
                 caption="Annotation File Name",
                 dir=base_directory)
             if fileName:
+                # ensure a ".annot" extension
+                _, ext = splitext(fileName)
+                if ext != ".annot":
+                    fileName += ".annot"
                 with self.db_sessionMaker() as db_sess:
                     trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+                    self.annotations.set_sample_rate(
+                        trial.video_data[0].sample_rate if len(trial.video_data) > 0 else 30.0)
+                    # The following will need to change when video and annotation frame rates can be different
+                    self.annotations.set_start_frame(self.time_start)
+                    self.annotations.set_end_frame(self.time_end)
+                    self.annotations.set_format("Caltech")
                     with open(fileName, 'w') as file:
                         self.annotations.write_caltech(
                             file,
                             [video_data.file_path for video_data in trial.video_data],
                             trial.stimulus
                             )
-                    if self.newAnnotations:
-                        db_sess.add(self.annotations)
+                    # Is the annotation filename a new one, or does it exist already?
+                    existingAnnot = None
+                    for annot in trial.annotations:
+                        if annot.file_path == fileName:
+                            existingAnnot = annot
+                            break
+                    if self.newAnnotations or not existingAnnot:
+                        investigator = db_sess.query(Investigator).filter(Investigator.id == self.investigator_id).one()
+                        # For unknown reasons, using self.annotations.time_start() behaves differently than self.time_start
+                        newAnnot = AnnotationsData()
+                        newAnnot.file_path = relpath(fileName, base_directory)
+                        newAnnot.sample_rate = self.annotations.sample_rate()
+                        newAnnot.format = self.annotations.format()
+                        newAnnot.start_time = self.time_start.float
+                        newAnnot.start_frame = self.time_start.frame_number
+                        newAnnot.stop_frame = self.time_end.frame_number
+                        newAnnot.annotator_name = investigator.user_name
+                        newAnnot.method = "manual"
+                        newAnnot.trial_id = self.trial_id
+                        db_sess.add(newAnnot)
                         db_sess.commit()
-                        trial.annotations.append(self.annotations)
+                        trial.annotations.append(newAnnot)
                         db_sess.commit()
                         self.newAnnotations = False
 
@@ -475,6 +522,7 @@ class Bento(QObject):
         neuralWidget = NeuralFrame(self)
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
+        self.active_channel_changed.connect(neuralWidget.setActiveChannel)
         return neuralWidget
 
     @Slot()
@@ -609,6 +657,7 @@ class Bento(QObject):
     timeChanged = Signal(Timecode)
     currentAnnotsChanged = Signal(list)
     active_channel_changed = Signal(str)
+    annotationsSceneHeightChanged = Signal(float)
 
 if __name__ == "__main__":
     # Create the Qt Application
