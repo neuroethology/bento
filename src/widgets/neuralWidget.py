@@ -21,11 +21,10 @@ class QGraphicsSubSceneItem(QGraphicsItem):
     allows annotations to be overlaid on top of other data.
     """
 
-    def __init__(self, subScene, parentScene, subSceneView, annotations):
+    def __init__(self, subScene, parentScene, annotations):
         super().__init__()
         self.subScene = subScene
         self.parentScene = parentScene
-        self.subSceneView = subSceneView
         self.annotations = annotations
         self.activeItem = 0.
         duration = min(self.parentScene.sceneRect().right(), self.subScene.sceneRect().right())
@@ -57,7 +56,6 @@ class QGraphicsSubSceneItem(QGraphicsItem):
 
     @Slot()
     def updateScene(self):
-        self.subSceneView.setVScaleAndShow(self.subScene.sceneRect().height())
         self.update()
 
 class NeuralView(QGraphicsView):
@@ -322,8 +320,8 @@ class NeuralScene(QGraphicsScene):
     def clip(self, val):
         return max(0., min(1., val))
 
-    def overlayAnnotations(self, annotationsScene, parentScene, annotationsView, annotations):
-        self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene, annotationsView, annotations)
+    def overlayAnnotations(self, annotationsScene, parentScene, annotations):
+        self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene, annotations)
         self.annotations.setZValue(-1.) # draw below neural data
         self.active_channel_changed.connect(self.annotations.setActiveItem)
         self.addItem(self.annotations)
