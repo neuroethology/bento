@@ -523,7 +523,6 @@ class Bento(QObject):
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
         self.active_channel_changed.connect(neuralWidget.setActiveChannel)
-        self.annotationsSceneHeightChanged.emit(float(self.annotationsScene.sceneRect().height()))
         return neuralWidget
 
     @Slot()
