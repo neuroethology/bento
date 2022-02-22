@@ -149,7 +149,7 @@ class Bento(QObject):
                 self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
                 height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
                 self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()) + QMarginsF(0., 0., 0., float(height)))
-                self.mainWindow.ui.annotationsView.setVScaleAndShow(float(len(self.annotations.channel_names())))
+                self.annotationsSceneHeightChanged.emit(float(self.annotationsScene.sceneRect().height()))
                 self.time_start = self.annotations.start_time()
                 self.time_end = self.annotations.end_time()
                 loaded = True
@@ -186,7 +186,7 @@ class Bento(QObject):
             height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
             self.annotationsScene.setSceneRect(self.annotationsScene.sceneRect() + QMarginsF(0., 0., 0., float(height)))
             self.annotationsScene.height = self.annotationsScene.sceneRect().height()
-            self.mainWindow.ui.annotationsView.setVScaleAndShow(float(len(self.annotations.channel_names())))
+            self.annotationsSceneHeightChanged.emit(float(self.annotationsScene.sceneRect().height()))
             self.setActiveChannel(chanName)
 
     @Slot()
@@ -680,6 +680,7 @@ class Bento(QObject):
     timeChanged = Signal(Timecode)
     currentAnnotsChanged = Signal(list)
     active_channel_changed = Signal(str)
+    annotationsSceneHeightChanged = Signal(float)
 
 if __name__ == "__main__":
     # Create the Qt Application
