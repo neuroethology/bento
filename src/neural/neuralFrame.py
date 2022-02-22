@@ -37,8 +37,8 @@ class NeuralFrame(QFrame):
         self.ui.annotationsView.set_bento(bento)
         self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
-        self.ui.annotationsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
+        bento.annotationsSceneHeightChanged.connect(self.ui.annotationsView.setVScaleAndShow)
         self.annotations = self.bento.annotations
         self.activeChannel = None 
 
@@ -67,7 +67,6 @@ class NeuralFrame(QFrame):
     def overlayAnnotations(self, annotationsScene):
         self.neuralScene.overlayAnnotations(annotationsScene, 
                                             self.neuralScene,
-                                            self.ui.annotationsView,
                                             self.annotations)
 
     @Slot(str)

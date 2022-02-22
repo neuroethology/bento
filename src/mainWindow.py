@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
         self.ui.annotationsView.setScene(bento.annotationsScene)
         bento.annotationsScene.sceneRectChanged.connect(self.ui.annotationsView.update)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
+        bento.annotationsSceneHeightChanged.connect(self.ui.annotationsView.setVScaleAndShow)
         self.populateChannelsCombo()
         self.ui.channelComboBox.currentTextChanged.connect(bento.setActiveChannel)
         self.ui.newChannelPushButton.clicked.connect(bento.newChannel)
