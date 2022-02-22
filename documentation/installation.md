@@ -1,6 +1,6 @@
 # Installation
 
-Bento requires Python version XX or above, and can be run on Windows, MacOS, or Linux.
+Bento requires Python version 3.6 or above, and can be run on Windows, MacOS, or Linux.
 
 **Follow the instructions below to install Bento :** <br>
 
