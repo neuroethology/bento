@@ -155,13 +155,15 @@ class VideoData(Base):
         return self.keys
 
     def toDict(self):
+        pose_data = [elem.toDict() for elem in self.pose_data]
         return {
             'id': self.id,
             'file_path': self.file_path,
             'sample_rate': self.sample_rate,
             'start_time': self.start_time,
             'camera_position': self.camera.position,
-            'trial_id': self.trial
+            'trial_id': self.trial,
+            'pose_data': pose_data
             #TODO: camera?  pose_data?
         }
 

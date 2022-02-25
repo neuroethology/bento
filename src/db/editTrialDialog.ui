@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>774</width>
-    <height>728</height>
+    <width>778</width>
+    <height>538</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Add or Edit Trial</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,3,2,2,1,1,0">
    <item>
     <layout class="QHBoxLayout" name="generalInfoHorizontalLayout">
      <item>
@@ -52,7 +52,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="videosHorizontalLayout">
+    <layout class="QHBoxLayout" name="videosHorizontalLayout" stretch="0,0,0">
      <item>
       <widget class="QLabel" name="videosLabel">
        <property name="minimumSize">
@@ -70,7 +70,7 @@
       </widget>
      </item>
      <item>
-      <widget class="DeleteableTableView" name="videosFileTableView"/>
+      <widget class="QTreeView" name="videosTreeView"/>
      </item>
      <item>
       <layout class="QVBoxLayout" name="videosSearchVerticalLayout">
@@ -140,53 +140,6 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="posesHorizontalLayout">
-     <item>
-      <widget class="QLabel" name="posesLabel">
-       <property name="minimumSize">
-        <size>
-         <width>103</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Pose Files: </string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="DeleteableTableView" name="posesTableView"/>
-     </item>
-     <item>
-      <layout class="QVBoxLayout" name="posesSearchVerticalLayout">
-       <item>
-        <widget class="QPushButton" name="posesSearchPushButton">
-         <property name="text">
-          <string>Search...</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="posesSearchVerticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </item>
-   <item>
     <layout class="QHBoxLayout" name="neuralsHorizontalLayout">
      <item>
       <widget class="QLabel" name="neuralsLabel">
@@ -237,6 +190,9 @@
     <layout class="QHBoxLayout" name="audiosHorizontalLayout">
      <item>
       <widget class="QLabel" name="audiosLabel">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="minimumSize">
         <size>
          <width>103</width>
@@ -252,12 +208,19 @@
       </widget>
      </item>
      <item>
-      <widget class="QTreeView" name="audiosTreeView"/>
+      <widget class="QTreeView" name="audiosTreeView">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QVBoxLayout" name="audiosSearchVerticalLayout">
        <item>
         <widget class="QPushButton" name="audiosSearchPushButton">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
          <property name="text">
           <string>Search...</string>
          </property>
@@ -284,6 +247,9 @@
     <layout class="QHBoxLayout" name="othersHorizontalLayout">
      <item>
       <widget class="QLabel" name="othersLabel">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="minimumSize">
         <size>
          <width>103</width>
@@ -299,12 +265,19 @@
       </widget>
      </item>
      <item>
-      <widget class="DeleteableTableView" name="othersTableView"/>
+      <widget class="DeleteableTableView" name="othersTableView">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QVBoxLayout" name="othersSearchVerticalLayout">
        <item>
         <widget class="QPushButton" name="othersSearchPushButton">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
          <property name="text">
           <string>Search...</string>
          </property>

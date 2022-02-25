@@ -7,8 +7,8 @@ from annot.annot import Annotations
 from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtGui import QIntValidator
 from qtpy.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
-from widgets.tableModel import EditableTableModel
-from widgets.deleteableTableView import DeleteableTableView
+from models.tableModel import EditableTableModel
+from models.videoTreeModel import VideoTreeModel
 from timecode import Timecode
 from os.path import expanduser, getmtime, basename
 from datetime import date, datetime
@@ -62,13 +62,13 @@ class EditTrialDialog(QDialog):
     # Video Data
 
     def setVideoModel(self, model):
-        oldModel = self.ui.videosFileTableView.selectionModel()
-        self.ui.videosFileTableView.setModel(model)
-        self.ui.videosFileTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.ui.videosFileTableView.resizeColumnsToContents()
-        self.ui.videosFileTableView.hideColumn(0)   # don't show the ID field, but we need it for reference
-        self.ui.videosFileTableView.setSortingEnabled(False)
-        self.ui.videosFileTableView.setAutoScroll(False)
+        oldModel = self.ui.videosTreeView.selectionModel()
+        self.ui.videosTreeView.setModel(model)
+        # self.ui.videosTreeView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # self.ui.videosTreeView.resizeColumnsToContents()
+        self.ui.videosTreeView.hideColumn(0)   # don't show the ID field, but we need it for reference
+        self.ui.videosTreeView.setSortingEnabled(False)
+        self.ui.videosTreeView.setAutoScroll(False)
         if oldModel:
             oldModel.deleteLater()
 
@@ -76,14 +76,12 @@ class EditTrialDialog(QDialog):
         with self.bento.db_sessionMaker() as db_sess:
             results = db_sess.query(VideoData).filter(VideoData.trial == self.trial_id).all()
             if results:
-                header = results[0].header()
-                data_list = [elem.toDict() for elem in results]
-                model = EditableTableModel(self, data_list, header)
+                model = VideoTreeModel()
+                for elem in results:
+                    model.appendData(elem.toDict())
                 self.setVideoModel(model)
-                if len(data_list) > 0:
-                    self.video_data = data_list[0] # needed by add_neural()
 
-                selectionModel = self.ui.videosFileTableView.selectionModel()
+                selectionModel = self.ui.videosTreeView.selectionModel()
                 if updateTrialNum:
                     selectionModel.selectionChanged.connect(self.populateTrialNum)
                 else:
@@ -134,10 +132,10 @@ class EditTrialDialog(QDialog):
             'start_time': start_time,
             'camera_position': this_camera_position,
             'trial_id': self.trial_id,
-            #TODO: pose_data?
+            'pose_data': [],
             'dirty': True
         }
-        model = self.ui.videosFileTableView.model()
+        model = self.ui.videosTreeView.model()
         if model:
             print(f"addVideoFile: found existing model to append item {item} to")
             model.appendData(item)
@@ -149,6 +147,12 @@ class EditTrialDialog(QDialog):
             model = EditableTableModel(self, data_list, header)
             self.setVideoModel(model)
             self.video_data = item
+
+    def addPoseToVideo(self, videoId, file_path):
+        """
+        Add the specified pose file to the selected video, displayed as a child node
+        """
+        pass
 
     @Slot()
     def addVideoFiles(self):
@@ -176,11 +180,11 @@ class EditTrialDialog(QDialog):
                 self.addVideoFile(file_path, baseDir, available_cameras)
 
     def updateVideoData(self, trial, db_sess):
-        model = self.ui.videosFileTableView.model()
+        model = self.ui.videosTreeView.model()
         if model:
             for ix, entry in enumerate(iter(model)):
                 tableIndex = model.createIndex(ix, 0)
-                if self.ui.videosFileTableView.isRowHidden(ix):
+                if self.ui.videosTreeView.isRowHidden(ix):
                     # delete the entry from the DB
                     print(f"Delete videos row {ix} from DB")
                     if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:

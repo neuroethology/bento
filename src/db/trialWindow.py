@@ -8,7 +8,7 @@ from qtpy.QtGui import Qt
 from qtpy.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
 
 from db.schema_sqlalchemy import VideoData, Investigator, Session, Animal, Trial, AnnotationsData
-from widgets.tableModel import TableModel
+from models.tableModel import TableModel
 from datetime import date
 from dateutil.relativedelta import relativedelta
 

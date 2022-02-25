@@ -92,7 +92,6 @@ class EditableTableModel(TableModel):
         return flags
 
     def setData(self, index, value, role=Qt.EditRole):
-        print(f"setData called with index ({index.row()}, {index.column()}), value {value}")
         if not isinstance(index, QModelIndex) or not index.isValid():
             raise RuntimeError("Index is not valid")
         if (len(self.mylist) < index.row()+1 or
@@ -102,14 +101,11 @@ class EditableTableModel(TableModel):
             raise RuntimeError("Index is out of range")
         row = self.mylist[index.row()]
         if isinstance(row, list):
-            print("(list)")
             row[index.column()] = value
         elif isinstance(row, dict):
             key = self.header[index.column()]
-            print(f"(dict) key = {key}")
             row[self.header[index.column()]] = value
             row['dirty'] = True
-            print(f"row value: {row[key]}, mylist value: {self.mylist[index.row()][key]}")
         else:
             raise RuntimeError(f"Can't handle indexing with data of type {type(row)}")
         # self.dataChanged.emit()
