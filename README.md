@@ -8,8 +8,8 @@ An earlier, Matlab-based version of Bento is available [here](https://github.com
 
 ## Getting Started
 
-- Please look for the installation instructions at [Installation Instructions](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/installation.md)
-- Please look for the detailed step by step instructions at [Tutorial](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md)
+- Please look for the installation instructions at [Installation Instructions](https://github.com/neuroethology/bento/blob/main/documentation/installation.md)
+- Please look for the detailed step by step instructions at [Tutorial](https://github.com/neuroethology/bento/blob/main/documentation/tutorial.md)
 
 ## Citation
 
