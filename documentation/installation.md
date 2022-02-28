@@ -8,7 +8,7 @@ Bento requires Python version 3.6 or above, and can be run on Windows, MacOS, or
 
 2. Install [Anaconda](https://www.anaconda.com/products/individual#macos). Install Anaconda based on your operating system (Mac, Windows or Linux) by following the prompts when you run the downloaded installation file.
 
-3. Once installed, open an Anaconda Prompt window (for windows) or Terminal window (for Mac or Linux). 
+3. Once installed, open an Anaconda Prompt window (for Windows) or Terminal window (for Mac or Linux). 
 
 4. Find the location where Bento folder is located and execute the following command on the Anaconda Prompt or terminal window: 
 
