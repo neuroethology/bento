@@ -184,7 +184,7 @@ class EditTrialDialog(QDialog):
         if model:
             for ix, entry in enumerate(iter(model)):
                 tableIndex = model.createIndex(ix, 0)
-                if self.ui.videosTreeView.isRowHidden(ix):
+                if self.ui.videosTreeView.isRowHidden(ix, tableIndex.parent()):
                     # delete the entry from the DB
                     print(f"Delete videos row {ix} from DB")
                     if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:

@@ -14,82 +14,157 @@ The "pose_data" key is a list of pose_data dicts, which are
 displayed in the treeView as children of the row
 """
 
+from numpy import isin
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 from db.schema_sqlalchemy import VideoData, PoseData
 
+class TreeItem:
+    """
+    Generic tree item for use in a Qt TreeModel derived from QAbstractItemModel (below)
+    Index.row(i) accesses self._child[i]
+    Index.column(j) indexes into elements of self._data.
+    """
+    def __init__(self, parent=None):
+        self._parent = parent
+        self._children = []
+        self._data = {}
+        self._dataKeys = None
+
+    def appendChild(self, child):
+        if not isinstance(child, TreeItem):
+            raise TypeError(f"TreeItem.appendChild expected a TreeItem, got a {type(child)}")
+        self._children.append(child)
+    
+    def childCount(self):
+        return len(self._children)
+
+    def columnCount(self):
+        if not self._dataKeys:
+            raise RuntimeError("columnCount called before dataKeys were set")
+        return len(self._dataKeys)
+
+    def data(self, column):
+        if column < 0 or column >= self.columnCount():
+            return None
+        return self._data[self._dataKeys[column]]
+
+    def setDataKeys(self, dataKeys):
+        self._dataKeys = dataKeys
+
+    def setDataDict(self, dataDict):
+        self._data = dataDict
+
+    def setData(self, column, data):
+        if column < 0 or column >= self.columnCount():
+            return
+        self._data[self._dataKeys[column]] = data
+
+    def child(self, row):
+        if row < 0 or row >= self.childCount():
+            return None
+        return self._children[row]
+    
+    def parent(self):
+        return self._parent
+
+    def row(self):
+        if self._parent:
+            return self._parent._children.indexOf(self)
+        return 0
+
 class VideoTreeModel(QAbstractItemModel):
 
-    def __init__(self):
-        super().__init__()
-        self._rows = []
+    def __init__(self, parent = None):
+        super().__init__(parent)
         self._header = VideoData.keys
+        self._root = TreeItem()
+        self._root.setDataKeys(self._header)
 
-    # def flags(self, index):
-    #     flags = super().flags(index)
-    #     if index.column() not in self.immutableColumns:
-    #         flags |= Qt.ItemIsEditable
-    #     return flags
+    def flags(self, index):
+        if not isinstance(index, QModelIndex):
+            raise TypeError(f"flags expected QModelIndex, got {type(index)}")
+        if not index.isValid():
+            return Qt.NoItemFlags
+        flags = super().flags(index)
+        flags |= Qt.ItemIsEditable
+        return flags
 
-    def rowCount(self, parent):
-        return len(self._rows)
+    def rowCount(self, parent:QModelIndex = QModelIndex()):
+        if not isinstance(parent, QModelIndex):
+            raise TypeError(f"rowCount: expected parent to be a QModelIndex, got a {type(parent)}")
+        if parent.column() > 0:
+            return 0
+        if not parent.isValid():
+            parentItem = self._root
+        else:
+            parentItem = parent.internalPointer()
+        return parentItem.childCount()
 
     def columnCount(self, parent):
-        return len(self._header)
+        if not isinstance(parent, QModelIndex):
+            raise TypeError(f"columnCount: expected parent to ba a QModelIndex, got a {type(parent)}")
+        if parent.isValid():
+            return parent.internalPointer().columnCount()
+        return self._root.columnCount()
+
+    def index(self, row, column, parent=QModelIndex()):
+        if not isinstance(parent, QModelIndex):
+            raise TypeError(f"index: expected parent to be a QModelIndex, got a {type(parent)}")
+        if not self.hasIndex(row, column, parent):
+            return QModelIndex()
+
+        if not parent.isValid():
+            parentItem = self._root
+        else:
+            parentItem = parent.internalPointer
+        
+        childItem = parentItem.child(row)
+        if childItem:
+            return self.createIndex(row, column, childItem)
+        return QModelIndex()
 
     def data(self, index, role):
-        if not isinstance(index, QModelIndex) or not index.isValid():
-            raise RuntimeError("Index is not valid")
-        if role not in (Qt.DisplayRole, Qt.BackgroundRole, Qt.EditRole):
+        if not isinstance(index, QModelIndex):
+            raise TypeError(f"data() expected index, got {type(index)}")
+        if not index.isValid() or role not in (Qt.DisplayRole, Qt.EditRole):
             return None
-        print(f"Index row: {index.row()}, column: {index.column()}, role: {role}")
-        row = self._rows[index.row()]
-        if isinstance(row, (tuple, list)):
-            datum = row[index.column()]
-        elif isinstance(row, dict):
-            datum = row[self._header[index.column()]]
-        else:
-            raise RuntimeError(f"Can't handle indexing with data of type {type(row)}")
-        if role in (Qt.DisplayRole, Qt.EditRole):
-            return str(datum)
-        else:
-            return None
+        item = index.internalPointer()
+        return item.data(index.column())
 
     def headerData(self, col, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self._header[col]
+        return None
 
-    # def sort(self, col, order):
-    #     """ sort table by given column number col """
-    #     if len(self.mylist) == 0:
-    #         return
-    #     self.layoutAboutToBeChanged.emit()
-    #     if isinstance(self.mylist[0], dict):
-    #         col = self.header[col]
-    #     self.mylist = sorted(
-    #         self.mylist,
-    #         key=lambda elem: elem[col].name() if isinstance(elem[col], QColor) else elem[col],
-    #         reverse=(order == Qt.DescendingOrder)
-    #         )
-    #     self.layoutChanged.emit()
+    def parent(self, index):
+        if not isinstance(index, QModelIndex):
+            raise TypeError(f"parent: expected a QModelIndex, got a {type(index)}")
+        if not index.isValid():
+            return QModelIndex()
+        item = index.internalPointer()
+        parent = item.parent()
+        if parent == self._root:
+            return QModelIndex()
+        return self.createIndex(parent.row(), 0, parent)
 
-    def index(self, row, column, parent=QModelIndex()):
-        # if row >= len(self._rows) or column >= len(self._header):
-        #     return QModelIndex()
-        if parent != QModelIndex():
-            print(f"videoTreeModel: index called with parent {parent}")
-        return self.createIndex(row, column, self)
-
-    def parent(self, child):
-        return QModelIndex()
-
-    def appendData(self, newData):
-        rows = len(self._rows)
-        columns = len(self._header)
+    def appendData(self, newData, parent=None):
+        if not parent:
+            parent = self._root
+        if not isinstance(newData, (tuple, list)):
+            newData = [newData]
         new_rows = len(newData)
+        rows = parent.childCount()
+        columns = len(self._header)
         first_new_index = self.index(rows, 0)
         last_new_index = self.index(rows + new_rows, columns-1)
         self.beginInsertRows(first_new_index, rows, rows + new_rows)
-        self._rows.append(newData)
+        for newDataDict in newData:
+            if not isinstance(newDataDict, dict):
+                raise TypeError(f"appendData expected dict, got {type(newDataDict)}")
+            newChild = TreeItem(parent)
+            newChild.setDataKeys(self._header)
+            newChild.setDataDict(newDataDict)
+            parent.appendChild(newChild)
         self.endInsertRows()
         self.dataChanged.emit(
             first_new_index,
@@ -97,38 +172,23 @@ class VideoTreeModel(QAbstractItemModel):
             [Qt.DisplayRole])
 
     def setData(self, index, value, role=Qt.EditRole):
-        print(f"setData called with index ({index.row()}, {index.column()}), value {value}")
-        if not isinstance(index, QModelIndex) or not index.isValid():
-            raise RuntimeError("Index is not valid")
-        if (len(self._rows) < index.row()+1 or
-            not isinstance(self._rows[index.row()], (list, dict)) or
-            len(self._rows[index.row()]) < index.column()+1
-            ):
-            raise RuntimeError("Index is out of range")
-        row = self._rows[index.row()]
-        if isinstance(row, list):
-            print("(list)")
-            row[index.column()] = value
-        elif isinstance(row, dict):
-            key = self._header[index.column()]
-            print(f"(dict) key = {key}")
-            row[self._header[index.column()]] = value
-            row['dirty'] = True
-            print(f"row value: {row[key]}, mylist value: {self._rows[index.row()][key]}")
-        else:
-            raise RuntimeError(f"Can't handle indexing with data of type {type(row)}")
-        # self.dataChanged.emit()
+        if not isinstance(index, QModelIndex):
+            raise TypeError(f"data() expected index, got {type(index)}")
+        if not index.isValid() or role != Qt.EditRole:
+            return False
+        item = index.internalPointer()
+        item.setData(index.column(), value)
         return True
 
-    def isDirty(self, index):
-        # has 'dirty' key and its value is True
-        return 'dirty' in self._rows[index.row()] and self._rows[index.row()]['dirty']
+    # def isDirty(self, index):
+    #     # has 'dirty' key and its value is True
+    #     return 'dirty' in self._rows[index.row()] and self._rows[index.row()]['dirty']
 
-    def setDirty(self, index):
-        self._rows[index.row()]['dirty'] = True
+    # def setDirty(self, index):
+    #     self._rows[index.row()]['dirty'] = True
 
-    def clearDirty(self, index):
-        self._rows[index.row()]['dirty'] = False
+    # def clearDirty(self, index):
+    #     self._rows[index.row()]['dirty'] = False
 
     # def isImmutable(self, index):
     #     return index.column() in self.immutableColumns

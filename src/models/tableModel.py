@@ -39,6 +39,7 @@ class TableModel(QAbstractTableModel):
     def headerData(self, col, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.header[col]
+        return None
 
     def sort(self, col, order):
         """ sort table by given column number col """
