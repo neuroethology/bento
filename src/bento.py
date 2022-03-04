@@ -11,7 +11,8 @@ from pose.pose import load_poses
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
-from db.schema_sqlalchemy import AnnotationsData, Investigator, Session, Trial, new_session, create_tables
+from db.schema_sqlalchemy import (AnnotationsData, Investigator, Session, Trial,
+    VideoData, new_session, create_tables)
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
@@ -560,31 +561,26 @@ class Bento(QObject):
                     path = video_data.file_path
                 widget = self.newVideoWidget(fix_path(path))
                 self.video_widgets.append(widget)
-                trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
                 if loadPose:
-                    # if len(trial.pose_data) > 0:
-                    #     progress.setLabelText(f"Loading pose data for video #{ix}...")
-                    #     progress.setValue(progressCompleted)
-                    #     pose_data = self.load_pose_data()
-                    #     if pose_data:
-                    #         for pose_item in pose_data:
-                    #             if pose_item.id == video_data.id:
-                    #                 if not isabs(pose_item.file_path):
-                    #                     pose_path = base_dir + pose_item.file_path
-                    #                 else:
-                    #                     pose_path = pose_item.file_path
-                    #                 pose_polys = load_poses(self.mainWindow, pose_path)
-                    #                 widget.set_pose_data(pose_polys)
-                    #                 break
-                    #     progressCompleted += 1
-                    # else:
-                    #     print("No pose data in trial to load.")
-
-                    # temporary path hack till database and gui stuff is done
-                    if 'top' in path.lower():
-                        pose_path = '/Users/drumph/Develop/bento/test_data/Bento_test_data/180222_Esr1_457/output_v1_7/Mouse457_20180222_18-06-26/Mouse457_20180222_18-06-26_pose_top_v1_7.mat'
+                    video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
+                    if len(video.pose_data) > 0:
+                        progress.setLabelText(f"Loading pose data for video #{ix}...")
+                        progress.setValue(progressCompleted)
+                        # for now, the UI only supports displaying the first pose file
+                        pose_path = video.pose_data[0].file_path
+                        if not isabs(pose_path):
+                            pose_path = base_dir + pose_path
                         pose_polys = load_poses(self.mainWindow, pose_path)
                         widget.set_pose_data(pose_polys)
+                    else:
+                        print("No pose data in trial to load.")
+                    progressCompleted += 1
+
+                    # temporary path hack till database and gui stuff is done
+                    # if 'top' in path.lower():
+                    #     pose_path = '/Users/drumph/Develop/bento/test_data/Bento_test_data/180222_Esr1_457/output_v1_7/Mouse457_20180222_18-06-26/Mouse457_20180222_18-06-26_pose_top_v1_7.mat'
+                    #     pose_polys = load_poses(self.mainWindow, pose_path)
+                    #     widget.set_pose_data(pose_polys)
 
                 qr = widget.frameGeometry()
                 # qr.moveCenter(self.screen_center + spacing)
