@@ -139,7 +139,8 @@ class VideoData(Base):
     trial = Column(Integer, ForeignKey('trial.id'))
     camera = relationship('Camera')
     pose_data = relationship('PoseData')
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera_position', 'trial_id']
+    # don't put id first, because then we can't hide it in a QTreeWidget as column 0
+    keys = ['file_path', 'sample_rate', 'start_time', 'camera_position', 'trial_id', 'id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -315,7 +316,8 @@ class PoseData(Base):
     format = Column(String(128), nullable=False)
     video = Column(Integer, ForeignKey('video_data.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'format', 'video_id', 'trial_id']
+    # don't put id first, because then we can't hide it in a QTreeWidget as column 0
+    keys = ['file_path', 'sample_rate', 'start_time', 'format', 'video_id', 'trial_id', 'id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>778</width>
-    <height>538</height>
+    <width>833</width>
+    <height>541</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -70,7 +70,20 @@
       </widget>
      </item>
      <item>
-      <widget class="QTreeView" name="videosTreeView"/>
+      <widget class="QTreeWidget" name="videosTreeWidget">
+       <property name="alternatingRowColors">
+        <bool>false</bool>
+       </property>
+       <property name="textElideMode">
+        <enum>Qt::ElideMiddle</enum>
+       </property>
+       <property name="expandsOnDoubleClick">
+        <bool>false</bool>
+       </property>
+       <property name="columnCount">
+        <number>0</number>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QVBoxLayout" name="videosSearchVerticalLayout">
@@ -78,6 +91,13 @@
         <widget class="QPushButton" name="videosSearchPushButton">
          <property name="text">
           <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="addPosePushButton">
+         <property name="text">
+          <string>Add Pose...</string>
          </property>
         </widget>
        </item>

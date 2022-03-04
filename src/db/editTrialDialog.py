@@ -1,14 +1,16 @@
 # editTrialDialog.py
 
-from db.schema_sqlalchemy import Camera, Trial, Session, VideoData, NeuralData, AnnotationsData, Investigator
+from db.schema_sqlalchemy import (Camera, Trial, Session, VideoData, NeuralData,
+    AnnotationsData, PoseData, Investigator)
 from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from annot.annot import Annotations
 from qtpy.QtCore import QModelIndex, Qt, Signal, Slot
 from qtpy.QtGui import QIntValidator
-from qtpy.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
+from qtpy.QtWidgets import (QDialog, QFileDialog, QHeaderView, QMessageBox,
+    QTreeWidgetItem, QTreeWidgetItemIterator)
 from models.tableModel import EditableTableModel
-from models.videoTreeModel import VideoTreeModel
+# from models.videoTreeModel import VideoTreeModel
 from timecode import Timecode
 from os.path import expanduser, getmtime, basename
 from datetime import date, datetime
@@ -49,7 +51,7 @@ class EditTrialDialog(QDialog):
             if trial:
                 self.ui.trialNumLineEdit.setText(str(trial.trial_num))
                 self.ui.stimulusLineEdit.setText(trial.stimulus)
-        self.populateVideosTreeView(True)
+        self.populateVideosTreeWidget(True)
         self.populateNeuralsTableView(True)
         self.populateAnnotationsTableView(True)
 
@@ -73,24 +75,35 @@ class EditTrialDialog(QDialog):
         if oldModel:
             oldModel.deleteLater()
 
-    def populateVideosTreeView(self, updateTrialNum):
+    def populateVideosTreeWidget(self, updateTrialNum):
+        headerSet = False
         with self.bento.db_sessionMaker() as db_sess:
             results = db_sess.query(VideoData).filter(VideoData.trial == self.trial_id).all()
             if results:
-                model = VideoTreeModel()
                 for elem in results:
-                    model.appendData(elem.toDict())
-                    for poseElem in elem.pose_data:
-                        #TODO: attach pose data to video row in model
-                        pass
-                self.setVideoModel(model)
+                    videoTreeItem = QTreeWidgetItem(self.ui.videosTreeWidget)
+                    videoDict = elem.toDict()
+                    header = elem.header()
+                    if not headerSet:
+                        self.ui.videosTreeWidget.setColumnCount(len(header))
+                        self.ui.videosTreeWidget.setHeaderLabels(header)
+                        self.ui.videosTreeWidget.hideColumn(header.index('id'))
+                    for ix, key in enumerate(header):
+                        videoTreeItem.setData(ix, Qt.EditRole, videoDict[key])
+                    if len(elem.pose_data) > 0:
+                        for poseItem in elem.pose_data:
+                            poseTreeItem = QTreeWidgetItem(videoTreeItem)
+                            poseDict = elem.pose_data[iy].toDict()
+                            for iy, poseKey in enumerate(poseItem.header()):
+                                poseTreeItem.setData(iy, Qt.EditRole, poseDict[poseKey])
+                            videoTreeItem.addChild(poseTreeItem)
+                    self.ui.videosTreeWidget.addTopLevelItem(videoTreeItem)
 
-                selectionModel = self.ui.videosTreeView.selectionModel()
                 if updateTrialNum:
-                    selectionModel.selectionChanged.connect(self.populateTrialNum)
+                    self.ui.videosTreeWidget.itemSelectionChanged.connect(self.populateTrialNum)
                 else:
                     try:
-                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                        self.ui.videosTreeWidget.itemSelectionChanged.disconnect(self.populateTrialNum)
                     except RuntimeError:
                         # The above call raises RuntimeError if the signal is not connected,
                         # which we can safely ignore.
@@ -157,12 +170,12 @@ class EditTrialDialog(QDialog):
         Add the specified pose file to the selected video, displayed as a child node
         """
         # get selected video, or warn if none or invalid
-        selected = self.ui.videosTreeView.selectedIndexes()
-        if len(selected) < 1:
+        selectedItems = self.ui.videosTreeWidget.selectedItems()
+        if len(selectedItems) < 1:
             warningMsg = "No video seleted"
             QMessageBox.information(self, "Add Pose...", warningMsg)
-        videoIndex = selected[0] # the Tree View only allows selecting by rows, so pick zeroth column
-        if not videoIndex.parent() == QModelIndex():
+        videoItem = selectedItems[0] # the Tree Widget is configured to only allow one selection
+        if bool(videoItem.parent()): # not a top level item
             QMessageBox.information(self, "Add Pose...", "Please select a video file, not a pose")
             return
         # open the file dialog and get a pose file to attach to the video data
@@ -177,30 +190,39 @@ class EditTrialDialog(QDialog):
         # so it's correct to use forward-slash ("/") here across all platforms
         if not baseDir.endswith("/"):
             baseDir += "/"
-        poseFile, _ = QFileDialog.getOpenFileName(
+        poseFilePath, _ = QFileDialog.getOpenFileName(
             self,
             "Select a Pose file to add to this video",
             baseDir,
             "MatLab files (*.mat)", # could add others like this: "Description1 (*.ext1);;Desc 2 (*.ext2)" etc.
             "MatLab files (*.mat)")
-        if not poseFile:
+        if not poseFilePath:
             return  # getOpenFileName returned with nothing selected == operation cancelled
         # do a sanity check on the returned file
         with warnings.catch_warnings():
             # suppress warning coming from checking the mat file contents
             warnings.simplefilter('ignore', category=UserWarning)
-            poseMat = pmr.read_mat(poseFile)
+            poseMat = pmr.read_mat(poseFilePath)
         if 'keypoints' not in poseMat.keys():
             QMessageBox.warning(self, "Add Pose ...", "No keypoints found in pose file")
             return
-        # Attach the pose file to the video data in the model as a child node
-        model = videoIndex.model()
-        success = model.insertRow(model.rowCount(videoIndex), parent=videoIndex)
-        if success:
-            filePathColumn = model.header().index('file_path')
-            poseIndex = model.index(0, filePathColumn, videoIndex)
-            model.setData(poseIndex, poseFile)
-        pass
+        # make path relative to baseDir if possible
+        if poseFilePath.startswith(baseDir):
+            poseFilePath = poseFilePath[len(baseDir):]
+        # Attach the pose file to the video data in the treeWidget as a child node
+        poseItem = QTreeWidgetItem(videoItem)
+        videosHeaderItem = self.ui.videosTreeWidget.headerItem()
+        videosHeader = [videosHeaderItem.data(ix, Qt.DisplayRole) for ix in range(videosHeaderItem.columnCount())]
+        # insert the data into the pose child item
+        poseKeys = PoseData().keys
+        poseItem.setData(poseKeys.index('file_path'), Qt.EditRole, poseFilePath)
+        poseItem.setData(poseKeys.index('sample_rate'), Qt.EditRole, videoItem.data(videosHeader.index('sample_rate'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('start_time'), Qt.EditRole, videoItem.data(videosHeader.index('start_time'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('format'), Qt.EditRole, "MARS")
+        poseItem.setData(poseKeys.index('video_id'), Qt.EditRole, videoItem.data(videosHeader.index('id'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('trial_id'), Qt.EditRole, videoItem.data(videosHeader.index('trial_id'), Qt.DisplayRole))
+        # poseItem.setData(poseKeys.index('id'), Qt.EditRole, "1")
+        videoItem.addChild(poseItem)
 
     @Slot()
     def addVideoFiles(self):

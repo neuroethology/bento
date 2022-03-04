@@ -18,7 +18,7 @@ from qtpy.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from qtpy.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
     QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QPushButton, QSizePolicy, QSpacerItem, QTreeView,
-    QVBoxLayout, QWidget)
+    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from widgets.deleteableTableView import DeleteableTableView
 
@@ -26,7 +26,7 @@ class Ui_EditTrialDialog(object):
     def setupUi(self, EditTrialDialog):
         if not EditTrialDialog.objectName():
             EditTrialDialog.setObjectName(u"EditTrialDialog")
-        EditTrialDialog.resize(778, 538)
+        EditTrialDialog.resize(833, 541)
         self.verticalLayout = QVBoxLayout(EditTrialDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.generalInfoHorizontalLayout = QHBoxLayout()
@@ -69,10 +69,14 @@ class Ui_EditTrialDialog(object):
 
         self.videosHorizontalLayout.addWidget(self.videosLabel)
 
-        self.videosTreeView = QTreeView(EditTrialDialog)
-        self.videosTreeView.setObjectName(u"videosTreeView")
+        self.videosTreeWidget = QTreeWidget(EditTrialDialog)
+        self.videosTreeWidget.setObjectName(u"videosTreeWidget")
+        self.videosTreeWidget.setAlternatingRowColors(False)
+        self.videosTreeWidget.setTextElideMode(Qt.ElideMiddle)
+        self.videosTreeWidget.setExpandsOnDoubleClick(False)
+        self.videosTreeWidget.setColumnCount(0)
 
-        self.videosHorizontalLayout.addWidget(self.videosTreeView)
+        self.videosHorizontalLayout.addWidget(self.videosTreeWidget)
 
         self.videosSearchVerticalLayout = QVBoxLayout()
         self.videosSearchVerticalLayout.setObjectName(u"videosSearchVerticalLayout")
@@ -80,6 +84,11 @@ class Ui_EditTrialDialog(object):
         self.videosSearchPushButton.setObjectName(u"videosSearchPushButton")
 
         self.videosSearchVerticalLayout.addWidget(self.videosSearchPushButton)
+
+        self.addPosePushButton = QPushButton(EditTrialDialog)
+        self.addPosePushButton.setObjectName(u"addPosePushButton")
+
+        self.videosSearchVerticalLayout.addWidget(self.addPosePushButton)
 
         self.videosSearchVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -246,6 +255,7 @@ class Ui_EditTrialDialog(object):
         self.stimulusLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Stimulus: ", None))
         self.videosLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Video Files: ", None))
         self.videosSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
+        self.addPosePushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Add Pose...", None))
         self.annotationsLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Annotation Files: ", None))
         self.annotationsSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
         self.neuralsLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Neural Files: ", None))
