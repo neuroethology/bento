@@ -1,5 +1,6 @@
 # editTrialDialog.py
 
+from sklearn import tree
 from db.schema_sqlalchemy import (Camera, Trial, Session, VideoData, NeuralData,
     AnnotationsData, PoseData, Investigator)
 from sqlalchemy import func, select
@@ -93,7 +94,7 @@ class EditTrialDialog(QDialog):
                     if len(elem.pose_data) > 0:
                         for poseItem in elem.pose_data:
                             poseTreeItem = QTreeWidgetItem(videoTreeItem)
-                            poseDict = elem.pose_data[iy].toDict()
+                            poseDict = poseItem.toDict()
                             for iy, poseKey in enumerate(poseItem.header()):
                                 poseTreeItem.setData(iy, Qt.EditRole, poseDict[poseKey])
                             videoTreeItem.addChild(poseTreeItem)
@@ -226,7 +227,6 @@ class EditTrialDialog(QDialog):
 
     @Slot()
     def addVideoFiles(self):
-        #TODO: How to delete video file references from the DB?
         baseDir = None
         with self.bento.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
@@ -250,27 +250,65 @@ class EditTrialDialog(QDialog):
                 self.addVideoFile(file_path, baseDir, available_cameras)
 
     def updateVideoData(self, trial, db_sess):
-        model = self.ui.videosTreeView.model()
-        if model:
-            for ix, entry in enumerate(iter(model)):
-                treeIndex = model.createIndex(ix, 0)
-                if self.ui.videosTreeView.isRowHidden(ix, treeIndex.parent()):
+        videoHeader = VideoData().header()
+        poseHeader = PoseData().header()
+        treeIterator = QTreeWidgetItemIterator(self.ui.videosTreeWidget)
+        for treeItemIter in iter(treeIterator):
+            treeItem = treeItemIter.value()
+            parent = treeItem.parent()
+            thisVideo_data = None
+            thisVideo_data_index = -1
+            videoTreeItem = treeItem
+            if parent:
+                videoTreeItem = parent
+            for ix, video_dataItem in enumerate(trial.video_data):
+                if video_dataItem.id == videoTreeItem.data(videoHeader.index('id'), Qt.DisplayRole):
+                    thisVideo_data = video_dataItem
+                    thisVideo_data_index = ix
+                    break
+            if not parent:
+                # top-level item: video data
+                if bool(thisVideo_data) and treeItem.isHidden():
                     # delete the entry from the DB
-                    if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
-                        db_sess.delete(trial.video_data[ix])
-                elif model.isDirty(treeIndex):
-                    if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
-                        trial.video_data[ix].fromDict(entry, db_sess)
-                    else:
-                        # new item
-                        item = VideoData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
-                        db_sess.add(item)
-                        trial.video_data.append(item)
-                    model.clearDirty(treeIndex)
+                    db_sess.delete(thisVideo_data)
+                    continue
+                # create a dict from the treeItem for either updating or a new DB entry
+                videoItemDict = {}
+                for key in videoHeader:
+                    videoItemDict[key] = treeItem.data(videoHeader.index(key), Qt.DisplayRole)
+                if bool(thisVideo_data):
+                    # update any items that have changed in the existing entry
+                    trial.video_data[thisVideo_data_index].fromDict(videoItemDict, db_sess)
                 else:
-                    pass # Item at row wasn't hidden or dirty, so did nothing
-        else:
-            pass # No video files listed, so nothing to do.
+                    # new item
+                    dbItem = VideoData(videoItemDict, db_sess)
+                    db_sess.add(dbItem)
+                    trial.video_data.append(dbItem)
+            else:
+                # pose data associated with video referenced by parent
+                thisPose_data = None
+                thisPose_data_index = -1
+                for iy, pose_dataItem in enumerate(thisVideo_data.pose_data):
+                    if pose_dataItem.pose_id == treeItem.data(poseHeader.index('id'), Qt.DisplayRole):
+                        thisPose_data = pose_dataItem
+                        thisPose_data_index = iy
+                        break
+                if bool(thisPose_data) and treeItem.isHidden():
+                    # delete the pose entry from the DB
+                    db_sess.delete(thisPose_data)
+                    continue
+                # create a dict from the treeItem for either updating or a new pose DB entry
+                poseItemDict = {}
+                for key in poseHeader:
+                    poseItemDict[key] = treeItem.data(poseHeader.index(key), Qt.DisplayRole)
+                if bool(thisPose_data):
+                    # update any changed fields in the existing entry
+                    thisVideo_data.pose_data[thisPose_data_index].fromDict(poseItemDict, db_sess)
+                else:
+                    # new Pose item
+                    dbPoseItem = PoseData(poseItemDict, db_sess)
+                    db_sess.add(dbPoseItem)
+                    thisVideo_data.pose_data.append(dbPoseItem)
 
     # Neural Data
 
@@ -361,7 +399,6 @@ class EditTrialDialog(QDialog):
 
     @Slot()
     def addNeuralFiles(self):
-        #TODO: How to delete neural file references from the DB?
         baseDir = None
         with self.bento.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
@@ -527,7 +564,6 @@ class EditTrialDialog(QDialog):
 
     @Slot()
     def addAnnotationFiles(self):
-        #TODO: How to delete annotation file references from the DB?
         baseDir = None
         with self.bento.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()

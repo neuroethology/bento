@@ -336,7 +336,7 @@ class PoseData(Base):
 
     def toDict(self):
         return {
-            'id': self.id,
+            'id': self.pose_id,
             'file_path': self.file_path,
             'sample_rate': self.sample_rate,
             'start_time': self.start_time,
@@ -349,7 +349,7 @@ class PoseData(Base):
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
         if 'id' in d.keys() and d['id']:
-            self.id = d['id']
+            self.pose_id = d['id']
         self.file_path = d['file_path']
         self.sample_rate = d['sample_rate']
         self.start_time = d['start_time']
