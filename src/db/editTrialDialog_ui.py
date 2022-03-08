@@ -15,12 +15,12 @@ from qtpy.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from qtpy.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
-    QHBoxLayout, QHeaderView, QLabel, QLineEdit,
-    QPushButton, QSizePolicy, QSpacerItem, QTreeView,
-    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+from qtpy.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication, QDialog,
+    QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
+    QLineEdit, QPushButton, QSizePolicy, QSpacerItem,
+    QTreeView, QTreeWidgetItem, QVBoxLayout, QWidget)
 
-from widgets.deleteableTableView import DeleteableTableView
+from widgets.deleteableViews import (DeleteableTableView, DeleteableTreeWidget)
 
 class Ui_EditTrialDialog(object):
     def setupUi(self, EditTrialDialog):
@@ -69,9 +69,10 @@ class Ui_EditTrialDialog(object):
 
         self.videosHorizontalLayout.addWidget(self.videosLabel)
 
-        self.videosTreeWidget = QTreeWidget(EditTrialDialog)
+        self.videosTreeWidget = DeleteableTreeWidget(EditTrialDialog)
         self.videosTreeWidget.setObjectName(u"videosTreeWidget")
         self.videosTreeWidget.setAlternatingRowColors(False)
+        self.videosTreeWidget.setSelectionBehavior(QAbstractItemView.SelectItems)
         self.videosTreeWidget.setTextElideMode(Qt.ElideMiddle)
         self.videosTreeWidget.setExpandsOnDoubleClick(False)
         self.videosTreeWidget.setColumnCount(0)

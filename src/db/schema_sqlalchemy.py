@@ -34,7 +34,7 @@ class Animal(Base):
         cascade='all, delete, delete-orphan')
 
     def __repr__(self):
-        return "<Animal(asid='%d', dnickname='%s', ob='%s', sex='%s', genotype='%s')>" % (
+        return "<Animal(asid='%d', nickname='%s', dob='%s', sex='%s', genotype='%s')>" % (
             self.animal_services_id, self.nickname, self.dob, self.sex, self.genotype)
 
 class Investigator(Base):
@@ -165,7 +165,7 @@ class VideoData(Base):
             'camera_position': self.camera.position,
             'trial_id': self.trial,
             'pose_data': pose_data
-            #TODO: camera?  pose_data?
+            #TODO: camera?
         }
 
     def fromDict(self, d, db_sess):
@@ -326,9 +326,8 @@ class PoseData(Base):
 
     def __repr__(self):
         return ( "<PoseData(file_path='%s', sample_rate='%s', start_time='%s',"
-            " start_frame='%s', stop_frame='%s', format='%s')>" % (
-            self.file_path, self.sample_rate, self.start_time,
-            self.start_frame, self.stop_frame, self.format )
+            " format='%s')>" % (
+            self.file_path, self.sample_rate, self.start_time, self.format )
         )
 
     def header(self):

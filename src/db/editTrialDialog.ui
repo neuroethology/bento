@@ -70,9 +70,12 @@
       </widget>
      </item>
      <item>
-      <widget class="QTreeWidget" name="videosTreeWidget">
+      <widget class="DeleteableTreeWidget" name="videosTreeWidget">
        <property name="alternatingRowColors">
         <bool>false</bool>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectItems</enum>
        </property>
        <property name="textElideMode">
         <enum>Qt::ElideMiddle</enum>
@@ -336,7 +339,12 @@
   <customwidget>
    <class>DeleteableTableView</class>
    <extends>QTableView</extends>
-   <header>widgets.deleteableTableView.h</header>
+   <header>widgets.deleteableViews.h</header>
+  </customwidget>
+  <customwidget>
+   <class>DeleteableTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>widgets.deleteableViews.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -83,6 +83,7 @@ class EditTrialDialog(QDialog):
             if results:
                 for elem in results:
                     videoTreeItem = QTreeWidgetItem(self.ui.videosTreeWidget)
+                    videoTreeItem.setFlags(videoTreeItem.flags() | Qt.ItemIsEditable)
                     videoDict = elem.toDict()
                     header = elem.header()
                     if not headerSet:
@@ -94,6 +95,7 @@ class EditTrialDialog(QDialog):
                     if len(elem.pose_data) > 0:
                         for poseItem in elem.pose_data:
                             poseTreeItem = QTreeWidgetItem(videoTreeItem)
+                            poseTreeItem.setFlags(poseTreeItem.flags() | Qt.ItemIsEditable)
                             poseDict = poseItem.toDict()
                             for iy, poseKey in enumerate(poseItem.header()):
                                 poseTreeItem.setData(iy, Qt.EditRole, poseDict[poseKey])
@@ -153,18 +155,20 @@ class EditTrialDialog(QDialog):
             'pose_data': [],
             'dirty': True
         }
-        model = self.ui.videosTreeView.model()
-        if model:
-            print(f"addVideoFile: found existing model to append item {item} to")
-            model.appendData(item)
-        else:
-            print(f"addVideoFile: didn't find existing model; making a new one with {item}")
-            header = VideoData().header()
-            data_list = [item]
-            print(f"addVideoFile -- header: {header}, data_list: {data_list}")
-            model = EditableTableModel(self, data_list, header)
-            self.setVideoModel(model)
-            self.video_data = item
+        # Okay, load it into the tree
+        videoKeys = VideoData().header()
+        # If there's nothing in the tree yet, we need to do some initialization
+        if self.ui.videosTreeWidget.topLevelItemCount() == 0:
+            self.ui.videosTreeWidget.setColumnCount(len(videoKeys))
+            self.ui.videosTreeWidget.setHeaderLabels(videoKeys)
+            self.ui.videosTreeWidget.hideColumn(videoKeys.index('id'))
+        # Attach the video file to treeWidget as a top-level item
+        videoItem = QTreeWidgetItem(self.ui.videosTreeWidget)
+        videoItem.setFlags(videoItem.flags() | Qt.ItemIsEditable)
+        # insert the data into item
+        for key in videoKeys:
+            videoItem.setData(videoKeys.index(key), Qt.EditRole, item[key])
+        self.ui.videosTreeWidget.addTopLevelItem(videoItem)
 
     def addPoseFileToVideo(self):
         """
@@ -212,6 +216,7 @@ class EditTrialDialog(QDialog):
             poseFilePath = poseFilePath[len(baseDir):]
         # Attach the pose file to the video data in the treeWidget as a child node
         poseItem = QTreeWidgetItem(videoItem)
+        poseItem.setFlags(poseItem.flags() | Qt.ItemIsEditable)
         videosHeaderItem = self.ui.videosTreeWidget.headerItem()
         videosHeader = [videosHeaderItem.data(ix, Qt.DisplayRole) for ix in range(videosHeaderItem.columnCount())]
         # insert the data into the pose child item
@@ -253,62 +258,77 @@ class EditTrialDialog(QDialog):
         videoHeader = VideoData().header()
         poseHeader = PoseData().header()
         treeIterator = QTreeWidgetItemIterator(self.ui.videosTreeWidget)
+        deferedActionList = []
         for treeItemIter in iter(treeIterator):
             treeItem = treeItemIter.value()
-            parent = treeItem.parent()
+            if treeItem.parent():
+                # this is a pose item; save it to do after videos
+                deferedActionList.append(treeItem)
+                continue
+
+            # top-level item: video data
             thisVideo_data = None
             thisVideo_data_index = -1
-            videoTreeItem = treeItem
-            if parent:
-                videoTreeItem = parent
+            for ix, video_dataItem in enumerate(trial.video_data):
+                if video_dataItem.id == treeItem.data(videoHeader.index('id'), Qt.DisplayRole):
+                    thisVideo_data = video_dataItem
+                    thisVideo_data_index = ix
+                    break
+            if bool(thisVideo_data) and treeItem.isHidden():
+                # delete the entry from the DB
+                db_sess.delete(thisVideo_data)
+                continue
+            # create a dict from the treeItem for either updating or a new DB entry
+            videoItemDict = {}
+            for key in videoHeader:
+                videoItemDict[key] = treeItem.data(videoHeader.index(key), Qt.DisplayRole)
+            if bool(thisVideo_data):
+                # update any items that have changed in the existing entry
+                trial.video_data[thisVideo_data_index].fromDict(videoItemDict, db_sess)
+            else:
+                # new item
+                dbItem = VideoData(videoItemDict, db_sess)
+                db_sess.add(dbItem)
+                trial.video_data.append(dbItem)
+                # db_sess.commit()
+
+        # deal with pose data, now that trial.video_data is updated
+        for treeItem in deferedActionList:
+                # pose data associated with video referenced by parent
+            videoTreeItem = treeItem.parent()
+            assert bool(videoTreeItem)
+            thisVideo_data = None
+            thisVideo_data_index = -1
             for ix, video_dataItem in enumerate(trial.video_data):
                 if video_dataItem.id == videoTreeItem.data(videoHeader.index('id'), Qt.DisplayRole):
                     thisVideo_data = video_dataItem
                     thisVideo_data_index = ix
                     break
-            if not parent:
-                # top-level item: video data
-                if bool(thisVideo_data) and treeItem.isHidden():
-                    # delete the entry from the DB
-                    db_sess.delete(thisVideo_data)
-                    continue
-                # create a dict from the treeItem for either updating or a new DB entry
-                videoItemDict = {}
-                for key in videoHeader:
-                    videoItemDict[key] = treeItem.data(videoHeader.index(key), Qt.DisplayRole)
-                if bool(thisVideo_data):
-                    # update any items that have changed in the existing entry
-                    trial.video_data[thisVideo_data_index].fromDict(videoItemDict, db_sess)
-                else:
-                    # new item
-                    dbItem = VideoData(videoItemDict, db_sess)
-                    db_sess.add(dbItem)
-                    trial.video_data.append(dbItem)
+            if not thisVideo_data:
+                continue
+            thisPose_data = None
+            thisPose_data_index = -1
+            for iy, pose_dataItem in enumerate(thisVideo_data.pose_data):
+                if pose_dataItem.pose_id == treeItem.data(poseHeader.index('id'), Qt.DisplayRole):
+                    thisPose_data = pose_dataItem
+                    thisPose_data_index = iy
+                    break
+            if bool(thisPose_data) and treeItem.isHidden():
+                # delete the pose entry from the DB
+                db_sess.delete(thisPose_data)
+                continue
+            # create a dict from the treeItem for either updating or a new pose DB entry
+            poseItemDict = {}
+            for key in poseHeader:
+                poseItemDict[key] = treeItem.data(poseHeader.index(key), Qt.DisplayRole)
+            if bool(thisPose_data):
+                # update any changed fields in the existing entry
+                thisVideo_data.pose_data[thisPose_data_index].fromDict(poseItemDict, db_sess)
             else:
-                # pose data associated with video referenced by parent
-                thisPose_data = None
-                thisPose_data_index = -1
-                for iy, pose_dataItem in enumerate(thisVideo_data.pose_data):
-                    if pose_dataItem.pose_id == treeItem.data(poseHeader.index('id'), Qt.DisplayRole):
-                        thisPose_data = pose_dataItem
-                        thisPose_data_index = iy
-                        break
-                if bool(thisPose_data) and treeItem.isHidden():
-                    # delete the pose entry from the DB
-                    db_sess.delete(thisPose_data)
-                    continue
-                # create a dict from the treeItem for either updating or a new pose DB entry
-                poseItemDict = {}
-                for key in poseHeader:
-                    poseItemDict[key] = treeItem.data(poseHeader.index(key), Qt.DisplayRole)
-                if bool(thisPose_data):
-                    # update any changed fields in the existing entry
-                    thisVideo_data.pose_data[thisPose_data_index].fromDict(poseItemDict, db_sess)
-                else:
-                    # new Pose item
-                    dbPoseItem = PoseData(poseItemDict, db_sess)
-                    db_sess.add(dbPoseItem)
-                    thisVideo_data.pose_data.append(dbPoseItem)
+                # new Pose item
+                dbPoseItem = PoseData(poseItemDict, db_sess)
+                db_sess.add(dbPoseItem)
+                thisVideo_data.pose_data.append(dbPoseItem)
 
     # Neural Data
 
