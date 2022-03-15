@@ -23,6 +23,7 @@ class VideoScene(QGraphicsScene):
         self.pose_polys = None
         self.pose_frame_ix = 0
         self.pose_colors = [Qt.blue, Qt.green]
+        self.showPoseData = False
 
     def setAnnots(self, annots):
         self.annots = annots
@@ -30,11 +31,14 @@ class VideoScene(QGraphicsScene):
     def setPosePolys(self, pose_polys):
         self.pose_polys = pose_polys
 
+    def setShowPoseData(self, showPoseData):
+        self.showPoseData = showPoseData
+
     def setPoseFrameIx(self, ix):
         self.pose_frame_ix = ix
 
     def drawPoses(self, painter):
-        if self.pose_polys:
+        if self.showPoseData and self.pose_polys:
             for mouse_ix in range(len(self.pose_polys[self.pose_frame_ix])):
                 painter.setPen(QPen(self.pose_colors[mouse_ix], 2.0))
                 painter.drawPolyline(self.pose_polys[self.pose_frame_ix][mouse_ix])
@@ -87,6 +91,7 @@ class VideoFrame(QFrame):
         self.reader = None
         self.scene = VideoScene()
         self.ui.videoView.setScene(self.scene)
+        self.ui.showPoseCheckBox.stateChanged.connect(self.showPoseDataChanged)
         self.pixmap = QPixmap()
         self.pixmapItem = self.scene.addPixmap(self.pixmap)
         self.active_annots = []
@@ -129,6 +134,8 @@ class VideoFrame(QFrame):
     def set_pose_data(self, pose_polys):
         self.scene.setPosePolys(pose_polys)
         self.pose_polys_frames = len(pose_polys)
+        self.ui.showPoseCheckBox.setEnabled(True)
+        self.scene.setShowPoseData(self.ui.showPoseCheckBox.isChecked())
 
     def sample_rate(self):
         if not self.reader:
@@ -192,3 +199,9 @@ class VideoFrame(QFrame):
     @Slot(list)
     def updateAnnots(self, annots):
         self.active_annots = annots
+
+    @Slot(Qt.CheckState)
+    def showPoseDataChanged(self, showPoseData):
+        if self.scene:
+            self.scene.setShowPoseData(bool(showPoseData))
+            self.updateFrame(self.bento.current_time)   # force redraw

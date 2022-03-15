@@ -7,10 +7,11 @@ from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from annot.annot import Annotations
 from qtpy.QtCore import QModelIndex, Qt, Signal, Slot
-from qtpy.QtGui import QIntValidator
+from qtpy.QtGui import QBrush, QIntValidator
 from qtpy.QtWidgets import (QDialog, QFileDialog, QHeaderView, QMessageBox,
     QTreeWidgetItem, QTreeWidgetItemIterator)
 from models.tableModel import EditableTableModel
+from widgets.deleteableViews import DeleteableTreeWidget
 # from models.videoTreeModel import VideoTreeModel
 from timecode import Timecode
 from os.path import expanduser, getmtime, basename
@@ -20,6 +21,21 @@ from video.mp4Io import mp4Io_reader
 import pymatreader as pmr
 import warnings
 # from caiman.utils.utils import load_dict_from_hdf5
+
+def addPoseHeaderIfNeeded(parent):
+    if parent.childCount() == 0:
+        header = PoseData().header()
+        poseHeaderItem = QTreeWidgetItem(parent, header, type=DeleteableTreeWidget.PoseHeaderType)
+        flags = poseHeaderItem.flags()
+        flags &= ~Qt.ItemIsEditable
+        flags &= ~Qt.ItemIsSelectable
+        poseHeaderItem.setFlags(flags)
+        font = poseHeaderItem.font(0)
+        font.setBold(True)
+        for column in range(poseHeaderItem.columnCount()):
+            poseHeaderItem.setFont(column, font)
+            poseHeaderItem.setTextAlignment(column, Qt.AlignCenter)
+        parent.addChild(poseHeaderItem)
 
 class EditTrialDialog(QDialog):
 
@@ -68,9 +84,8 @@ class EditTrialDialog(QDialog):
     def setVideoModel(self, model):
         oldModel = self.ui.videosTreeView.selectionModel()
         self.ui.videosTreeView.setModel(model)
-        # self.ui.videosTreeView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        # self.ui.videosTreeView.resizeColumnsToContents()
-        self.ui.videosTreeView.hideColumn(0)   # don't show the ID field, but we need it for reference
+        # Unlike for the table views, header font and resizing takes place for Video data
+        # during populateViewsTreeWidget, when the header is set.  See below.
         self.ui.videosTreeView.setSortingEnabled(False)
         self.ui.videosTreeView.setAutoScroll(False)
         if oldModel:
@@ -90,9 +105,18 @@ class EditTrialDialog(QDialog):
                         self.ui.videosTreeWidget.setColumnCount(len(header))
                         self.ui.videosTreeWidget.setHeaderLabels(header)
                         self.ui.videosTreeWidget.hideColumn(header.index('id'))
+                        self.ui.videosTreeWidget.hideColumn(header.index('trial_id'))
+                        headerItem = self.ui.videosTreeWidget.headerItem()
+                        font = headerItem.font(0)
+                        font.setBold(True)
+                        for column in range(headerItem.columnCount()):
+                            headerItem.setFont(column, font)
+                            headerItem.setTextAlignment(column, Qt.AlignCenter)
+                        headerSet = True
                     for ix, key in enumerate(header):
                         videoTreeItem.setData(ix, Qt.EditRole, videoDict[key])
                     if len(elem.pose_data) > 0:
+                        addPoseHeaderIfNeeded(videoTreeItem)
                         for poseItem in elem.pose_data:
                             poseTreeItem = QTreeWidgetItem(videoTreeItem)
                             poseTreeItem.setFlags(poseTreeItem.flags() | Qt.ItemIsEditable)
@@ -101,6 +125,9 @@ class EditTrialDialog(QDialog):
                                 poseTreeItem.setData(iy, Qt.EditRole, poseDict[poseKey])
                             videoTreeItem.addChild(poseTreeItem)
                     self.ui.videosTreeWidget.addTopLevelItem(videoTreeItem)
+
+                for column in range(self.ui.videosTreeWidget.columnCount()):
+                    self.ui.videosTreeWidget.resizeColumnToContents(column)
 
                 if updateTrialNum:
                     self.ui.videosTreeWidget.itemSelectionChanged.connect(self.populateTrialNum)
@@ -147,10 +174,10 @@ class EditTrialDialog(QDialog):
                 break
         item = {
             'id': None,
-            'file_path': file_path,
-            'sample_rate': sample_rate,
-            'start_time': start_time,
-            'camera_position': this_camera_position,
+            'Video File Path': file_path,
+            'Sample Rate': sample_rate,
+            'Start Time': start_time,
+            'Camera Position': this_camera_position,
             'trial_id': self.trial_id,
             'pose_data': [],
             'dirty': True
@@ -215,16 +242,17 @@ class EditTrialDialog(QDialog):
         if poseFilePath.startswith(baseDir):
             poseFilePath = poseFilePath[len(baseDir):]
         # Attach the pose file to the video data in the treeWidget as a child node
+        addPoseHeaderIfNeeded(videoItem)
         poseItem = QTreeWidgetItem(videoItem)
         poseItem.setFlags(poseItem.flags() | Qt.ItemIsEditable)
         videosHeaderItem = self.ui.videosTreeWidget.headerItem()
         videosHeader = [videosHeaderItem.data(ix, Qt.DisplayRole) for ix in range(videosHeaderItem.columnCount())]
         # insert the data into the pose child item
         poseKeys = PoseData().keys
-        poseItem.setData(poseKeys.index('file_path'), Qt.EditRole, poseFilePath)
-        poseItem.setData(poseKeys.index('sample_rate'), Qt.EditRole, videoItem.data(videosHeader.index('sample_rate'), Qt.DisplayRole))
-        poseItem.setData(poseKeys.index('start_time'), Qt.EditRole, videoItem.data(videosHeader.index('start_time'), Qt.DisplayRole))
-        poseItem.setData(poseKeys.index('format'), Qt.EditRole, "MARS")
+        poseItem.setData(poseKeys.index('Pose File Path'), Qt.EditRole, poseFilePath)
+        poseItem.setData(poseKeys.index('Sample Rate'), Qt.EditRole, videoItem.data(videosHeader.index('Sample Rate'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('Start Time'), Qt.EditRole, videoItem.data(videosHeader.index('Start Time'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('Format'), Qt.EditRole, "MARS")
         poseItem.setData(poseKeys.index('video_id'), Qt.EditRole, videoItem.data(videosHeader.index('id'), Qt.DisplayRole))
         poseItem.setData(poseKeys.index('trial_id'), Qt.EditRole, videoItem.data(videosHeader.index('trial_id'), Qt.DisplayRole))
         # poseItem.setData(poseKeys.index('id'), Qt.EditRole, "1")
@@ -263,7 +291,9 @@ class EditTrialDialog(QDialog):
             treeItem = treeItemIter.value()
             if treeItem.parent():
                 # this is a pose item; save it to do after videos
-                deferedActionList.append(treeItem)
+                if treeItem.type() != DeleteableTreeWidget.PoseHeaderType:
+                    # skip the pose header
+                    deferedActionList.append(treeItem)
                 continue
 
             # top-level item: video data
@@ -335,9 +365,14 @@ class EditTrialDialog(QDialog):
     def setNeuralModel(self, model):
         oldModel = self.ui.neuralsTableView.selectionModel()
         self.ui.neuralsTableView.setModel(model)
+        font = self.ui.neuralsTableView.horizontalHeader().font()
+        font.setBold(True)
+        self.ui.neuralsTableView.horizontalHeader().setFont(font)
         self.ui.neuralsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.neuralsTableView.resizeColumnsToContents()
-        self.ui.neuralsTableView.hideColumn(0)   # don't show the ID field, but we need it for reference
+        keys = NeuralData().keys
+        self.ui.neuralsTableView.hideColumn(keys.index('id'))   # don't show the ID field, but we need it for reference
+        self.ui.neuralsTableView.hideColumn(keys.index('trial_id')) # also don't show the trial_id field
         self.ui.neuralsTableView.setSortingEnabled(False)
         self.ui.neuralsTableView.setAutoScroll(False)
         if oldModel:
@@ -397,12 +432,12 @@ class EditTrialDialog(QDialog):
 
         item = {
             'id': None,
-            'file_path': file_path,
-            'sample_rate': sample_rate,
-            'format': 'CNMFE', # by default
-            'start_time': start_time,
-            'start_frame': start_frame,
-            'stop_frame': stop_frame,
+            'Neural File Path': file_path,
+            'Sample Rate': sample_rate,
+            'Format': 'CNMFE', # by default
+            'Start Time': start_time,
+            'Start Frame': start_frame,
+            'Stop Frame': stop_frame,
             'trial_id': self.trial_id,
             'dirty': True
         }
@@ -473,9 +508,14 @@ class EditTrialDialog(QDialog):
     def setAnnotationsModel(self, model):
         oldModel = self.ui.annotationsTableView.selectionModel()
         self.ui.annotationsTableView.setModel(model)
+        font = self.ui.annotationsTableView.horizontalHeader().font()
+        font.setBold(True)
+        self.ui.annotationsTableView.horizontalHeader().setFont(font)
         self.ui.annotationsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.annotationsTableView.resizeColumnsToContents()
-        self.ui.annotationsTableView.hideColumn(0)   # don't show the ID field, but we need it for reference
+        keys = AnnotationsData().keys
+        self.ui.annotationsTableView.hideColumn(keys.index('id'))   # don't show the ID field, but we need it for reference
+        self.ui.annotationsTableView.hideColumn(keys.index('trial_id')) # also don't show the internal trial_id field
         self.ui.annotationsTableView.setSortingEnabled(False)
         self.ui.annotationsTableView.setAutoScroll(False)
         if oldModel:
@@ -532,14 +572,14 @@ class EditTrialDialog(QDialog):
 
         item = {
             'id': None,
-            'file_path': file_path,
-            'sample_rate': sample_rate,
-            'format': annotations.format(),
-            'start_time': self.bento.time_start.float,
-            'start_frame': annotations.start_frame(),
-            'stop_frame': annotations.end_frame(),
-            'annotator_name': annotator_name,
-            'method': "manual",
+            'Annotations File Path': file_path,
+            'Sample Rate': sample_rate,
+            'Format': annotations.format(),
+            'Start Time': self.bento.time_start.float,
+            'Start Frame': annotations.start_frame(),
+            'Stop Frame': annotations.end_frame(),
+            'Annotator Name': annotator_name,
+            'Method': "manual",
             'trial_id': self.trial_id,
             'dirty': True
         }
