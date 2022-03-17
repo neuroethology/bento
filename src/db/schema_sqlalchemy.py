@@ -113,17 +113,25 @@ class NeuralData(Base):
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['Neural File Path']
-        self.sample_rate = d['Sample Rate']
-        self.format = d['Format']
-        self.start_time = d['Start Time']
-        self.start_frame = d['Start Frame']
-        self.stop_frame = d['Stop Frame']
-        self.trial = d['trial_id']
+        if 'Neural File Path' in d.keys() and d['Neural File Path'] != self.file_path:
+            self.file_path = d['Neural File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Format' in d.keys() and d['Format'] != self.format:
+            self.format = d['Format']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
+            self.start_frame = d['Start Frame']
+        if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
+            self.stop_frame = d['Stop Frame']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class VideoData(Base):
     """
@@ -169,19 +177,26 @@ class VideoData(Base):
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
         camera = db_sess.query(Camera).where(func.lower(Camera.position) == func.lower(d['Camera Position'])).scalar()
         if not camera:
             raise RuntimeError(f"No camera with position {d['Camera Position']}")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['Video File Path']
-        self.sample_rate = d['Sample Rate']
-        self.start_time = d['Start Time']
-        self.camera_id = camera.id
-        self.camera = camera
-        self.trial = d['trial_id']
+        if 'Video File Path' in d.keys() and d['Video File Path'] != self.file_path:
+            self.file_path = d['Video File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if self.camera_id != camera.id:
+            self.camera_id = camera.id
+        if self.camera != camera:
+            self.camera = camera
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
         #TODO: pose_data?
 
 class AnnotationsData(Base):
@@ -235,19 +250,29 @@ class AnnotationsData(Base):
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['Annotations File Path']
-        self.sample_rate = d['Sample Rate']
-        self.format = d['Format']
-        self.start_time = d['Start Time']
-        self.start_frame = d['Start Frame']
-        self.stop_frame = d['Stop Frame']
-        self.annotator_name = d['Annotator Name']
-        self.method = d['Method']
-        self.trial = d['trial_id']
+        if 'Annotations File Path' in d.keys() and d['Annotations File Path'] != self.file_path:
+            self.file_path = d['Annotations File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Format' in d.keys() and d['Format'] != self.format:
+            self.format = d['Format']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
+            self.start_frame = d['Start Frame']
+        if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
+            self.stop_frame = d['Stop Frame']
+        if 'Annotator Name' in d.keys() and d['Annotator Name'] != self.annotator_name:
+            self.annotator_name = d['Annotator Name']
+        if 'Method' in d.keys() and d['Method'] != self.method:
+            self.method = d['Method']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class AudioData(Base):
     """
@@ -292,16 +317,24 @@ class AudioData(Base):
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['Audio File Path']
-        self.sample_rate = d['Sample Rate']
-        self.start_time = d['Start Time']
-        self.processed_audio_file_path = d['Processed Audio File Path']
-        # self.annotations_id = d['annotations_id']
-        self.trial = d['trial_id']
+        if 'Audio File Path' in d.keys() and d['Audio File Path'] != self.file_path:
+            self.file_path = d['Audio File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if ('Processed Audio File Path' in d.keys()
+            and d['Processed Audio File Path'] != self.processed_audio_file_path):
+            self.processed_audio_file_path = d['Processed Audio File Path']
+        # if 'annotations_id' in d.keys() and d['annotations_id'] != self.annotations_id:
+            # self.annotations_id = d['annotations_id']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class PoseData(Base):
     """
@@ -345,16 +378,23 @@ class PoseData(Base):
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.pose_id:
             self.pose_id = d['id']
-        self.file_path = d['Pose File Path']
-        self.sample_rate = d['Sample Rate']
-        self.start_time = d['Start Time']
-        self.format = d['Format']
-        self.video = d['video_id']
-        self.trial = d['trial_id']
+        if 'Pose File Path' in d.keys() and d['Pose File Path'] != self.file_path:
+            self.file_path = d['Pose File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if 'Format' in d.keys() and d['Format'] != self.format:
+            self.format = d['Format']
+        if 'video_id' in d.keys() and d['video_id'] != self.video:
+            self.video = d['video_id']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class OtherData(Base):
     """
@@ -400,17 +440,25 @@ class OtherData(Base):
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['File Path']
-        self.sample_rate = d['Sample Rate']
-        self.start_time = d['Start Time']
-        self.start_frame = d['Start Frame']
-        self.stop_frame = d['Stop Frame']
-        self.format = d['Format']
-        self.trial = d['trial_id']
+        if 'File Path' in d.keys() and d['File Path'] != self.file_path:
+            self.file_path = d['File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
+            self.start_frame = d['Start Frame']
+        if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
+            self.stop_frame = d['Stop Frame']
+        if 'Format' in d.keys() and d['Format'] != self.format:
+            self.format = d['Format']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class Session(Base):
     """

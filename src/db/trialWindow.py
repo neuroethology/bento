@@ -255,6 +255,16 @@ class TrialDockWidget(QDockWidget):
         """
         Open the editTrial Dialog
         """
+        if not self.bento.session_id:
+            # try setting the session id from the selected trial
+            if trial_id:
+                with self.bento.sessionMaker() as db_sess:
+                    trial = db_sess.query(Trial).filter(Trial.id == trial_id).one()
+                    if trial:
+                        self.bento.session_id = trial.session_id
+        if not self.bento.session_id:
+            # either it's a new trial, or the above didn't work
+            QMessageBox.about("Error", "No Session selected!")
         dialog = EditTrialDialog(self.bento, self.bento.session_id, trial_id)
         dialog.trialsChanged.connect(self.populateTrials)
         dialog.trialsChanged.connect(self.populateSessions)

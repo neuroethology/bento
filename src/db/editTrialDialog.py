@@ -36,7 +36,9 @@ def addPoseHeaderIfNeeded(parent):
             poseHeaderItem.setFont(column, font)
             poseHeaderItem.setTextAlignment(column, Qt.AlignCenter)
         parent.addChild(poseHeaderItem)
-
+    elif parent.child(0).type() == DeleteableTreeWidget.PoseHeaderType and parent.child(0).isHidden():
+        # there is already a header that was hidden previously and not yet deleted, so unhide it
+        parent.child(0).setHidden(False)
 class EditTrialDialog(QDialog):
 
     quitting = Signal()
@@ -286,14 +288,14 @@ class EditTrialDialog(QDialog):
         videoHeader = VideoData().header()
         poseHeader = PoseData().header()
         treeIterator = QTreeWidgetItemIterator(self.ui.videosTreeWidget)
-        deferedActionList = []
+        deferredActionList = []
         for treeItemIter in iter(treeIterator):
             treeItem = treeItemIter.value()
             if treeItem.parent():
                 # this is a pose item; save it to do after videos
                 if treeItem.type() != DeleteableTreeWidget.PoseHeaderType:
                     # skip the pose header
-                    deferedActionList.append(treeItem)
+                    deferredActionList.append(treeItem)
                 continue
 
             # top-level item: video data
@@ -323,7 +325,7 @@ class EditTrialDialog(QDialog):
                 # db_sess.commit()
 
         # deal with pose data, now that trial.video_data is updated
-        for treeItem in deferedActionList:
+        for treeItem in deferredActionList:
                 # pose data associated with video referenced by parent
             videoTreeItem = treeItem.parent()
             assert bool(videoTreeItem)
