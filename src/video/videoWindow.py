@@ -39,12 +39,16 @@ class VideoScene(QGraphicsScene):
 
     def drawPoses(self, painter):
         if self.showPoseData and self.pose_polys:
-            for mouse_ix in range(len(self.pose_polys[self.pose_frame_ix])):
-                painter.setPen(QPen(self.pose_colors[mouse_ix], 2.0))
-                painter.drawPolyline(self.pose_polys[self.pose_frame_ix][mouse_ix])
-                painter.setBrush(Qt.red)
-                painter.setPen(Qt.NoPen)
-                painter.drawEllipse(self.pose_polys[self.pose_frame_ix][mouse_ix].first(), 5.0, 5.0) # red dot on nose
+            try:
+                for mouse_ix in range(len(self.pose_polys[self.pose_frame_ix])):
+                    painter.setPen(QPen(self.pose_colors[mouse_ix], 2.0))
+                    painter.drawPolyline(self.pose_polys[self.pose_frame_ix][mouse_ix])
+                    painter.setBrush(Qt.red)
+                    painter.setPen(Qt.NoPen)
+                    painter.drawEllipse(self.pose_polys[self.pose_frame_ix][mouse_ix].first(), 5.0, 5.0) # red dot on nose
+            except IndexError as e:
+                # number of video frames is greater than number of pose frames.  Oh well!
+                pass
 
     def drawForeground(self, painter, rect):
         # add poses

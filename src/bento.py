@@ -527,9 +527,6 @@ class Bento(QObject):
         self.active_channel_changed.connect(neuralWidget.setActiveChannel)
         return neuralWidget
 
-    def load_poses(self, pose_path: str) -> object:
-        return None
-
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
         self.video_widgets.clear()
@@ -568,9 +565,10 @@ class Bento(QObject):
                         progress.setValue(progressCompleted)
                         # for now, the UI only supports displaying the first pose file
                         pose_path = video.pose_data[0].file_path
+                        format = video.pose_data[0].format
                         if not isabs(pose_path):
                             pose_path = base_dir + pose_path
-                        pose_polys = load_poses(self.mainWindow, pose_path)
+                        pose_polys = load_poses(self.mainWindow, pose_path, format)
                         widget.set_pose_data(pose_polys)
                     else:
                         print("No pose data in trial to load.")
