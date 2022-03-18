@@ -258,7 +258,7 @@ class TrialDockWidget(QDockWidget):
         if not self.bento.session_id:
             # try setting the session id from the selected trial
             if trial_id:
-                with self.bento.sessionMaker() as db_sess:
+                with self.bento.db_sessionMaker() as db_sess:
                     trial = db_sess.query(Trial).filter(Trial.id == trial_id).one()
                     if trial:
                         self.bento.session_id = trial.session_id
