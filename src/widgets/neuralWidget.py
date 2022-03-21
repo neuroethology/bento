@@ -8,6 +8,8 @@ from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem
     QGraphicsScene, QGraphicsView, QMessageBox)
 from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent)
+import cv2
+import numpy as np
 import pymatreader as pmr
 from timecode import Timecode
 from utils import padded_rectf
@@ -256,14 +258,14 @@ class NeuralScene(QGraphicsScene):
         self.stop_frame = stop_frame
         self.num_chans = data.shape[0]
         # for chan in range(self.num_chans):
-        self.min_y = 1000.
-        self.max_y = -1000.
-        # Image has a pixel for each frame for each channel
-        self.heatmapImage = QImage(self.stop_frame-self.start_frame, self.num_chans, QImage.Format_RGB32)
-        self.heatmapImage.fill(Qt.white)
         for chan in range(self.num_chans):
             self.loadChannel(data, chan)
 
+        # Image has a pixel for each frame for each channel
+        # cv2 needs an image with dtype uint8, so normalize to [0, 255] here
+        data_uint8 = (255*(data - np.min(data))/np.ptp(data)).astype(np.uint8)
+        image = cv2.applyColorMap(data_uint8, cv2.COLORMAP_PARULA)
+        self.heatmapImage = QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format_RGB888)
         self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
 
         # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
@@ -298,27 +300,19 @@ class NeuralScene(QGraphicsScene):
         y = float(chan) + self.normalize(data[chan][self.start_frame])
         trace.moveTo(self.time_start.float, y)
         time_start_float = self.time_start.float
+
         for ix in range(self.start_frame + 1, self.stop_frame):
             t = (ix - self.start_frame)/self.sample_rate + time_start_float
             val = self.normalize(data[chan][ix])
             # Add a section to the trace path
             y = float(chan) + val
-            self.min_y = min(self.min_y, y)
-            self.max_y = max(self.max_y, y)
             trace.lineTo(t, y)
-            # Draw onto the heatmap
-            hsv = QColor()
-            hsv.setHsvF(self.clip(val), 1., 0.5, 0.5)
-            self.heatmapImage.setPixelColor(ix - (self.start_frame), chan, hsv)
         traceItem = QGraphicsPathItem(trace)
         traceItem.setPen(pen)
         self.traces.addToGroup(traceItem)
 
     def normalize(self, y_val):
         return 1.0 - (y_val - self.minimum) / self.range
-
-    def clip(self, val):
-        return max(0., min(1., val))
 
     def overlayAnnotations(self, annotationsScene, parentScene, annotations):
         self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene, annotations)
