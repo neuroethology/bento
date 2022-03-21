@@ -228,13 +228,13 @@ class EditTrialDialog(QDialog):
             self,
             "Select a Pose file to add to this video",
             baseDir,
-            "MatLab files (*.mat);;DeepLabCut files (*.h5)", # could add others like this: "Description1 (*.ext1);;Desc 2 (*.ext2)" etc.
-            "MatLab files (*.mat)")
+            "MARS pose files (*.mat);;DeepLabCut pose files (*.h5)", # could add others like this: "Description1 (*.ext1);;Desc 2 (*.ext2)" etc.
+            "MARS pose files (*.mat)")
         if not poseFilePath:
             return  # getOpenFileName returned with nothing selected == operation cancelled
         # do a sanity check on the returned file
         format = None
-        if 'MatLab' in selectedFilter:
+        if 'MARS' in selectedFilter:
             with warnings.catch_warnings():
                 # suppress warning coming from checking the mat file contents
                 warnings.simplefilter('ignore', category=UserWarning)
