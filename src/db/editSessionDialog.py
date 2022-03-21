@@ -6,7 +6,7 @@ from db.editSessionDialog_ui import Ui_EditSessionDialog
 from qtpy.QtCore import Signal, Slot, QItemSelectionModel
 from qtpy.QtGui import QIntValidator
 from qtpy.QtWidgets import QDialog, QFileDialog, QAbstractItemView, QHeaderView
-from widgets.tableModel import TableModel
+from models.tableModel import TableModel
 from os.path import expanduser
 from datetime import date
 

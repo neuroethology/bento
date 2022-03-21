@@ -4,7 +4,7 @@
 
 from channelDialog_ui import Ui_ChannelDialog
 from qtpy.QtCore import Signal, Slot
-from qtpy.QtWidgets import QDialog, QDialogButtonBox
+from qtpy.QtWidgets import QDialog
 
 class ChannelDialog(QDialog):
 
