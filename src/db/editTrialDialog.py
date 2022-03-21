@@ -224,22 +224,29 @@ class EditTrialDialog(QDialog):
         # so it's correct to use forward-slash ("/") here across all platforms
         if not baseDir.endswith("/"):
             baseDir += "/"
-        poseFilePath, _ = QFileDialog.getOpenFileName(
+        poseFilePath, selectedFilter = QFileDialog.getOpenFileName(
             self,
             "Select a Pose file to add to this video",
             baseDir,
-            "MatLab files (*.mat)", # could add others like this: "Description1 (*.ext1);;Desc 2 (*.ext2)" etc.
-            "MatLab files (*.mat)")
+            "MARS pose files (*.mat);;DeepLabCut pose files (*.h5)", # could add others like this: "Description1 (*.ext1);;Desc 2 (*.ext2)" etc.
+            "MARS pose files (*.mat)")
         if not poseFilePath:
             return  # getOpenFileName returned with nothing selected == operation cancelled
         # do a sanity check on the returned file
-        with warnings.catch_warnings():
-            # suppress warning coming from checking the mat file contents
-            warnings.simplefilter('ignore', category=UserWarning)
-            poseMat = pmr.read_mat(poseFilePath)
-        if 'keypoints' not in poseMat.keys():
-            QMessageBox.warning(self, "Add Pose ...", "No keypoints found in pose file")
-            return
+        format = None
+        if 'MARS' in selectedFilter:
+            with warnings.catch_warnings():
+                # suppress warning coming from checking the mat file contents
+                warnings.simplefilter('ignore', category=UserWarning)
+                poseMat = pmr.read_mat(poseFilePath)
+            if 'keypoints' not in poseMat.keys():
+                QMessageBox.warning(self, "Add Pose ...", "No keypoints found in pose file")
+                return
+            format = 'MARS'
+        elif 'DeepLabCut' in selectedFilter:
+            #TODO: check if this is a valid DLC pose file
+            pass
+            format = 'DeepLabCut'
         # make path relative to baseDir if possible
         if poseFilePath.startswith(baseDir):
             poseFilePath = poseFilePath[len(baseDir):]
@@ -254,7 +261,7 @@ class EditTrialDialog(QDialog):
         poseItem.setData(poseKeys.index('Pose File Path'), Qt.EditRole, poseFilePath)
         poseItem.setData(poseKeys.index('Sample Rate'), Qt.EditRole, videoItem.data(videosHeader.index('Sample Rate'), Qt.DisplayRole))
         poseItem.setData(poseKeys.index('Start Time'), Qt.EditRole, videoItem.data(videosHeader.index('Start Time'), Qt.DisplayRole))
-        poseItem.setData(poseKeys.index('Format'), Qt.EditRole, "MARS")
+        poseItem.setData(poseKeys.index('Format'), Qt.EditRole, format)
         poseItem.setData(poseKeys.index('video_id'), Qt.EditRole, videoItem.data(videosHeader.index('id'), Qt.DisplayRole))
         poseItem.setData(poseKeys.index('trial_id'), Qt.EditRole, videoItem.data(videosHeader.index('trial_id'), Qt.DisplayRole))
         # poseItem.setData(poseKeys.index('id'), Qt.EditRole, "1")
