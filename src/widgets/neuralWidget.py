@@ -208,6 +208,23 @@ class NeuralView(QGraphicsView):
             )
             offset += self.ticksScale
 
+class NeuralColorMapper():
+    """
+    Apply the selected color map to scalar image data
+    """
+
+    def __init__(self, min_val: float, max_val: float, cv_colormap = cv2.COLORMAP_VIRIDIS):
+        self.data_min = min_val
+        self.data_max = max_val
+        self.data_ptp = max_val - min_val
+        self.cv_colormap = cv_colormap
+
+    def mappedImage(self, scalar_image_data: np.ndarray) -> QImage:
+        # cv2 needs an image with dtype uint8, so normalize to [0, 255] here
+        data_uint8 = (255*(scalar_image_data - self.data_min)/self.data_ptp).astype(np.uint8)
+        image = cv2.applyColorMap(data_uint8, self.cv_colormap)
+        return QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format_BGR888)
+
 class NeuralScene(QGraphicsScene):
     """
     Object allowing display of Calcium data along with annotations
@@ -220,6 +237,9 @@ class NeuralScene(QGraphicsScene):
         self.sample_rate = 30.
         self.num_chans = 0
         self.traces = QGraphicsItemGroup()
+        self.data_min = None
+        self.data_max = None
+        self.colorMapper = None
         self.heatmap = None
         self.annotations = None
         self.activeChannel = None
@@ -257,15 +277,15 @@ class NeuralScene(QGraphicsScene):
         self.start_frame = start_frame
         self.stop_frame = stop_frame
         self.num_chans = data.shape[0]
+        self.data_min = data.min()
+        self.data_max = data.max()
+        self.colorMapper = NeuralColorMapper(self.data_min, self.data_max, cv2.COLORMAP_PARULA)
         # for chan in range(self.num_chans):
         for chan in range(self.num_chans):
             self.loadChannel(data, chan)
 
         # Image has a pixel for each frame for each channel
-        # cv2 needs an image with dtype uint8, so normalize to [0, 255] here
-        data_uint8 = (255*(data - np.min(data))/np.ptp(data)).astype(np.uint8)
-        image = cv2.applyColorMap(data_uint8, cv2.COLORMAP_PARULA)
-        self.heatmapImage = QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format_RGB888)
+        self.heatmapImage = self.colorMapper.mappedImage(data)
         self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
 
         # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
