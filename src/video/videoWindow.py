@@ -19,17 +19,15 @@ class VideoScene(QGraphicsScene):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.annots = None
-        self.pose_keypoints = None
-        self.pose_polys = None
+        self.pose_class = None
         self.pose_frame_ix = 0
-        self.pose_colors = [Qt.blue, Qt.green]
         self.showPoseData = False
 
     def setAnnots(self, annots):
         self.annots = annots
 
-    def setPosePolys(self, pose_polys):
-        self.pose_polys = pose_polys
+    def setPoseClass(self, pose_class):
+        self.pose_class = pose_class
 
     def setShowPoseData(self, showPoseData):
         self.showPoseData = showPoseData
@@ -38,17 +36,8 @@ class VideoScene(QGraphicsScene):
         self.pose_frame_ix = ix
 
     def drawPoses(self, painter):
-        if self.showPoseData and self.pose_polys:
-            try:
-                for mouse_ix in range(len(self.pose_polys[self.pose_frame_ix])):
-                    painter.setPen(QPen(self.pose_colors[mouse_ix], 2.0))
-                    painter.drawPolyline(self.pose_polys[self.pose_frame_ix][mouse_ix])
-                    painter.setBrush(Qt.red)
-                    painter.setPen(Qt.NoPen)
-                    painter.drawEllipse(self.pose_polys[self.pose_frame_ix][mouse_ix].first(), 5.0, 5.0) # red dot on nose
-            except IndexError as e:
-                # number of video frames is greater than number of pose frames.  Oh well!
-                pass
+        if self.showPoseData and self.pose_class:
+            self.pose_class.drawPoses(painter, self.pose_frame_ix)
 
     def drawForeground(self, painter, rect):
         # add poses
@@ -101,9 +90,6 @@ class VideoFrame(QFrame):
         self.active_annots = []
         self.aspect_ratio = 1.
 
-        # data related to pose
-        self.pose_polys_frames = 0
-
     def resizeEvent(self, event):
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
@@ -135,11 +121,10 @@ class VideoFrame(QFrame):
         self.updateFrame(self.bento.current_time)
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
-    def set_pose_data(self, pose_polys):
-        self.scene.setPosePolys(pose_polys)
-        self.pose_polys_frames = len(pose_polys)
-        self.ui.showPoseCheckBox.setEnabled(True)
-        self.scene.setShowPoseData(self.ui.showPoseCheckBox.isChecked())
+    def set_pose_class(self, pose_class):
+        self.scene.setPoseClass(pose_class)
+        self.ui.showPoseCheckBox.setEnabled(bool(pose_class))
+        self.scene.setShowPoseData(bool(pose_class) and self.ui.showPoseCheckBox.isChecked())
 
     def sample_rate(self):
         if not self.reader:
@@ -192,9 +177,9 @@ class VideoFrame(QFrame):
         else:
             raise Exception(f"video format {self.ext} not supported")
 
-        if self.pose_polys_frames > 0:
-            # get the frame number for this frame and set it into the scene
-            self.scene.setPoseFrameIx(min(myTc.frames, self.pose_polys_frames))
+        # get the frame number for this frame and set it into the scene,
+        # whether we have and are showing pose data or not
+        self.scene.setPoseFrameIx(myTc.frames)
 
         if isinstance(self.scene, VideoScene):
             self.scene.setAnnots(self.active_annots)

@@ -7,7 +7,6 @@ from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QApplication, QFileDialog, QMessageBox, QProgressDialog
 from annot.annot import Annotations, Bout
 from annot.behavior import Behaviors
-from pose.pose import load_poses
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
@@ -23,6 +22,7 @@ from db.animal_surgery_xls import import_animal_xls_file
 from db.behaviorsDialog import BehaviorsDialog
 from db.bento_xls import import_bento_xls_file
 from neural.neuralFrame import NeuralFrame
+from pose.pose import PoseRegistry
 from channelDialog import ChannelDialog
 from os.path import expanduser, isabs, sep, relpath, splitext
 from utils import fix_path, padded_rectf
@@ -101,6 +101,8 @@ class Bento(QObject):
         self.neural_widgets = []
         self.annotations = Annotations(self.behaviors)
         self.annotations.annotations_changed.connect(self.noteAnnotationsChanged)
+        self.pose_registry = PoseRegistry()
+        self.pose_registry.load_plugins()
         self.mainWindow = MainWindow(self)
         self.current_time.set_fractional(False)
         self.active_channels = []
@@ -565,11 +567,11 @@ class Bento(QObject):
                         progress.setValue(progressCompleted)
                         # for now, the UI only supports displaying the first pose file
                         pose_path = video.pose_data[0].file_path
-                        format = video.pose_data[0].format
                         if not isabs(pose_path):
                             pose_path = base_dir + pose_path
-                        pose_polys = load_poses(self.mainWindow, pose_path, format)
-                        widget.set_pose_data(pose_polys)
+                        pose_class = self.pose_registry(video.pose_data[0].format)
+                        widget.set_pose_class(pose_class)
+                        pose_class.loadPoses(self.mainWindow, pose_path)
                     else:
                         print("No pose data in trial to load.")
                     progressCompleted += 1

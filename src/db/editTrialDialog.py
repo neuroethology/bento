@@ -224,29 +224,7 @@ class EditTrialDialog(QDialog):
         # so it's correct to use forward-slash ("/") here across all platforms
         if not baseDir.endswith("/"):
             baseDir += "/"
-        poseFilePath, selectedFilter = QFileDialog.getOpenFileName(
-            self,
-            "Select a Pose file to add to this video",
-            baseDir,
-            "MARS pose files (*.mat);;DeepLabCut pose files (*.h5)", # could add others like this: "Description1 (*.ext1);;Desc 2 (*.ext2)" etc.
-            "MARS pose files (*.mat)")
-        if not poseFilePath:
-            return  # getOpenFileName returned with nothing selected == operation cancelled
-        # do a sanity check on the returned file
-        format = None
-        if 'MARS' in selectedFilter:
-            with warnings.catch_warnings():
-                # suppress warning coming from checking the mat file contents
-                warnings.simplefilter('ignore', category=UserWarning)
-                poseMat = pmr.read_mat(poseFilePath)
-            if 'keypoints' not in poseMat.keys():
-                QMessageBox.warning(self, "Add Pose ...", "No keypoints found in pose file")
-                return
-            format = 'MARS'
-        elif 'DeepLabCut' in selectedFilter:
-            #TODO: check if this is a valid DLC pose file
-            pass
-            format = 'DeepLabCut'
+        poseFilePath, format = self.bento.pose_registry.getPoseFilePath(self, baseDir)
         # make path relative to baseDir if possible
         if poseFilePath.startswith(baseDir):
             poseFilePath = poseFilePath[len(baseDir):]
