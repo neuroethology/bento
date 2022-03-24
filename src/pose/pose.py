@@ -5,6 +5,7 @@ from qtpy.QtWidgets import QFileDialog, QMessageBox, QWidget
 from os import curdir, listdir
 from os.path import abspath, sep, splitext
 from importlib import import_module
+import sys
 
 class PoseBase():
     """
@@ -65,6 +66,7 @@ class PoseRegistry():
 
     def __init__(self):
         self.pose_modules = {}
+        self.plugin_dir = None
 
     def __call__(self, format: str) -> PoseBase:
         if not format in self.pose_modules:
@@ -76,19 +78,42 @@ class PoseRegistry():
 
     def load_plugins(self):
         """
-        search the plugin directory for python files of
+        Search the plugin directory for python files of
         the form "pose_plugin_*.py"
+        Import any that are found, and call their "register" function if there is one
+        If no "register" function exists, the plugin will not be available for use.
         """
-        plugin_dir_path = abspath(curdir + sep + 'src' + sep + 'plugin')
-        paths = listdir(plugin_dir_path)
+        plugin_dir = curdir
+        if 'src' in listdir(plugin_dir):
+            plugin_dir += sep + 'src'
+        if 'plugin' in listdir(plugin_dir):
+            plugin_dir += sep + 'plugin'
+        else:
+            # pose plugin directory not found
+            return
+        self.plugin_dir = abspath(plugin_dir)
+        sys.path.append(self.plugin_dir)
+
+        paths = listdir(self.plugin_dir)
         for path in paths:
-            if path[0] == '_':
+            # Pose plugin file names must start with "plugin_pose_"
+            if not path.lower().startswith('plugin_pose_'):
                 continue
             stem, _ = splitext(path)
-            m = import_module('plugin.' + stem)
+            m = import_module(stem)
             if 'register' not in dir(m):
                 continue
             m.register(self)
+
+    def getPluginDir(self) -> str:
+        """
+        The location in the file system of the plugin folder.
+        Plugins that need this, for example to find a configuration file,
+        should capture it at time of plugin registration, when the registry
+        class is available.  Otherwise, access will need to come from whatever
+        is holding onto the PoseRegistry instance.
+        """
+        return self.plugin_dir
 
     def getPoseFilePath(self, parent_widget: QWidget, baseDir: str) -> tuple:
         """
