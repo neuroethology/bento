@@ -2,8 +2,8 @@
 
 from qtpy.QtCore import Qt, QPointF
 from qtpy.QtGui import QPainter, QPen, QPolygonF
-from qtpy.QtWidgets import QMessageBox
-from pose.pose import PoseBase, PoseRegistry
+from qtpy.QtWidgets import QMessageBox, QWidget
+from pose.pose import PoseBase
 import numpy as np
 import h5py
 
@@ -44,7 +44,7 @@ class PoseDLC_mouse(PoseBase):
     def getFileFormat(self) -> str:
         return "DeepLabCut_mouse"
 
-    def validateFile(self, file_path) -> bool:
+    def validateFile(self, parent_widget: QWidget, file_path: str) -> bool:
         """
         Default implementation does no checking,
         but we can do better than that
@@ -52,11 +52,11 @@ class PoseDLC_mouse(PoseBase):
         h5 = h5py.File(file_path, 'r')
         default_group = h5[list(h5.keys())[0]]
         if 'table' not in default_group.keys():
-            QMessageBox.warning(self, "Add Pose ...", "No pose data found in pose file")
+            QMessageBox.warning(parent_widget, "Add Pose ...", "No pose data found in pose file")
             return False
         return True
 
-    def loadPoses(self, parent_widget, path: str):
+    def loadPoses(self, parent_widget: QWidget, path: str):
         h5 = h5py.File(path, 'r')
         default_group = h5[list(h5.keys())[0]]
         table = default_group['table']

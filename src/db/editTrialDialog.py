@@ -1,6 +1,5 @@
 # editTrialDialog.py
 
-from sklearn import tree
 from db.schema_sqlalchemy import (Camera, Trial, Session, VideoData, NeuralData,
     AnnotationsData, PoseData, Investigator)
 from sqlalchemy import func, select
@@ -225,6 +224,8 @@ class EditTrialDialog(QDialog):
         if not baseDir.endswith("/"):
             baseDir += "/"
         poseFilePath, format = self.bento.pose_registry.getPoseFilePath(self, baseDir)
+        if not poseFilePath:
+            return
         # make path relative to baseDir if possible
         if poseFilePath.startswith(baseDir):
             poseFilePath = poseFilePath[len(baseDir):]

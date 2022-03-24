@@ -2,8 +2,8 @@
 
 from qtpy.QtCore import Qt, QPointF
 from qtpy.QtGui import QPainter, QPen, QPolygonF
-from qtpy.QtWidgets import QMessageBox
-from pose.pose import PoseBase, PoseRegistry
+from qtpy.QtWidgets import QMessageBox, QWidget
+from pose.pose import PoseBase
 import pymatreader as pmr
 import warnings
 
@@ -44,7 +44,7 @@ class PoseMARS(PoseBase):
     def getFileFormat(self) -> str:
         return "MARS"
 
-    def validateFile(self, file_path) -> bool:
+    def validateFile(self, parent_widget: QWidget, file_path: str) -> bool:
         """
         Default implementation does no checking,
         but we can do better than that
@@ -54,11 +54,11 @@ class PoseMARS(PoseBase):
             warnings.simplefilter('ignore', category=UserWarning)
             poseMat = pmr.read_mat(file_path)
         if 'keypoints' not in poseMat.keys():
-            QMessageBox.warning(self, "Add Pose ...", "No keypoints found in pose file")
+            QMessageBox.warning(parent_widget, "Add Pose ...", "No keypoints found in pose file")
             return False
         return True
 
-    def loadPoses(self, parent_widget, path: str):
+    def loadPoses(self, parent_widget: QWidget, path: str):
         mat = None
         with warnings.catch_warnings():
             # suppress warning coming from checking the mat file contents

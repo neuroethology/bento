@@ -44,13 +44,13 @@ class PoseBase():
         raise NotImplementedError("PoseBase: abstract base class.  ",
             "Please implement this in your derived class")
 
-    def validateFile(self, file_path) -> bool:
+    def validateFile(self, parent_widget: QWidget, file_path: str) -> bool:
         """
         Default implementation does no checking
         """
         return True
 
-    def loadPoses(self, parent_widget, file_path: str):
+    def loadPoses(self, parent_widget: QWidget, file_path: str):
         """
         Base class template for parsing and importing all the
         pose data.  Real implementations should save away everything
@@ -146,6 +146,6 @@ class PoseRegistry():
         # do a sanity check on the returned file
 
         selectedModule = module_dict[selectedFilter]
-        if not selectedModule.validateFile(poseFilePath):
+        if not selectedModule.validateFile(parent_widget, poseFilePath):
             return None, None
         return poseFilePath, selectedModule.getFileFormat()
