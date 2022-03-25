@@ -8,11 +8,10 @@ from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem
     QGraphicsScene, QGraphicsView, QMessageBox)
 from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent)
-import cv2
 import numpy as np
 import pymatreader as pmr
 from timecode import Timecode
-from utils import padded_rectf
+from utils import padded_rectf, cm_data_parula, cm_data_viridis
 import warnings
 
 class QGraphicsSubSceneItem(QGraphicsItem):
@@ -213,17 +212,28 @@ class NeuralColorMapper():
     Apply the selected color map to scalar image data
     """
 
-    def __init__(self, min_val: float, max_val: float, cv_colormap = cv2.COLORMAP_VIRIDIS):
+    def __init__(self, min_val: float, max_val: float, colormap_name = "viridis"):
         self.data_min = min_val
         self.data_max = max_val
         self.data_ptp = max_val - min_val
-        self.cv_colormap = cv_colormap
+        self.cv_colormap = colormap_name
+        self.colormap = None
+        cm_data = None
+        if colormap_name.lower() == "parula":
+            cm_data = cm_data_parula
+        elif colormap_name.lower == "viridis":
+            cm_data = cm_data_viridis
+        else:
+            raise Exception(f"colormap value {colormap_name} not supported")
+        self.colormap = [QColor(int(255*r), int(255*g), int(255*b)).rgba() for r, g, b in cm_data]
 
-    def mappedImage(self, scalar_image_data: np.ndarray) -> QImage:
+
+    def mappedImage(self, scalar_image_data: np.ndarray):
         # cv2 needs an image with dtype uint8, so normalize to [0, 255] here
-        data_uint8 = (255*(scalar_image_data - self.data_min)/self.data_ptp).astype(np.uint8)
-        image = cv2.applyColorMap(data_uint8, self.cv_colormap)
-        return QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format_BGR888)
+        data_uint8 = (255*(scalar_image_data - self.data_min)/self.data_ptp).astype(np.uint8, order="C")
+        qImage = QImage(data_uint8, data_uint8.shape[1], data_uint8.shape[0], data_uint8.strides[0], QImage.Format_Indexed8)
+        qImage.setColorTable(self.colormap)
+        return qImage
 
 class NeuralScene(QGraphicsScene):
     """
@@ -240,6 +250,7 @@ class NeuralScene(QGraphicsScene):
         self.data_min = None
         self.data_max = None
         self.colorMapper = None
+        self.heatmapImage = None
         self.heatmap = None
         self.annotations = None
         self.activeChannel = None
@@ -279,7 +290,7 @@ class NeuralScene(QGraphicsScene):
         self.num_chans = data.shape[0]
         self.data_min = data.min()
         self.data_max = data.max()
-        self.colorMapper = NeuralColorMapper(self.data_min, self.data_max, cv2.COLORMAP_PARULA)
+        self.colorMapper = NeuralColorMapper(self.data_min, self.data_max, "parula")
         # for chan in range(self.num_chans):
         for chan in range(self.num_chans):
             self.loadChannel(data, chan)
