@@ -10,6 +10,7 @@ from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent)
 import numpy as np
 import pymatreader as pmr
+from qimage2ndarray import gray2qimage
 from timecode import Timecode
 from utils import padded_rectf, cm_data_parula, cm_data_viridis
 import warnings
@@ -229,9 +230,10 @@ class NeuralColorMapper():
 
 
     def mappedImage(self, scalar_image_data: np.ndarray):
-        # cv2 needs an image with dtype uint8, so normalize to [0, 255] here
-        data_uint8 = (255*(scalar_image_data - self.data_min)/self.data_ptp).astype(np.uint8, order="C")
-        qImage = QImage(data_uint8, data_uint8.shape[1], data_uint8.shape[0], data_uint8.strides[0], QImage.Format_Indexed8)
+        # we use Indexed8 color, which is what gray2qimage returns, and then
+        # change the colorTable from the default gray (as RGB) to the requested
+        # colormap, e.g. parula or viridis
+        qImage = gray2qimage(scalar_image_data, normalize = (self.data_min, self.data_max))
         qImage.setColorTable(self.colormap)
         return qImage
 
