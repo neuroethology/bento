@@ -125,7 +125,13 @@ class Bento(QObject):
             QMessageBox.about(self.mainWindow, "Error", f"Config data invalid.  {e}")
             exit(-1)
         if not self.config.investigator_id():
+            with self.db_sessionMaker() as db_sess:
+                query = db_sess.query(Investigator).distinct()
+                investigators = query.all()
+            if not investigators:
+                self.edit_investigator()
             self.set_investigator()
+        
         self.investigator_id = self.config.investigator_id()
         self.mainWindow.show()
 
