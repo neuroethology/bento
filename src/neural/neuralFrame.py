@@ -2,10 +2,12 @@
 
 from neural.neuralFrame_ui import Ui_neuralFrame
 from qtpy.QtCore import Qt, Signal, Slot
+from qtpy.QtGui import QPixmap
 from qtpy.QtWidgets import QFrame
 import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
+import numpy as np
 from utils import fix_path
 from os.path import isabs
 
@@ -42,7 +44,7 @@ class NeuralFrame(QFrame):
         self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
         bento.annotationsSceneHeightChanged.connect(self.ui.annotationsView.setVScaleAndShow)
         self.annotations = self.bento.annotations
-        self.activeChannel = None 
+        self.activeChannel = None
 
     def load(self, neuralData, base_dir):
         if isabs(neuralData.file_path):
@@ -61,13 +63,18 @@ class NeuralFrame(QFrame):
             self.ui.showHeatMapRadioButton.isChecked(),
             self.ui.showAnnotationsCheckBox.checkState()
             )
+        self.ui.dataMinLabel.setText(f"{self.neuralScene.data_min:.3f}")
+        self.ui.dataMaxLabel.setText(f"{self.neuralScene.data_max:.3f}")
+        legendGradient = np.linspace(self.neuralScene.data_min, self.neuralScene.data_max, 100)[None,:]
+        legendImage = self.neuralScene.colorMapper.mappedImage(legendGradient)
+        self.ui.colormapImageLabel.setPixmap(QPixmap.fromImageInPlace(legendImage, Qt.NoFormatConversion))
         self.neuralSceneUpdated.emit()
         self.ui.neuralView.synchronizeHScale()
         # synchronize viewer times
         self.updateTime(self.bento.time_start)
 
     def overlayAnnotations(self, annotationsScene):
-        self.neuralScene.overlayAnnotations(annotationsScene, 
+        self.neuralScene.overlayAnnotations(annotationsScene,
                                             self.neuralScene,
                                             self.annotations)
 
