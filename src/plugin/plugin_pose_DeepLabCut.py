@@ -218,8 +218,8 @@ class PoseDLC_generic(PoseBase):
 
 def register(registry):
     # construct and register the generic plugin
-    pose_plugin = PoseDLC_generic()
-    registry.register(pose_plugin.getFileFormat(), pose_plugin)
+    # pose_plugin = PoseDLC_generic()
+    # registry.register(pose_plugin.getFileFormat(), pose_plugin)
 
     # construct and register the MARS-style mouse-specific plugin
     pose_plugin = PoseDLC_mouse()
