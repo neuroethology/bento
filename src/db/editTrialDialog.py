@@ -1,6 +1,5 @@
 # editTrialDialog.py
 
-from sklearn import tree
 from db.schema_sqlalchemy import (Camera, Trial, Session, VideoData, NeuralData,
     AnnotationsData, PoseData, Investigator)
 from sqlalchemy import func, select

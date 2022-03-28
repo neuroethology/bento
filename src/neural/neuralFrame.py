@@ -71,6 +71,36 @@ class NeuralFrame(QFrame):
                                             self.neuralScene,
                                             self.annotations)
 
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Left:
+            if event.modifiers() & Qt.ShiftModifier:
+                self.bento.skipBackward()
+            else:
+                self.bento.decrementTime()
+        elif event.key() == Qt.Key_Right:
+            if event.modifiers() & Qt.ShiftModifier:
+                self.bento.skipForward()
+            else:
+                self.bento.incrementTime()
+        elif event.key() == Qt.Key_Up:
+            if event.modifiers() & Qt.ShiftModifier:
+                self.bento.player.doubleFrameRate()
+            else:
+                self.bento.toPrevEvent()
+        elif event.key() == Qt.Key_Down:
+            if event.modifiers() & Qt.ShiftModifier:
+                self.bento.player.halveFrameRate()
+            else:
+                self.bento.toNextEvent()
+        elif (not (event.modifiers() & ~Qt.ShiftModifier)  # not a modifier other than shift
+         and (event.key() in range(Qt.Key_A, Qt.Key_Z) or
+            event.key() == Qt.Key_Backspace or
+            event.key() == Qt.Key_Escape)):
+            self.bento.processHotKey(event)
+        elif event.key() == Qt.Key_Space and self.bento.player:
+            self.bento.player.togglePlayer()
+        event.accept()
+
     @Slot(str)
     def setActiveChannel(self, chan):
         self.activeChannel = chan
