@@ -12,7 +12,7 @@ import numpy as np
 import pymatreader as pmr
 from qimage2ndarray import gray2qimage
 from timecode import Timecode
-from utils import padded_rectf, cm_data_parula, cm_data_viridis
+from utils import get_colormap, padded_rectf
 import warnings
 
 class QGraphicsSubSceneItem(QGraphicsItem):
@@ -218,21 +218,12 @@ class NeuralColorMapper():
         self.data_max = max_val
         self.data_ptp = max_val - min_val
         self.cv_colormap = colormap_name
-        self.colormap = None
-        cm_data = None
-        if colormap_name.lower() == "parula":
-            cm_data = cm_data_parula
-        elif colormap_name.lower == "viridis":
-            cm_data = cm_data_viridis
-        else:
-            raise Exception(f"colormap value {colormap_name} not supported")
-        self.colormap = [QColor(int(255*r), int(255*g), int(255*b)).rgba() for r, g, b in cm_data]
-
+        self.colormap = get_colormap(colormap_name)
 
     def mappedImage(self, scalar_image_data: np.ndarray):
         # we use Indexed8 color, which is what gray2qimage returns, and then
         # change the colorTable from the default gray (as RGB) to the requested
-        # colormap, e.g. parula or viridis
+        # colormap, e.g. parula, turbo (jet-like, but better) or viridis
         qImage = gray2qimage(scalar_image_data, normalize = (self.data_min, self.data_max))
         qImage.setColorTable(self.colormap)
         return qImage
