@@ -240,8 +240,57 @@ class PoseDLC_mouse(PoseDLCBase):
             self.pose_polys.append(frame_polys)
 
     def _loadPoses_csv(self, parent_widget: QWidget, path: str):
-        #TODO: need to implement this
-        return super()._loadPoses_csv(parent_widget, path)
+        with open(path, 'r') as csvFile:
+            vals_per_pt = 3 # x, y, confidence.  We don't care about confidence.
+            vals_per_mouse = 7
+            reader = csv.reader(csvFile)
+            header1 = next(reader)
+            num_pts = int((len(header1) - 2) / vals_per_pt)
+            if num_pts % vals_per_mouse != 0:
+                QMessageBox.warning(parent_widget, "Improper number of points for mice",
+                    f"Expected a multiple of 7 points, got {num_pts}")
+                return
+            _ = next(reader)    # skip over second row of header
+            while True:
+                try:
+                    row = next(reader)
+                except StopIteration:
+                    break
+                num_mice = int(num_pts / vals_per_mouse)
+                frame_polys = []
+                for mouse_ix in range(num_mice):
+                    # each pose point has x, y and confidence
+                    # we don't care about confidence
+                    poly = QPolygonF()
+                    pt_x_ix = (vals_per_mouse * mouse_ix) + 2
+                    pt_y_ix = (vals_per_mouse * mouse_ix) + 3
+                    nose = QPointF(row[pt_x_ix], row[pt_y_ix])
+                    poly.append(nose)
+                    poly.append(QPointF(
+                        row[pt_x_ix + (1 * vals_per_pt)],
+                        row[pt_y_ix + (1 * vals_per_pt)]))
+                    poly.append(QPointF(
+                        row[pt_x_ix + (3 * vals_per_pt)],
+                        row[pt_y_ix + (3 * vals_per_pt)]))
+                    poly.append(QPointF(
+                        row[pt_x_ix + (4 * vals_per_pt)],
+                        row[pt_y_ix + (4 * vals_per_pt)]))
+                    poly.append(QPointF(
+                        row[pt_x_ix + (6 * vals_per_pt)],
+                        row[pt_y_ix + (6 * vals_per_pt)]))
+                    poly.append(QPointF(
+                        row[pt_x_ix + (5 * vals_per_pt)],
+                        row[pt_y_ix + (5 * vals_per_pt)]))
+                    poly.append(QPointF(
+                        row[pt_x_ix + (3 * vals_per_pt)],
+                        row[pt_y_ix + (3 * vals_per_pt)]))
+                    poly.append(QPointF(
+                        row[pt_x_ix + (2 * vals_per_pt)],
+                        row[pt_y_ix + (2 * vals_per_pt)]))
+                    poly.append(nose)
+                    frame_polys.append(poly)
+                self.pose_polys.append(frame_polys)
+            self.num_frames = len(self.frame_points)
 
 def register(registry):
     # construct and register the generic plugin
