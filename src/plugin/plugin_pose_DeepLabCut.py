@@ -29,7 +29,7 @@ class PoseDLCBase(PoseBase):
         super().__init__()
 
     def getFileSearchPattern(self) -> str:
-        return "*.h5, *.csv"
+        return "*.h5 *.csv"
 
     def _validateFileH5(self, parent_widget, file_path: str) -> bool:
         h5 = h5py.File(file_path, 'r')
