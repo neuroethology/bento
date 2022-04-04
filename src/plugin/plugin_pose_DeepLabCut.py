@@ -162,6 +162,7 @@ class PoseDLC_generic(PoseDLCBase):
                     pt_y_ix = (vals_per_pt * point_ix) + 3
                     this_frame_points.append(QPointF(float(row[pt_x_ix]), float(row[pt_y_ix])))
                 self.frame_points.append(this_frame_points)
+            self.num_frames = len(self.frame_points)
 
 class PoseDLC_mouse(PoseDLCBase):
 
