@@ -131,7 +131,7 @@ class PoseDLC_generic(PoseBase):
         return "DeepLabCut geenric pose files"
 
     def getFileSearchPattern(self) -> str:
-        return "*.h5, *.csv"
+        return "*.h5"
 
     def getFileFormat(self) -> str:
         return "DeepLabCut_generic"
