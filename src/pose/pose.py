@@ -83,7 +83,7 @@ class PoseRegistry():
         Import any that are found, and call their "register" function if there is one
         If no "register" function exists, the plugin will not be available for use.
         """
-        plugin_dir = curdir
+        plugin_dir = sys.path[0]
         if 'src' in listdir(plugin_dir):
             plugin_dir += sep + 'src'
         if 'plugin' in listdir(plugin_dir):
