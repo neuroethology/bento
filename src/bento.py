@@ -10,7 +10,8 @@ from annot.behavior import Behaviors
 from mainWindow import MainWindow
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
-from db.schema_sqlalchemy import AnnotationsData, Investigator, Session, Trial, new_session, create_tables
+from db.schema_sqlalchemy import (AnnotationsData, Investigator, Session, Trial,
+    VideoData, new_session, create_tables)
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
 from db.cameraDialog import CameraDialog
@@ -21,6 +22,7 @@ from db.animal_surgery_xls import import_animal_xls_file
 from db.behaviorsDialog import BehaviorsDialog
 from db.bento_xls import import_bento_xls_file
 from neural.neuralFrame import NeuralFrame
+from pose.pose import PoseRegistry
 from channelDialog import ChannelDialog
 from os.path import expanduser, isabs, sep, relpath, splitext
 from utils import fix_path, padded_rectf
@@ -99,6 +101,8 @@ class Bento(QObject):
         self.neural_widgets = []
         self.annotations = Annotations(self.behaviors)
         self.annotations.annotations_changed.connect(self.noteAnnotationsChanged)
+        self.pose_registry = PoseRegistry()
+        self.pose_registry.load_plugins()
         self.mainWindow = MainWindow(self)
         self.current_time.set_fractional(False)
         self.active_channels = []
@@ -121,7 +125,13 @@ class Bento(QObject):
             QMessageBox.about(self.mainWindow, "Error", f"Config data invalid.  {e}")
             exit(-1)
         if not self.config.investigator_id():
+            with self.db_sessionMaker() as db_sess:
+                query = db_sess.query(Investigator).distinct()
+                investigators = query.all()
+            if not investigators:
+                self.edit_investigator()
             self.set_investigator()
+        
         self.investigator_id = self.config.investigator_id()
         self.mainWindow.show()
 
@@ -511,14 +521,14 @@ class Bento(QObject):
             time.sleep(3./30.)  # wait for threads to shut down
             QApplication.instance().quit()
 
-    def newVideoWidget(self, video_path):
+    def newVideoWidget(self, video_path: str) -> VideoFrame:
         video = VideoFrame(self)
         video.load_video(video_path)
         self.timeChanged.connect(video.updateFrame)
         self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
-    def newNeuralWidget(self, neuralData, base_dir):
+    def newNeuralWidget(self, neuralData, base_dir: str) -> NeuralFrame:
         neuralWidget = NeuralFrame(self)
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
@@ -531,7 +541,7 @@ class Bento(QObject):
         progressTotal = (
             len(videos) +
             (1 if annotation else 0) +
-            (1 if loadPose else 0) +
+            (len(videos) if loadPose else 0) +  # potentially one pose per video
             (1 if loadNeural else 0) +
             (1 if loadAudio else 0))
         progressCompleted = 0
@@ -556,6 +566,22 @@ class Bento(QObject):
                     path = video_data.file_path
                 widget = self.newVideoWidget(fix_path(path))
                 self.video_widgets.append(widget)
+                if loadPose:
+                    video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
+                    if len(video.pose_data) > 0:
+                        progress.setLabelText(f"Loading pose data for video #{ix}...")
+                        progress.setValue(progressCompleted)
+                        # for now, the UI only supports displaying the first pose file
+                        pose_path = video.pose_data[0].file_path
+                        if not isabs(pose_path):
+                            pose_path = base_dir + pose_path
+                        pose_class = self.pose_registry(video.pose_data[0].format)
+                        widget.set_pose_class(pose_class)
+                        pose_class.loadPoses(self.mainWindow, pose_path)
+                    else:
+                        print("No pose data in trial to load.")
+                    progressCompleted += 1
+
                 qr = widget.frameGeometry()
                 # qr.moveCenter(self.screen_center + spacing)
                 qr.moveCenter(self.screen_center)
@@ -578,7 +604,6 @@ class Bento(QObject):
             progress.setLabelText("Loading annotations...")
             progress.setValue(progressCompleted)
             self.load_or_init_annotations(annot_path, sample_rate, runningTime)
-            progressCompleted += 1
             # try:
             #     self.load_or_init_annotations(annot_path, sample_rate, runningTime)
             # except Exception as e:
@@ -588,16 +613,10 @@ class Bento(QObject):
             #         widget.close()
             #     self.video_widgets.clear()
             #     return False
+            progressCompleted += 1
             self.noteAnnotationsChanged(self.time_start, self.time_end)
-            if loadPose:
-                print("Load pose data if any")
-                progress.setLabelText("Loading pose data...")
-                progress.setValue(progressCompleted)
-                # if self.trial_id.pose_data:
-                #     print(f"Load pose from {self.trial_id.pose_data[0].file_path}")
-                # else:
-                #     print("No pose data in trial.")
-                progressCompleted += 1
+
+            # load neural data
             if loadNeural:
                 with self.db_sessionMaker() as db_sess:
                     trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()

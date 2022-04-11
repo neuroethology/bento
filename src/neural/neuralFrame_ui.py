@@ -3,18 +3,25 @@
 ################################################################################
 ## Form generated from reading UI file 'neuralFrame.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.1.2
+## Created by: Qt User Interface Compiler version 6.2.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from qtpy.QtCore import *  # type: ignore
-from qtpy.QtGui import *  # type: ignore
-from qtpy.QtWidgets import *  # type: ignore
+from qtpy.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from qtpy.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from qtpy.QtWidgets import (QAbstractScrollArea, QApplication, QCheckBox, QFrame,
+    QGraphicsView, QHBoxLayout, QLabel, QLayout,
+    QRadioButton, QSizePolicy, QSpacerItem, QVBoxLayout,
+    QWidget)
 
 from widgets.annotationsWidget import AnnotationsView
 from widgets.neuralWidget import NeuralView
-
 
 class Ui_neuralFrame(object):
     def setupUi(self, neuralFrame):
@@ -35,9 +42,9 @@ class Ui_neuralFrame(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalLayout.setSizeConstraint(QLayout.SetMaximumSize)
         self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
-        self.leftHorizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.horizontalLayout.addItem(self.leftHorizontalSpacer)
+        self.horizontalLayout.addItem(self.horizontalSpacer)
 
         self.showTraceRadioButton = QRadioButton(neuralFrame)
         self.showTraceRadioButton.setObjectName(u"showTraceRadioButton")
@@ -60,8 +67,29 @@ class Ui_neuralFrame(object):
 
         self.horizontalLayout.addItem(self.rightHorizontalSpacer)
 
-        self.horizontalLayout.setStretch(0, 1)
-        self.horizontalLayout.setStretch(4, 1)
+        self.dataMinLabel = QLabel(neuralFrame)
+        self.dataMinLabel.setObjectName(u"dataMinLabel")
+        self.dataMinLabel.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.horizontalLayout.addWidget(self.dataMinLabel)
+
+        self.colormapImageLabel = QLabel(neuralFrame)
+        self.colormapImageLabel.setObjectName(u"colormapImageLabel")
+        self.colormapImageLabel.setMinimumSize(QSize(200, 0))
+        self.colormapImageLabel.setScaledContents(True)
+        self.colormapImageLabel.setAlignment(Qt.AlignCenter)
+
+        self.horizontalLayout.addWidget(self.colormapImageLabel)
+
+        self.dataMaxLabel = QLabel(neuralFrame)
+        self.dataMaxLabel.setObjectName(u"dataMaxLabel")
+
+        self.horizontalLayout.addWidget(self.dataMaxLabel)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer_2)
+
 
         self.verticalLayout.addLayout(self.horizontalLayout)
 
@@ -109,5 +137,8 @@ class Ui_neuralFrame(object):
         self.showTraceRadioButton.setText(QCoreApplication.translate("neuralFrame", u"Show Trace", None))
         self.showHeatMapRadioButton.setText(QCoreApplication.translate("neuralFrame", u"Show HeatMap", None))
         self.showAnnotationsCheckBox.setText(QCoreApplication.translate("neuralFrame", u"Show Annotations", None))
+        self.dataMinLabel.setText(QCoreApplication.translate("neuralFrame", u"data min", None))
+        self.colormapImageLabel.setText(QCoreApplication.translate("neuralFrame", u"Colormap Image", None))
+        self.dataMaxLabel.setText(QCoreApplication.translate("neuralFrame", u"data max", None))
     # retranslateUi
 

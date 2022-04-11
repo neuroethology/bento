@@ -3,10 +3,11 @@
 from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
 import video.mp4Io as mp4Io
-from qtpy.QtCore import Signal, Slot, QMargins, Qt
-from qtpy.QtGui import QBrush, QFontMetrics, QPixmap, QImage
+from qtpy.QtCore import Signal, Slot, QMargins, QPointF, Qt
+from qtpy.QtGui import QBrush, QFontMetrics, QPen, QPixmap, QImage, QPolygonF
 from qtpy.QtWidgets import QFrame, QGraphicsScene
 from timecode import Timecode
+import numpy as np
 import os
 import time
 
@@ -18,11 +19,29 @@ class VideoScene(QGraphicsScene):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.annots = None
+        self.pose_class = None
+        self.pose_frame_ix = 0
+        self.showPoseData = False
 
     def setAnnots(self, annots):
         self.annots = annots
 
+    def setPoseClass(self, pose_class):
+        self.pose_class = pose_class
+
+    def setShowPoseData(self, showPoseData):
+        self.showPoseData = showPoseData
+
+    def setPoseFrameIx(self, ix):
+        self.pose_frame_ix = ix
+
+    def drawPoses(self, painter):
+        if self.showPoseData and self.pose_class:
+            self.pose_class.drawPoses(painter, self.pose_frame_ix)
+
     def drawForeground(self, painter, rect):
+        # add poses
+        self.drawPoses(painter)
         # add annotations
         font = painter.font()
         pointSize = font.pointSize()+10
@@ -61,9 +80,11 @@ class VideoFrame(QFrame):
         self.quitting.connect(self.bento.quit)
         bento.quitting.connect(self.close)
 
+        # data related to video
         self.reader = None
         self.scene = VideoScene()
         self.ui.videoView.setScene(self.scene)
+        self.ui.showPoseCheckBox.stateChanged.connect(self.showPoseDataChanged)
         self.pixmap = QPixmap()
         self.pixmapItem = self.scene.addPixmap(self.pixmap)
         self.active_annots = []
@@ -99,6 +120,11 @@ class VideoFrame(QFrame):
         print(f"aspect_ratio set to {self.aspect_ratio}")
         self.updateFrame(self.bento.current_time)
         self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
+
+    def set_pose_class(self, pose_class):
+        self.scene.setPoseClass(pose_class)
+        self.ui.showPoseCheckBox.setEnabled(bool(pose_class))
+        self.scene.setShowPoseData(bool(pose_class) and self.ui.showPoseCheckBox.isChecked())
 
     def sample_rate(self):
         if not self.reader:
@@ -151,6 +177,10 @@ class VideoFrame(QFrame):
         else:
             raise Exception(f"video format {self.ext} not supported")
 
+        # get the frame number for this frame and set it into the scene,
+        # whether we have and are showing pose data or not
+        self.scene.setPoseFrameIx(myTc.frames)
+
         if isinstance(self.scene, VideoScene):
             self.scene.setAnnots(self.active_annots)
         self.show()
@@ -158,3 +188,9 @@ class VideoFrame(QFrame):
     @Slot(list)
     def updateAnnots(self, annots):
         self.active_annots = annots
+
+    @Slot(Qt.CheckState)
+    def showPoseDataChanged(self, showPoseData):
+        if self.scene:
+            self.scene.setShowPoseData(bool(showPoseData))
+            self.updateFrame(self.bento.current_time)   # force redraw

@@ -34,7 +34,7 @@ class Animal(Base):
         cascade='all, delete, delete-orphan')
 
     def __repr__(self):
-        return "<Animal(asid='%d', dnickname='%s', ob='%s', sex='%s', genotype='%s')>" % (
+        return "<Animal(asid='%d', nickname='%s', dob='%s', sex='%s', genotype='%s')>" % (
             self.animal_services_id, self.nickname, self.dob, self.sex, self.genotype)
 
 class Investigator(Base):
@@ -85,7 +85,7 @@ class NeuralData(Base):
     start_frame = Column(Integer)
     stop_frame = Column(Integer)
     trial = Column(Integer, ForeignKey('trial.id'))   # 'Trial.trial_id' is quoted because it's a forward reference
-    keys = ['id', 'file_path', 'sample_rate', 'format', 'start_time', 'start_frame', 'stop_frame', 'trial_id']
+    keys = ['id', 'Neural File Path', 'Sample Rate', 'Format', 'Start Time', 'Start Frame', 'Stop Frame', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -103,27 +103,35 @@ class NeuralData(Base):
     def toDict(self):
         return {
             'id': self.id,
-            'file_path': self.file_path,
-            'sample_rate': self.sample_rate,
-            'format': self.format,
-            'start_time': self.start_time,
-            'start_frame': self.start_frame,
-            'stop_frame': self.stop_frame,
+            'Neural File Path': self.file_path,
+            'Sample Rate': self.sample_rate,
+            'Format': self.format,
+            'Start Time': self.start_time,
+            'Start Frame': self.start_frame,
+            'Stop Frame': self.stop_frame,
             'trial_id': self.trial
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['file_path']
-        self.sample_rate = d['sample_rate']
-        self.format = d['format']
-        self.start_time = d['start_time']
-        self.start_frame = d['start_frame']
-        self.stop_frame = d['stop_frame']
-        self.trial = d['trial_id']
+        if 'Neural File Path' in d.keys() and d['Neural File Path'] != self.file_path:
+            self.file_path = d['Neural File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Format' in d.keys() and d['Format'] != self.format:
+            self.format = d['Format']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
+            self.start_frame = d['Start Frame']
+        if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
+            self.stop_frame = d['Stop Frame']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class VideoData(Base):
     """
@@ -139,7 +147,8 @@ class VideoData(Base):
     trial = Column(Integer, ForeignKey('trial.id'))
     camera = relationship('Camera')
     pose_data = relationship('PoseData')
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'camera_position', 'trial_id']
+    # don't put id first, because then we can't hide it in a QTreeWidget as column 0
+    keys = ['Video File Path', 'Sample Rate', 'Start Time', 'Camera Position', 'trial_id', 'id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -155,30 +164,39 @@ class VideoData(Base):
         return self.keys
 
     def toDict(self):
+        pose_data = [elem.toDict() for elem in self.pose_data]
         return {
             'id': self.id,
-            'file_path': self.file_path,
-            'sample_rate': self.sample_rate,
-            'start_time': self.start_time,
-            'camera_position': self.camera.position,
-            'trial_id': self.trial
-            #TODO: camera?  pose_data?
+            'Video File Path': self.file_path,
+            'Sample Rate': self.sample_rate,
+            'Start Time': self.start_time,
+            'Camera Position': self.camera.position,
+            'trial_id': self.trial,
+            'pose_data': pose_data
+            #TODO: camera?
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        camera = db_sess.query(Camera).where(func.lower(Camera.position) == func.lower(d['camera_position'])).scalar()
+        camera = db_sess.query(Camera).where(func.lower(Camera.position) == func.lower(d['Camera Position'])).scalar()
         if not camera:
-            raise RuntimeError(f"No camera with position {d['camera_position']}")
-        if 'id' in d.keys() and d['id']:
+            raise RuntimeError(f"No camera with position {d['Camera Position']}")
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['file_path']
-        self.sample_rate = d['sample_rate']
-        self.start_time = d['start_time']
-        self.camera_id = camera.id
-        self.camera = camera
-        self.trial = d['trial_id']
+        if 'Video File Path' in d.keys() and d['Video File Path'] != self.file_path:
+            self.file_path = d['Video File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if self.camera_id != camera.id:
+            self.camera_id = camera.id
+        if self.camera != camera:
+            self.camera = camera
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
         #TODO: pose_data?
 
 class AnnotationsData(Base):
@@ -197,8 +215,8 @@ class AnnotationsData(Base):
     annotator_name = Column(String(128))
     method = Column(String(128))   # e.g. manual, MARS v1_8
     trial = Column(Integer, ForeignKey('trial.id'))
-    keys = ['id', 'file_path', 'sample_rate', 'format', 'start_time', 'start_frame',
-            'stop_frame', 'annotator_name', 'method', 'trial_id']
+    keys = ['id', 'Annotations File Path', 'Sample Rate', 'Format', 'Start Time', 'Start Frame',
+            'Stop Frame', 'Annotator Name', 'Method', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -220,31 +238,41 @@ class AnnotationsData(Base):
     def toDict(self):
         return {
             'id': self.id,
-            'file_path': self.file_path,
-            'sample_rate': self.sample_rate,
-            'format': self.format,
-            'start_time': self.start_time,
-            'start_frame': self.start_frame,
-            'stop_frame': self.stop_frame,
-            'annotator_name': self.annotator_name,
-            'method': self.method,
+            'Annotations File Path': self.file_path,
+            'Sample Rate': self.sample_rate,
+            'Format': self.format,
+            'Start Time': self.start_time,
+            'Start Frame': self.start_frame,
+            'Stop Frame': self.stop_frame,
+            'Annotator Name': self.annotator_name,
+            'Method': self.method,
             'trial_id': self.trial
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['file_path']
-        self.sample_rate = d['sample_rate']
-        self.format = d['format']
-        self.start_time = d['start_time']
-        self.start_frame = d['start_frame']
-        self.stop_frame = d['stop_frame']
-        self.annotator_name = d['annotator_name']
-        self.method = d['method']
-        self.trial = d['trial_id']
+        if 'Annotations File Path' in d.keys() and d['Annotations File Path'] != self.file_path:
+            self.file_path = d['Annotations File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Format' in d.keys() and d['Format'] != self.format:
+            self.format = d['Format']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
+            self.start_frame = d['Start Frame']
+        if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
+            self.stop_frame = d['Stop Frame']
+        if 'Annotator Name' in d.keys() and d['Annotator Name'] != self.annotator_name:
+            self.annotator_name = d['Annotator Name']
+        if 'Method' in d.keys() and d['Method'] != self.method:
+            self.method = d['Method']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class AudioData(Base):
     """
@@ -260,7 +288,7 @@ class AudioData(Base):
     # annotations_id = Column(Integer, ForeignKey('annotations.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
     # keys = ['id', 'file_path', 'sample_rate', 'start_time', 'processed_audio_file_path', 'annotations_id', 'trial_id']
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'processed_audio_file_path', 'trial_id']
+    keys = ['id', 'Audio File Path', 'Sample Rate', 'Start Time', 'Processed Audio File Path', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -280,25 +308,33 @@ class AudioData(Base):
     def toDict(self):
         return {
             'id': self.id,
-            'file_path': self.file_path,
-            'sample_rate': self.sample_rate,
-            'start_time': self.start_time,
-            'processed_audio_file_path': self.processed_audio_file_path,
+            'Audio File Path': self.file_path,
+            'Sample Rate': self.sample_rate,
+            'Start Time': self.start_time,
+            'Processed Audio File Path': self.processed_audio_file_path,
             # 'annotations_id': self.annotations_id,
             'trial_id': self.trial
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['file_path']
-        self.sample_rate = d['sample_rate']
-        self.start_time = d['start_time']
-        self.processed_audio_file_path = d['processed_audio_file_path']
-        # self.annotations_id = d['annotations_id']
-        self.trial = d['trial_id']
+        if 'Audio File Path' in d.keys() and d['Audio File Path'] != self.file_path:
+            self.file_path = d['Audio File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if ('Processed Audio File Path' in d.keys()
+            and d['Processed Audio File Path'] != self.processed_audio_file_path):
+            self.processed_audio_file_path = d['Processed Audio File Path']
+        # if 'annotations_id' in d.keys() and d['annotations_id'] != self.annotations_id:
+            # self.annotations_id = d['annotations_id']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class PoseData(Base):
     """
@@ -313,7 +349,8 @@ class PoseData(Base):
     format = Column(String(128), nullable=False)
     video = Column(Integer, ForeignKey('video_data.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'format', 'video_id', 'trial_id']
+    # don't put id first, because then we can't hide it in a QTreeWidget as column 0
+    keys = ['Pose File Path', 'Sample Rate', 'Start Time', 'Format', 'video_id', 'trial_id', 'id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -322,9 +359,8 @@ class PoseData(Base):
 
     def __repr__(self):
         return ( "<PoseData(file_path='%s', sample_rate='%s', start_time='%s',"
-            " start_frame='%s', stop_frame='%s', format='%s')>" % (
-            self.file_path, self.sample_rate, self.start_time,
-            self.start_frame, self.stop_frame, self.format )
+            " format='%s')>" % (
+            self.file_path, self.sample_rate, self.start_time, self.format )
         )
 
     def header(self):
@@ -332,26 +368,33 @@ class PoseData(Base):
 
     def toDict(self):
         return {
-            'id': self.id,
-            'file_path': self.file_path,
-            'sample_rate': self.sample_rate,
-            'start_time': self.start_time,
-            'format': self.format,
+            'id': self.pose_id,
+            'Pose File Path': self.file_path,
+            'Sample Rate': self.sample_rate,
+            'Start Time': self.start_time,
+            'Format': self.format,
             'video_id': self.video,
             'trial_id': self.trial
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
-            self.id = d['id']
-        self.file_path = d['file_path']
-        self.sample_rate = d['sample_rate']
-        self.start_time = d['start_time']
-        self.format = d['format']
-        self.video = d['video_id']
-        self.trial = d['trial_id']
+        if 'id' in d.keys() and d['id'] and d['id'] != self.pose_id:
+            self.pose_id = d['id']
+        if 'Pose File Path' in d.keys() and d['Pose File Path'] != self.file_path:
+            self.file_path = d['Pose File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if 'Format' in d.keys() and d['Format'] != self.format:
+            self.format = d['Format']
+        if 'video_id' in d.keys() and d['video_id'] != self.video:
+            self.video = d['video_id']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class OtherData(Base):
     """
@@ -367,7 +410,7 @@ class OtherData(Base):
     stop_frame = Column(Integer)
     format = Column(String(128))
     trial = Column(Integer, ForeignKey('trial.id'))
-    keys = ['id', 'file_path', 'sample_rate', 'start_time', 'start_frame', 'stop_frame', 'format', 'trial_id']
+    keys = ['id', 'File Path', 'Sample Rate', 'Start Time', 'Start Frame', 'Stop Frame', 'Format', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -387,27 +430,35 @@ class OtherData(Base):
     def toDict(self):
         return {
             'id': self.id,
-            'file_path': self.file_path,
-            'sample_rate': self.sample_rate,
-            'start_time': self.start_time,
-            'start_frame': self.start_frame,
-            'stop_frame': self.stop_frame,
-            'format': self.format,
+            'File Path': self.file_path,
+            'Sample Rate': self.sample_rate,
+            'Start Time': self.start_time,
+            'Start Frame': self.start_frame,
+            'Stop Frame': self.stop_frame,
+            'Format': self.format,
             'trial_id': self.trial
         }
 
     def fromDict(self, d, db_sess):
+        # only update fields that have changed to cut down on DB transactions
         if not set(d.keys()).issuperset(set(self.keys)):
             raise RuntimeError("Dict provided has incorrect or incomplete contents")
-        if 'id' in d.keys() and d['id']:
+        if 'id' in d.keys() and d['id'] and d['id'] != self.id:
             self.id = d['id']
-        self.file_path = d['file_path']
-        self.sample_rate = d['sample_rate']
-        self.start_time = d['start_time']
-        self.start_frame = d['start_frame']
-        self.stop_frame = d['stop_frame']
-        self.format = d['format']
-        self.trial = d['trial_id']
+        if 'File Path' in d.keys() and d['File Path'] != self.file_path:
+            self.file_path = d['File Path']
+        if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
+            self.sample_rate = d['Sample Rate']
+        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
+            self.start_time = d['Start Time']
+        if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
+            self.start_frame = d['Start Frame']
+        if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
+            self.stop_frame = d['Stop Frame']
+        if 'Format' in d.keys() and d['Format'] != self.format:
+            self.format = d['Format']
+        if 'trial_id' in d.keys() and d['trial_id'] != self.trial:
+            self.trial = d['trial_id']
 
 class Session(Base):
     """
@@ -488,31 +539,6 @@ class Surgery(Base):
             self.date.isoformat(), self.implant_side, self.injection_side,
             self.procedure, self.follow_up_care )
         )
-
-# class Behavior(Base):
-#     """
-#     Individual behavior definitions
-#     """
-#     __tablename__ = "behavior"
-
-#     id = Column(Integer, primary_key=True)
-#     name = Column(String(32))
-#     definition = Column(String(512))
-#     default_color_r = Column(Float)
-#     default_color_g = Column(Float)
-#     default_color_b = Column(Float)
-#     default_hotkey = Column(String(1))
-
-# class BehaviorCollection(Base):
-#     """
-#     Collection of behaviors
-#     """
-#     __tablename__ = "behavior_collection"
-
-#     id = Column(Integer, primary_key=True)
-#     behaviors = relationship('Behavior',
-#         cascade='all, delete, delete-orphan')
-
 
 def new_session(username, password, host, port, use_personal_db=False):
     need_to_create_tables = False

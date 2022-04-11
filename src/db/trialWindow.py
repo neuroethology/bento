@@ -8,7 +8,7 @@ from qtpy.QtGui import Qt
 from qtpy.QtWidgets import QAbstractItemView, QDockWidget, QHeaderView, QMessageBox
 
 from db.schema_sqlalchemy import VideoData, Investigator, Session, Animal, Trial, AnnotationsData
-from widgets.tableModel import TableModel
+from models.tableModel import TableModel
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
@@ -152,6 +152,7 @@ class TrialDockWidget(QDockWidget):
             self.ui.trialTableView.setAutoScroll(False)
             self.ui.trialTableView.sortByColumn(1, Qt.AscendingOrder)
 
+            self.ui.loadPoseCheckBox.setCheckState(Qt.Checked)
             self.ui.loadNeuralCheckBox.setCheckState(Qt.Checked)
 
     @Slot(QItemSelection, QItemSelection)
@@ -255,6 +256,16 @@ class TrialDockWidget(QDockWidget):
         """
         Open the editTrial Dialog
         """
+        if not self.bento.session_id:
+            # try setting the session id from the selected trial
+            if trial_id:
+                with self.bento.db_sessionMaker() as db_sess:
+                    trial = db_sess.query(Trial).filter(Trial.id == trial_id).one()
+                    if trial:
+                        self.bento.session_id = trial.session_id
+        if not self.bento.session_id:
+            # either it's a new trial, or the above didn't work
+            QMessageBox.about("Error", "No Session selected!")
         dialog = EditTrialDialog(self.bento, self.bento.session_id, trial_id)
         dialog.trialsChanged.connect(self.populateTrials)
         dialog.trialsChanged.connect(self.populateSessions)

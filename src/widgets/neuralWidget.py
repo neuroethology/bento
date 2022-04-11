@@ -8,9 +8,11 @@ from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem
     QGraphicsScene, QGraphicsView, QMessageBox)
 from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent)
+import numpy as np
 import pymatreader as pmr
+from qimage2ndarray import gray2qimage
 from timecode import Timecode
-from utils import padded_rectf
+from utils import get_colormap, padded_rectf
 import warnings
 
 class QGraphicsSubSceneItem(QGraphicsItem):
@@ -206,6 +208,26 @@ class NeuralView(QGraphicsView):
             )
             offset += self.ticksScale
 
+class NeuralColorMapper():
+    """
+    Apply the selected color map to scalar image data
+    """
+
+    def __init__(self, min_val: float, max_val: float, colormap_name = "viridis"):
+        self.data_min = min_val
+        self.data_max = max_val
+        self.data_ptp = max_val - min_val
+        self.cv_colormap = colormap_name
+        self.colormap = get_colormap(colormap_name)
+
+    def mappedImage(self, scalar_image_data: np.ndarray):
+        # we use Indexed8 color, which is what gray2qimage returns, and then
+        # change the colorTable from the default gray (as RGB) to the requested
+        # colormap, e.g. parula, turbo (jet-like, but better) or viridis
+        qImage = gray2qimage(scalar_image_data, normalize = (self.data_min, self.data_max))
+        qImage.setColorTable(self.colormap)
+        return qImage
+
 class NeuralScene(QGraphicsScene):
     """
     Object allowing display of Calcium data along with annotations
@@ -218,6 +240,10 @@ class NeuralScene(QGraphicsScene):
         self.sample_rate = 30.
         self.num_chans = 0
         self.traces = QGraphicsItemGroup()
+        self.data_min = None
+        self.data_max = None
+        self.colorMapper = None
+        self.heatmapImage = None
         self.heatmap = None
         self.annotations = None
         self.activeChannel = None
@@ -255,15 +281,15 @@ class NeuralScene(QGraphicsScene):
         self.start_frame = start_frame
         self.stop_frame = stop_frame
         self.num_chans = data.shape[0]
+        self.data_min = data.min()
+        self.data_max = data.max()
+        self.colorMapper = NeuralColorMapper(self.data_min, self.data_max, "parula")
         # for chan in range(self.num_chans):
-        self.min_y = 1000.
-        self.max_y = -1000.
-        # Image has a pixel for each frame for each channel
-        self.heatmapImage = QImage(self.stop_frame-self.start_frame, self.num_chans, QImage.Format_RGB32)
-        self.heatmapImage.fill(Qt.white)
         for chan in range(self.num_chans):
             self.loadChannel(data, chan)
 
+        # Image has a pixel for each frame for each channel
+        self.heatmapImage = self.colorMapper.mappedImage(data)
         self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
 
         # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
@@ -298,27 +324,19 @@ class NeuralScene(QGraphicsScene):
         y = float(chan) + self.normalize(data[chan][self.start_frame])
         trace.moveTo(self.time_start.float, y)
         time_start_float = self.time_start.float
+
         for ix in range(self.start_frame + 1, self.stop_frame):
             t = (ix - self.start_frame)/self.sample_rate + time_start_float
             val = self.normalize(data[chan][ix])
             # Add a section to the trace path
             y = float(chan) + val
-            self.min_y = min(self.min_y, y)
-            self.max_y = max(self.max_y, y)
             trace.lineTo(t, y)
-            # Draw onto the heatmap
-            hsv = QColor()
-            hsv.setHsvF(self.clip(val), 1., 0.5, 0.5)
-            self.heatmapImage.setPixelColor(ix - (self.start_frame), chan, hsv)
         traceItem = QGraphicsPathItem(trace)
         traceItem.setPen(pen)
         self.traces.addToGroup(traceItem)
 
     def normalize(self, y_val):
         return 1.0 - (y_val - self.minimum) / self.range
-
-    def clip(self, val):
-        return max(0., min(1., val))
 
     def overlayAnnotations(self, annotationsScene, parentScene, annotations):
         self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene, annotations)

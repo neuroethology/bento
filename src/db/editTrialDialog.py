@@ -1,14 +1,17 @@
 # editTrialDialog.py
 
-from db.schema_sqlalchemy import Camera, Trial, Session, VideoData, NeuralData, AnnotationsData, Investigator
+from db.schema_sqlalchemy import (Camera, Trial, Session, VideoData, NeuralData,
+    AnnotationsData, PoseData, Investigator)
 from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from annot.annot import Annotations
-from qtpy.QtCore import Qt, Signal, Slot
-from qtpy.QtGui import QIntValidator
-from qtpy.QtWidgets import QDialog, QFileDialog, QHeaderView, QMessageBox
-from widgets.tableModel import EditableTableModel
-from widgets.deleteableTableView import DeleteableTableView
+from qtpy.QtCore import QModelIndex, Qt, Signal, Slot
+from qtpy.QtGui import QBrush, QIntValidator
+from qtpy.QtWidgets import (QDialog, QFileDialog, QHeaderView, QMessageBox,
+    QTreeWidgetItem, QTreeWidgetItemIterator)
+from models.tableModel import EditableTableModel
+from widgets.deleteableViews import DeleteableTreeWidget
+# from models.videoTreeModel import VideoTreeModel
 from timecode import Timecode
 from os.path import expanduser, getmtime, basename
 from datetime import date, datetime
@@ -18,6 +21,23 @@ import pymatreader as pmr
 import warnings
 # from caiman.utils.utils import load_dict_from_hdf5
 
+def addPoseHeaderIfNeeded(parent):
+    if parent.childCount() == 0:
+        header = PoseData().header()
+        poseHeaderItem = QTreeWidgetItem(parent, header, type=DeleteableTreeWidget.PoseHeaderType)
+        flags = poseHeaderItem.flags()
+        flags &= ~Qt.ItemIsEditable
+        flags &= ~Qt.ItemIsSelectable
+        poseHeaderItem.setFlags(flags)
+        font = poseHeaderItem.font(0)
+        font.setBold(True)
+        for column in range(poseHeaderItem.columnCount()):
+            poseHeaderItem.setFont(column, font)
+            poseHeaderItem.setTextAlignment(column, Qt.AlignCenter)
+        parent.addChild(poseHeaderItem)
+    elif parent.child(0).type() == DeleteableTreeWidget.PoseHeaderType and parent.child(0).isHidden():
+        # there is already a header that was hidden previously and not yet deleted, so unhide it
+        parent.child(0).setHidden(False)
 class EditTrialDialog(QDialog):
 
     quitting = Signal()
@@ -33,6 +53,7 @@ class EditTrialDialog(QDialog):
         self.ui.videosSearchPushButton.clicked.connect(self.addVideoFiles)
         self.ui.neuralsSearchPushButton.clicked.connect(self.addNeuralFiles)
         self.ui.annotationsSearchPushButton.clicked.connect(self.addAnnotationFiles)
+        self.ui.addPosePushButton.clicked.connect(self.addPoseFileToVideo)
         self.ui.trialNumLineEdit.setValidator(QIntValidator())
         self.video_data = None
 
@@ -48,7 +69,7 @@ class EditTrialDialog(QDialog):
             if trial:
                 self.ui.trialNumLineEdit.setText(str(trial.trial_num))
                 self.ui.stimulusLineEdit.setText(trial.stimulus)
-        self.populateVideosTableView(True)
+        self.populateVideosTreeWidget(True)
         self.populateNeuralsTableView(True)
         self.populateAnnotationsTableView(True)
 
@@ -62,33 +83,58 @@ class EditTrialDialog(QDialog):
     # Video Data
 
     def setVideoModel(self, model):
-        oldModel = self.ui.videosFileTableView.selectionModel()
-        self.ui.videosFileTableView.setModel(model)
-        self.ui.videosFileTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.ui.videosFileTableView.resizeColumnsToContents()
-        self.ui.videosFileTableView.hideColumn(0)   # don't show the ID field, but we need it for reference
-        self.ui.videosFileTableView.setSortingEnabled(False)
-        self.ui.videosFileTableView.setAutoScroll(False)
+        oldModel = self.ui.videosTreeView.selectionModel()
+        self.ui.videosTreeView.setModel(model)
+        # Unlike for the table views, header font and resizing takes place for Video data
+        # during populateViewsTreeWidget, when the header is set.  See below.
+        self.ui.videosTreeView.setSortingEnabled(False)
+        self.ui.videosTreeView.setAutoScroll(False)
         if oldModel:
             oldModel.deleteLater()
 
-    def populateVideosTableView(self, updateTrialNum):
+    def populateVideosTreeWidget(self, updateTrialNum):
+        headerSet = False
         with self.bento.db_sessionMaker() as db_sess:
             results = db_sess.query(VideoData).filter(VideoData.trial == self.trial_id).all()
             if results:
-                header = results[0].header()
-                data_list = [elem.toDict() for elem in results]
-                model = EditableTableModel(self, data_list, header)
-                self.setVideoModel(model)
-                if len(data_list) > 0:
-                    self.video_data = data_list[0] # needed by add_neural()
+                for elem in results:
+                    videoTreeItem = QTreeWidgetItem(self.ui.videosTreeWidget)
+                    videoTreeItem.setFlags(videoTreeItem.flags() | Qt.ItemIsEditable)
+                    videoDict = elem.toDict()
+                    header = elem.header()
+                    if not headerSet:
+                        self.ui.videosTreeWidget.setColumnCount(len(header))
+                        self.ui.videosTreeWidget.setHeaderLabels(header)
+                        self.ui.videosTreeWidget.hideColumn(header.index('id'))
+                        self.ui.videosTreeWidget.hideColumn(header.index('trial_id'))
+                        headerItem = self.ui.videosTreeWidget.headerItem()
+                        font = headerItem.font(0)
+                        font.setBold(True)
+                        for column in range(headerItem.columnCount()):
+                            headerItem.setFont(column, font)
+                            headerItem.setTextAlignment(column, Qt.AlignCenter)
+                        headerSet = True
+                    for ix, key in enumerate(header):
+                        videoTreeItem.setData(ix, Qt.EditRole, videoDict[key])
+                    if len(elem.pose_data) > 0:
+                        addPoseHeaderIfNeeded(videoTreeItem)
+                        for poseItem in elem.pose_data:
+                            poseTreeItem = QTreeWidgetItem(videoTreeItem)
+                            poseTreeItem.setFlags(poseTreeItem.flags() | Qt.ItemIsEditable)
+                            poseDict = poseItem.toDict()
+                            for iy, poseKey in enumerate(poseItem.header()):
+                                poseTreeItem.setData(iy, Qt.EditRole, poseDict[poseKey])
+                            videoTreeItem.addChild(poseTreeItem)
+                    self.ui.videosTreeWidget.addTopLevelItem(videoTreeItem)
 
-                selectionModel = self.ui.videosFileTableView.selectionModel()
+                for column in range(self.ui.videosTreeWidget.columnCount()):
+                    self.ui.videosTreeWidget.resizeColumnToContents(column)
+
                 if updateTrialNum:
-                    selectionModel.selectionChanged.connect(self.populateTrialNum)
+                    self.ui.videosTreeWidget.itemSelectionChanged.connect(self.populateTrialNum)
                 else:
                     try:
-                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                        self.ui.videosTreeWidget.itemSelectionChanged.disconnect(self.populateTrialNum)
                     except RuntimeError:
                         # The above call raises RuntimeError if the signal is not connected,
                         # which we can safely ignore.
@@ -129,30 +175,79 @@ class EditTrialDialog(QDialog):
                 break
         item = {
             'id': None,
-            'file_path': file_path,
-            'sample_rate': sample_rate,
-            'start_time': start_time,
-            'camera_position': this_camera_position,
+            'Video File Path': file_path,
+            'Sample Rate': sample_rate,
+            'Start Time': start_time,
+            'Camera Position': this_camera_position,
             'trial_id': self.trial_id,
-            #TODO: pose_data?
+            'pose_data': [],
             'dirty': True
         }
-        model = self.ui.videosFileTableView.model()
-        if model:
-            print(f"addVideoFile: found existing model to append item {item} to")
-            model.appendData(item)
-        else:
-            print(f"addVideoFile: didn't find existing model; making a new one with {item}")
-            header = VideoData().header()
-            data_list = [item]
-            print(f"addVideoFile -- header: {header}, data_list: {data_list}")
-            model = EditableTableModel(self, data_list, header)
-            self.setVideoModel(model)
-            self.video_data = item
+        # Okay, load it into the tree
+        videoKeys = VideoData().header()
+        # If there's nothing in the tree yet, we need to do some initialization
+        if self.ui.videosTreeWidget.topLevelItemCount() == 0:
+            self.ui.videosTreeWidget.setColumnCount(len(videoKeys))
+            self.ui.videosTreeWidget.setHeaderLabels(videoKeys)
+            self.ui.videosTreeWidget.hideColumn(videoKeys.index('id'))
+        # Attach the video file to treeWidget as a top-level item
+        videoItem = QTreeWidgetItem(self.ui.videosTreeWidget)
+        videoItem.setFlags(videoItem.flags() | Qt.ItemIsEditable)
+        # insert the data into item
+        for key in videoKeys:
+            videoItem.setData(videoKeys.index(key), Qt.EditRole, item[key])
+        self.ui.videosTreeWidget.addTopLevelItem(videoItem)
+
+    def addPoseFileToVideo(self):
+        """
+        Add the specified pose file to the selected video, displayed as a child node
+        """
+        # get selected video, or warn if none or invalid
+        selectedItems = self.ui.videosTreeWidget.selectedItems()
+        if len(selectedItems) < 1:
+            warningMsg = "No video seleted"
+            QMessageBox.information(self, "Add Pose...", warningMsg)
+        videoItem = selectedItems[0] # the Tree Widget is configured to only allow one selection
+        if bool(videoItem.parent()): # not a top level item
+            QMessageBox.information(self, "Add Pose...", "Please select a video file, not a pose")
+            return
+        # open the file dialog and get a pose file to attach to the video data
+        baseDir = None
+        with self.bento.db_sessionMaker() as db_sess:
+            session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
+            if session:
+                baseDir = session.base_directory
+        if not baseDir:
+            baseDir = expanduser("~")
+        # Qt converts paths to platform-specific separators under the hood,
+        # so it's correct to use forward-slash ("/") here across all platforms
+        if not baseDir.endswith("/"):
+            baseDir += "/"
+        poseFilePath, format = self.bento.pose_registry.getPoseFilePath(self, baseDir)
+        if not poseFilePath:
+            return
+        # make path relative to baseDir if possible
+        if poseFilePath.startswith(baseDir):
+            poseFilePath = poseFilePath[len(baseDir):]
+        # Attach the pose file to the video data in the treeWidget as a child node
+        addPoseHeaderIfNeeded(videoItem)
+        poseItem = QTreeWidgetItem(videoItem)
+        poseItem.setFlags(poseItem.flags() | Qt.ItemIsEditable)
+        videosHeaderItem = self.ui.videosTreeWidget.headerItem()
+        videosHeader = [videosHeaderItem.data(ix, Qt.DisplayRole) for ix in range(videosHeaderItem.columnCount())]
+        # insert the data into the pose child item
+        poseKeys = PoseData().keys
+        poseItem.setData(poseKeys.index('Pose File Path'), Qt.EditRole, poseFilePath)
+        poseItem.setData(poseKeys.index('Sample Rate'), Qt.EditRole, videoItem.data(videosHeader.index('Sample Rate'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('Start Time'), Qt.EditRole, videoItem.data(videosHeader.index('Start Time'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('Format'), Qt.EditRole, format)
+        poseItem.setData(poseKeys.index('video_id'), Qt.EditRole, videoItem.data(videosHeader.index('id'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('trial_id'), Qt.EditRole, videoItem.data(videosHeader.index('trial_id'), Qt.DisplayRole))
+        # poseItem.setData(poseKeys.index('id'), Qt.EditRole, "1")
+        videoItem.addChild(poseItem)
 
     @Slot()
     def addVideoFiles(self):
-        #TODO: How to delete video file references from the DB?
         baseDir = None
         with self.bento.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
@@ -176,38 +271,96 @@ class EditTrialDialog(QDialog):
                 self.addVideoFile(file_path, baseDir, available_cameras)
 
     def updateVideoData(self, trial, db_sess):
-        model = self.ui.videosFileTableView.model()
-        if model:
-            for ix, entry in enumerate(iter(model)):
-                tableIndex = model.createIndex(ix, 0)
-                if self.ui.videosFileTableView.isRowHidden(ix):
-                    # delete the entry from the DB
-                    print(f"Delete videos row {ix} from DB")
-                    if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
-                        db_sess.delete(trial.video_data[ix])
-                elif model.isDirty(tableIndex):
-                    print(f"item at row {ix} is dirty")
-                    if ix < len(trial.video_data) and trial.video_data[ix].id == entry['id']:
-                        trial.video_data[ix].fromDict(entry, db_sess)
-                    else:
-                        # new item
-                        item = VideoData(entry, db_sess) # update everything in the item and let the transaction figure out what changed.
-                        db_sess.add(item)
-                        trial.video_data.append(item)
-                    model.clearDirty(tableIndex)
-                else:
-                    print(f"item at row {ix} wasn't dirty, so did nothing")
-        else:
-            print("No video files listed, so nothing to do.")
+        videoHeader = VideoData().header()
+        poseHeader = PoseData().header()
+        treeIterator = QTreeWidgetItemIterator(self.ui.videosTreeWidget)
+        deferredActionList = []
+        for treeItemIter in iter(treeIterator):
+            treeItem = treeItemIter.value()
+            if treeItem.parent():
+                # this is a pose item; save it to do after videos
+                if treeItem.type() != DeleteableTreeWidget.PoseHeaderType:
+                    # skip the pose header
+                    deferredActionList.append(treeItem)
+                continue
+
+            # top-level item: video data
+            thisVideo_data = None
+            thisVideo_data_index = -1
+            for ix, video_dataItem in enumerate(trial.video_data):
+                if video_dataItem.id == treeItem.data(videoHeader.index('id'), Qt.DisplayRole):
+                    thisVideo_data = video_dataItem
+                    thisVideo_data_index = ix
+                    break
+            if bool(thisVideo_data) and treeItem.isHidden():
+                # delete the entry from the DB
+                db_sess.delete(thisVideo_data)
+                continue
+            # create a dict from the treeItem for either updating or a new DB entry
+            videoItemDict = {}
+            for key in videoHeader:
+                videoItemDict[key] = treeItem.data(videoHeader.index(key), Qt.DisplayRole)
+            if bool(thisVideo_data):
+                # update any items that have changed in the existing entry
+                trial.video_data[thisVideo_data_index].fromDict(videoItemDict, db_sess)
+            else:
+                # new item
+                dbItem = VideoData(videoItemDict, db_sess)
+                db_sess.add(dbItem)
+                trial.video_data.append(dbItem)
+                # db_sess.commit()
+
+        # deal with pose data, now that trial.video_data is updated
+        for treeItem in deferredActionList:
+                # pose data associated with video referenced by parent
+            videoTreeItem = treeItem.parent()
+            assert bool(videoTreeItem)
+            thisVideo_data = None
+            thisVideo_data_index = -1
+            for ix, video_dataItem in enumerate(trial.video_data):
+                if video_dataItem.id == videoTreeItem.data(videoHeader.index('id'), Qt.DisplayRole):
+                    thisVideo_data = video_dataItem
+                    thisVideo_data_index = ix
+                    break
+            if not thisVideo_data:
+                continue
+            thisPose_data = None
+            thisPose_data_index = -1
+            for iy, pose_dataItem in enumerate(thisVideo_data.pose_data):
+                if pose_dataItem.pose_id == treeItem.data(poseHeader.index('id'), Qt.DisplayRole):
+                    thisPose_data = pose_dataItem
+                    thisPose_data_index = iy
+                    break
+            if bool(thisPose_data) and treeItem.isHidden():
+                # delete the pose entry from the DB
+                db_sess.delete(thisPose_data)
+                continue
+            # create a dict from the treeItem for either updating or a new pose DB entry
+            poseItemDict = {}
+            for key in poseHeader:
+                poseItemDict[key] = treeItem.data(poseHeader.index(key), Qt.DisplayRole)
+            if bool(thisPose_data):
+                # update any changed fields in the existing entry
+                thisVideo_data.pose_data[thisPose_data_index].fromDict(poseItemDict, db_sess)
+            else:
+                # new Pose item
+                dbPoseItem = PoseData(poseItemDict, db_sess)
+                db_sess.add(dbPoseItem)
+                thisVideo_data.pose_data.append(dbPoseItem)
 
     # Neural Data
 
     def setNeuralModel(self, model):
         oldModel = self.ui.neuralsTableView.selectionModel()
         self.ui.neuralsTableView.setModel(model)
+        font = self.ui.neuralsTableView.horizontalHeader().font()
+        font.setBold(True)
+        self.ui.neuralsTableView.horizontalHeader().setFont(font)
         self.ui.neuralsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.neuralsTableView.resizeColumnsToContents()
-        self.ui.neuralsTableView.hideColumn(0)   # don't show the ID field, but we need it for reference
+        keys = NeuralData().keys
+        self.ui.neuralsTableView.hideColumn(keys.index('id'))   # don't show the ID field, but we need it for reference
+        self.ui.neuralsTableView.hideColumn(keys.index('trial_id')) # also don't show the trial_id field
         self.ui.neuralsTableView.setSortingEnabled(False)
         self.ui.neuralsTableView.setAutoScroll(False)
         if oldModel:
@@ -267,12 +420,12 @@ class EditTrialDialog(QDialog):
 
         item = {
             'id': None,
-            'file_path': file_path,
-            'sample_rate': sample_rate,
-            'format': 'CNMFE', # by default
-            'start_time': start_time,
-            'start_frame': start_frame,
-            'stop_frame': stop_frame,
+            'Neural File Path': file_path,
+            'Sample Rate': sample_rate,
+            'Format': 'CNMFE', # by default
+            'Start Time': start_time,
+            'Start Frame': start_frame,
+            'Stop Frame': stop_frame,
             'trial_id': self.trial_id,
             'dirty': True
         }
@@ -289,7 +442,6 @@ class EditTrialDialog(QDialog):
 
     @Slot()
     def addNeuralFiles(self):
-        #TODO: How to delete neural file references from the DB?
         baseDir = None
         with self.bento.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
@@ -344,9 +496,14 @@ class EditTrialDialog(QDialog):
     def setAnnotationsModel(self, model):
         oldModel = self.ui.annotationsTableView.selectionModel()
         self.ui.annotationsTableView.setModel(model)
+        font = self.ui.annotationsTableView.horizontalHeader().font()
+        font.setBold(True)
+        self.ui.annotationsTableView.horizontalHeader().setFont(font)
         self.ui.annotationsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.annotationsTableView.resizeColumnsToContents()
-        self.ui.annotationsTableView.hideColumn(0)   # don't show the ID field, but we need it for reference
+        keys = AnnotationsData().keys
+        self.ui.annotationsTableView.hideColumn(keys.index('id'))   # don't show the ID field, but we need it for reference
+        self.ui.annotationsTableView.hideColumn(keys.index('trial_id')) # also don't show the internal trial_id field
         self.ui.annotationsTableView.setSortingEnabled(False)
         self.ui.annotationsTableView.setAutoScroll(False)
         if oldModel:
@@ -403,14 +560,14 @@ class EditTrialDialog(QDialog):
 
         item = {
             'id': None,
-            'file_path': file_path,
-            'sample_rate': sample_rate,
-            'format': annotations.format(),
-            'start_time': self.bento.time_start.float,
-            'start_frame': annotations.start_frame(),
-            'stop_frame': annotations.end_frame(),
-            'annotator_name': annotator_name,
-            'method': "manual",
+            'Annotations File Path': file_path,
+            'Sample Rate': sample_rate,
+            'Format': annotations.format(),
+            'Start Time': self.bento.time_start.float,
+            'Start Frame': annotations.start_frame(),
+            'Stop Frame': annotations.end_frame(),
+            'Annotator Name': annotator_name,
+            'Method': "manual",
             'trial_id': self.trial_id,
             'dirty': True
         }
@@ -455,7 +612,6 @@ class EditTrialDialog(QDialog):
 
     @Slot()
     def addAnnotationFiles(self):
-        #TODO: How to delete annotation file references from the DB?
         baseDir = None
         with self.bento.db_sessionMaker() as db_sess:
             session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()

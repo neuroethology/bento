@@ -15,18 +15,18 @@ from qtpy.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from qtpy.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
-    QHBoxLayout, QHeaderView, QLabel, QLineEdit,
-    QPushButton, QSizePolicy, QSpacerItem, QTreeView,
-    QVBoxLayout, QWidget)
+from qtpy.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication, QDialog,
+    QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
+    QLineEdit, QPushButton, QSizePolicy, QSpacerItem,
+    QTreeView, QTreeWidgetItem, QVBoxLayout, QWidget)
 
-from widgets.deleteableTableView import DeleteableTableView
+from widgets.deleteableViews import (DeleteableTableView, DeleteableTreeWidget)
 
 class Ui_EditTrialDialog(object):
     def setupUi(self, EditTrialDialog):
         if not EditTrialDialog.objectName():
             EditTrialDialog.setObjectName(u"EditTrialDialog")
-        EditTrialDialog.resize(774, 728)
+        EditTrialDialog.resize(833, 541)
         self.verticalLayout = QVBoxLayout(EditTrialDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.generalInfoHorizontalLayout = QHBoxLayout()
@@ -69,10 +69,15 @@ class Ui_EditTrialDialog(object):
 
         self.videosHorizontalLayout.addWidget(self.videosLabel)
 
-        self.videosFileTableView = DeleteableTableView(EditTrialDialog)
-        self.videosFileTableView.setObjectName(u"videosFileTableView")
+        self.videosTreeWidget = DeleteableTreeWidget(EditTrialDialog)
+        self.videosTreeWidget.setObjectName(u"videosTreeWidget")
+        self.videosTreeWidget.setAlternatingRowColors(False)
+        self.videosTreeWidget.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.videosTreeWidget.setTextElideMode(Qt.ElideMiddle)
+        self.videosTreeWidget.setExpandsOnDoubleClick(False)
+        self.videosTreeWidget.setColumnCount(0)
 
-        self.videosHorizontalLayout.addWidget(self.videosFileTableView)
+        self.videosHorizontalLayout.addWidget(self.videosTreeWidget)
 
         self.videosSearchVerticalLayout = QVBoxLayout()
         self.videosSearchVerticalLayout.setObjectName(u"videosSearchVerticalLayout")
@@ -80,6 +85,11 @@ class Ui_EditTrialDialog(object):
         self.videosSearchPushButton.setObjectName(u"videosSearchPushButton")
 
         self.videosSearchVerticalLayout.addWidget(self.videosSearchPushButton)
+
+        self.addPosePushButton = QPushButton(EditTrialDialog)
+        self.addPosePushButton.setObjectName(u"addPosePushButton")
+
+        self.videosSearchVerticalLayout.addWidget(self.addPosePushButton)
 
         self.videosSearchVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -121,37 +131,6 @@ class Ui_EditTrialDialog(object):
 
         self.verticalLayout.addLayout(self.annotationsHorizontalLayout)
 
-        self.posesHorizontalLayout = QHBoxLayout()
-        self.posesHorizontalLayout.setObjectName(u"posesHorizontalLayout")
-        self.posesLabel = QLabel(EditTrialDialog)
-        self.posesLabel.setObjectName(u"posesLabel")
-        self.posesLabel.setMinimumSize(QSize(103, 0))
-        self.posesLabel.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
-
-        self.posesHorizontalLayout.addWidget(self.posesLabel)
-
-        self.posesTableView = DeleteableTableView(EditTrialDialog)
-        self.posesTableView.setObjectName(u"posesTableView")
-
-        self.posesHorizontalLayout.addWidget(self.posesTableView)
-
-        self.posesSearchVerticalLayout = QVBoxLayout()
-        self.posesSearchVerticalLayout.setObjectName(u"posesSearchVerticalLayout")
-        self.posesSearchPushButton = QPushButton(EditTrialDialog)
-        self.posesSearchPushButton.setObjectName(u"posesSearchPushButton")
-
-        self.posesSearchVerticalLayout.addWidget(self.posesSearchPushButton)
-
-        self.posesSearchVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        self.posesSearchVerticalLayout.addItem(self.posesSearchVerticalSpacer)
-
-
-        self.posesHorizontalLayout.addLayout(self.posesSearchVerticalLayout)
-
-
-        self.verticalLayout.addLayout(self.posesHorizontalLayout)
-
         self.neuralsHorizontalLayout = QHBoxLayout()
         self.neuralsHorizontalLayout.setObjectName(u"neuralsHorizontalLayout")
         self.neuralsLabel = QLabel(EditTrialDialog)
@@ -187,6 +166,7 @@ class Ui_EditTrialDialog(object):
         self.audiosHorizontalLayout.setObjectName(u"audiosHorizontalLayout")
         self.audiosLabel = QLabel(EditTrialDialog)
         self.audiosLabel.setObjectName(u"audiosLabel")
+        self.audiosLabel.setEnabled(True)
         self.audiosLabel.setMinimumSize(QSize(103, 0))
         self.audiosLabel.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
 
@@ -194,6 +174,7 @@ class Ui_EditTrialDialog(object):
 
         self.audiosTreeView = QTreeView(EditTrialDialog)
         self.audiosTreeView.setObjectName(u"audiosTreeView")
+        self.audiosTreeView.setEnabled(True)
 
         self.audiosHorizontalLayout.addWidget(self.audiosTreeView)
 
@@ -201,6 +182,7 @@ class Ui_EditTrialDialog(object):
         self.audiosSearchVerticalLayout.setObjectName(u"audiosSearchVerticalLayout")
         self.audiosSearchPushButton = QPushButton(EditTrialDialog)
         self.audiosSearchPushButton.setObjectName(u"audiosSearchPushButton")
+        self.audiosSearchPushButton.setEnabled(True)
 
         self.audiosSearchVerticalLayout.addWidget(self.audiosSearchPushButton)
 
@@ -218,6 +200,7 @@ class Ui_EditTrialDialog(object):
         self.othersHorizontalLayout.setObjectName(u"othersHorizontalLayout")
         self.othersLabel = QLabel(EditTrialDialog)
         self.othersLabel.setObjectName(u"othersLabel")
+        self.othersLabel.setEnabled(True)
         self.othersLabel.setMinimumSize(QSize(103, 0))
         self.othersLabel.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
 
@@ -225,6 +208,7 @@ class Ui_EditTrialDialog(object):
 
         self.othersTableView = DeleteableTableView(EditTrialDialog)
         self.othersTableView.setObjectName(u"othersTableView")
+        self.othersTableView.setEnabled(True)
 
         self.othersHorizontalLayout.addWidget(self.othersTableView)
 
@@ -232,6 +216,7 @@ class Ui_EditTrialDialog(object):
         self.othersSearchVerticalLayout.setObjectName(u"othersSearchVerticalLayout")
         self.othersSearchPushButton = QPushButton(EditTrialDialog)
         self.othersSearchPushButton.setObjectName(u"othersSearchPushButton")
+        self.othersSearchPushButton.setEnabled(True)
 
         self.othersSearchVerticalLayout.addWidget(self.othersSearchPushButton)
 
@@ -252,6 +237,11 @@ class Ui_EditTrialDialog(object):
 
         self.verticalLayout.addWidget(self.buttonBox)
 
+        self.verticalLayout.setStretch(1, 3)
+        self.verticalLayout.setStretch(2, 2)
+        self.verticalLayout.setStretch(3, 2)
+        self.verticalLayout.setStretch(4, 1)
+        self.verticalLayout.setStretch(5, 1)
 
         self.retranslateUi(EditTrialDialog)
         self.buttonBox.accepted.connect(EditTrialDialog.accept)
@@ -266,10 +256,9 @@ class Ui_EditTrialDialog(object):
         self.stimulusLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Stimulus: ", None))
         self.videosLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Video Files: ", None))
         self.videosSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
+        self.addPosePushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Add Pose...", None))
         self.annotationsLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Annotation Files: ", None))
         self.annotationsSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
-        self.posesLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Pose Files: ", None))
-        self.posesSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
         self.neuralsLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Neural Files: ", None))
         self.neuralsSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
         self.audiosLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Audio Files: ", None))

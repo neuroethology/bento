@@ -10,7 +10,7 @@ from qtpy.QtGui import QIntValidator
 from qtpy.QtWidgets import (QDialog, QDialogButtonBox, QAbstractItemView, QHeaderView,
     QMessageBox)
 
-from widgets.tableModel import TableModel
+from models.tableModel import TableModel
 import datetime
 
 class AnimalDialog(DBDialog):
