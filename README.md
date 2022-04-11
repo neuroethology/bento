@@ -6,7 +6,7 @@ An earlier, Matlab-based version of Bento is available [here](https://github.com
 
 ## New In This Release
 
-### Version 0.2.0
+### Version 0.2.0-beta
 #### Added Features
 - A plug-in interface to support import and display of pose data
 - A pose plug-in for MARS format mouse pose data
@@ -15,7 +15,7 @@ An earlier, Matlab-based version of Bento is available [here](https://github.com
 - Annotations can now be applied from the neural viewer window
 
 #### Bugs Fixed
-- On initial startup when no Investigators yet exist, v0.1.0 would prompt for the selection of an Investigator anyway.
+- On initial startup when no Investigators yet exist, v0.1.0-beta would prompt for the selection of an Investigator anyway.
 With this release, it takes you to the "Add Investigators" dialog instead.
 - The vertical scaling of annotations has been fixed.
 ## Features
