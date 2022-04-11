@@ -152,6 +152,7 @@ class TrialDockWidget(QDockWidget):
             self.ui.trialTableView.setAutoScroll(False)
             self.ui.trialTableView.sortByColumn(1, Qt.AscendingOrder)
 
+            self.ui.loadPoseCheckBox.setCheckState(Qt.Checked)
             self.ui.loadNeuralCheckBox.setCheckState(Qt.Checked)
 
     @Slot(QItemSelection, QItemSelection)
