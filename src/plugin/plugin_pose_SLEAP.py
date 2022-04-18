@@ -244,3 +244,4 @@ def register(registry: PoseRegistry):
     """
     pose_plugin = PoseSLEAP()
     registry.register(pose_plugin.getFileFormat(), pose_plugin)
+    
