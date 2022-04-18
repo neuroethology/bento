@@ -131,7 +131,7 @@ class Bento(QObject):
             if not investigators:
                 self.edit_investigator()
             self.set_investigator()
-        
+
         self.investigator_id = self.config.investigator_id()
         self.mainWindow.show()
 
@@ -538,6 +538,7 @@ class Bento(QObject):
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
         self.video_widgets.clear()
+        self.neural_widgets.clear()
         progressTotal = (
             len(videos) +
             (1 if annotation else 0) +
