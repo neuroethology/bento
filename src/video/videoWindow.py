@@ -171,7 +171,7 @@ class VideoFrame(QFrame):
         elif self.ext=='mp4' or self.ext=='avi':
             h, w, ch = image.shape
             bytes_per_line = ch * w
-            convert_to_Qt_format = QImage(image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            convert_to_Qt_format = QImage(image.data, w, h, bytes_per_line, QImage.Format_BGR888)
             convert_to_Qt_format = QPixmap.fromImage(convert_to_Qt_format)
             self.pixmapItem.setPixmap(convert_to_Qt_format)
         else:
