@@ -173,14 +173,16 @@ class PoseSLEAP(PoseBase):
         and self.num_instances.
         """
 
-        def append_keypoints():
+        def append_keypoints(
+            body: QPolygonF, appendage: np.ndarray, node_lookup: dict, node_name: str
+        ):
             """
             Append nodes to instance poly. Also add node to dictionary for creating edges
             """
-            if not np.any(np.isnan(node_keypoints)):
-                new_point = QPointF(node_keypoints[0], node_keypoints[1])
-                poly.append(new_point)
-                node_dict[node_nombre] = new_point
+            if not np.any(np.isnan(appendage)):
+                point = QPointF(appendage[0], appendage[1])
+                body.append(point)
+                node_lookup[node_name] = point
 
         with h5py.File(file_path, "r") as f:
             locations = f["tracks"][:].T
@@ -205,7 +207,7 @@ class PoseSLEAP(PoseBase):
                 for node_ix, node_nombre in enumerate(node_names):
                     # Get points for specific node
                     node_keypoints = instance_keypoints[node_ix, :]
-                    append_keypoints()
+                    append_keypoints(poly, node_keypoints, node_dict, node_nombre)
                 for (src_node, des_node) in edge_names:
                     if (src_node in node_dict) and (des_node in node_dict):
                         # Add edges using node points
@@ -244,4 +246,3 @@ def register(registry: PoseRegistry):
     """
     pose_plugin = PoseSLEAP()
     registry.register(pose_plugin.getFileFormat(), pose_plugin)
-    
