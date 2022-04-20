@@ -35,6 +35,7 @@ class Player(QObject):
         self.playing = False
         self.timer = QTimer()
         self.frame_interval = self.default_frame_interval = 1000./30.
+        self.playbackRate = 1.0
         self.timer.setInterval(round(self.frame_interval))
         self.timer.timeout.connect(bento.incrementTime)
 
@@ -43,34 +44,50 @@ class Player(QObject):
         # print(f"Setting playing to {not self.playing}")
         self.playing = not self.playing
         if self.playing:
-            self.timer.start()
+            # self.timer.start()
+            self.play.emit()
         else:
-            self.timer.stop()
+            # self.timer.stop()
+            self.stop.emit()
 
     @Slot()
     def doubleFrameRate(self):
         if self.frame_interval > self.default_frame_interval / 8.:
+            self.playbackRate *= 2.
             self.frame_interval /= 2.
-            print(f"setting frame interval to {round(self.frame_interval)}")
+            # print(f"setting frame interval to {round(self.frame_interval)}")
+            print(f"setting playback rate to {self.playbackRate}")
             self.timer.setInterval(round(self.frame_interval))
+            self.playbackRateChanged.emit(self.playbackRate)
 
     @Slot()
     def halveFrameRate(self):
         if self.frame_interval < self.default_frame_interval * 8.:
+            self.playbackRate /= 2.
             self.frame_interval *= 2.
-            print(f"setting frame interval to {round(self.frame_interval)}")
+            # print(f"setting frame interval to {round(self.frame_interval)}")
+            print(f"setting playback rate to {self.playbackRate}")
             self.timer.setInterval(round(self.frame_interval))
+            self.playbackRateChanged.emit(self.playbackRate)
 
     @Slot()
     def resetFrameRate(self):
+        self.playbackRate = 1.0
         self.frame_interval = self.default_frame_interval
-        print(f"resetting frame interval to {round(self.frame_interval)}")
+        # print(f"setting frame interval to {round(self.frame_interval)}")
+        print(f"setting playback rate to {self.playbackRate}")
         self.timer.setInterval(round(self.frame_interval))
+        self.playbackRateChanged.emit(self.playbackRate)
 
     @Slot()
     def quit(self):
         if self.timer.isActive():
             self.timer.stop()
+
+    #Signals
+    play = Signal()
+    stop = Signal()
+    playbackRateChanged = Signal(float)
 
 class Bento(QObject):
     """
@@ -131,7 +148,7 @@ class Bento(QObject):
             if not investigators:
                 self.edit_investigator()
             self.set_investigator()
-        
+
         self.investigator_id = self.config.investigator_id()
         self.mainWindow.show()
 
@@ -565,6 +582,9 @@ class Bento(QObject):
                 else:
                     path = video_data.file_path
                 widget = self.newVideoWidget(fix_path(path))
+                self.player.play.connect(widget.play)
+                self.player.stop.connect(widget.stop)
+                self.player.playbackRateChanged.connect(widget.setPlaybackRate)
                 self.video_widgets.append(widget)
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
@@ -665,6 +685,11 @@ class Bento(QObject):
             end = end.float
         self.newAnnotations = True
         self.annotationsScene.sceneChanged(start, end)
+
+    @Slot(int)
+    def noteVideoDurationChanged(self, duration):
+        self.time_end = Timecode(self.time_end.framerate, start_seconds=duration / 1000.)
+        self.annotations.set_end_frame(self.time_end)
 
     def deleteAnnotationsByName(self, behaviorName):
         beh = self.behaviors.get(behaviorName)
