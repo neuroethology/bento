@@ -4,7 +4,7 @@ from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
 import video.mp4Io as mp4Io
 from qtpy.QtCore import Signal, Slot, QMargins, QPointF, QRectF, Qt, QUrl
-from qtpy.QtGui import QBrush, QFontMetrics, QPen, QPixmap, QImage, QPolygonF
+from qtpy.QtGui import QBrush, QColor, QFontMetrics, QPen, QPixmap, QImage, QPolygonF
 from qtpy.QtWidgets import QFrame, QGraphicsScene, QGraphicsItem
 from qtpy.QtMultimedia import QMediaPlayer
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
@@ -18,8 +18,13 @@ class VideoScene(QGraphicsScene):
     A scene that knows how to draw annotations text into its foreground
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, bento, parent=None):
         super().__init__(parent)
+        self.player = QMediaPlayer()
+        self.playerItem = QGraphicsVideoItem()
+        self.player.setVideoOutput(self.playerItem)
+        self.addItem(self.playerItem)
+        self.player.durationChanged.connect(bento.noteVideoDurationChanged)
         self.annots = None
         self.pose_class = None
         self.pose_frame_ix = 0
@@ -37,13 +42,28 @@ class VideoScene(QGraphicsScene):
     def setPoseFrameIx(self, ix):
         self.pose_frame_ix = ix
 
+    def setVideoPath(self, videoPath: str):
+        self.player.setMedia(QUrl.fromLocalFile(videoPath))
+        # force the player to load the media
+        self.player.play()
+        self.player.pause()
+        # reset to beginning
+        self.player.setPosition(0)
+
     def drawPoses(self, painter):
         if self.showPoseData and self.pose_class:
             self.pose_class.drawPoses(painter, self.pose_frame_ix)
 
     def drawForeground(self, painter, rect):
         # add poses
+        painter.save()
+        videoBounds = self.playerItem.boundingRect()
+        videoNativeSize = self.playerItem.nativeSize()
+        sx = videoBounds.width() / videoNativeSize.width()
+        sy = videoBounds.height() / videoNativeSize.height()
+        painter.scale(sx, sy)
         self.drawPoses(painter)
+        painter.restore()
         # add annotations
         font = painter.font()
         pointSize = font.pointSize()+10
@@ -85,21 +105,9 @@ class VideoFrame(QFrame):
 
         # data related to video
         self.reader = None
-        self.scene = VideoScene()
+        self.scene = VideoScene(self.bento)
         self.ui.videoView.setScene(self.scene)
         self.ui.showPoseCheckBox.stateChanged.connect(self.showPoseDataChanged)
-        self.player = QMediaPlayer()
-        self.playerItem = QGraphicsVideoItem()
-        self.player.setVideoOutput(self.playerItem)
-        self.scene.addItem(self.playerItem)
-        self.playerItem.setFlag(QGraphicsItem.ItemStacksBehindParent)
-        self.playerItem.setZValue(2.0)
-        bounds = self.playerItem.boundingRect()
-        leftHalf = QRectF(bounds)
-        leftHalf.setWidth(bounds.width() / 2.)
-        self.rectItem = self.scene.addRect(leftHalf, brush=QBrush(Qt.red))
-        self.rectItem.setZValue(1.0)
-        self.player.durationChanged.connect(self.bento.noteVideoDurationChanged)
 
         # self.pixmap = QPixmap()
         # self.pixmapItem = self.scene.addPixmap(self.pixmap)
@@ -108,7 +116,7 @@ class VideoFrame(QFrame):
 
     def resizeEvent(self, event):
         # self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
-        self.ui.videoView.fitInView(self.playerItem, aspectRadioMode=Qt.KeepAspectRatio)
+        self.ui.videoView.fitInView(self.scene.playerItem, aspectRadioMode=Qt.KeepAspectRatio)
 
     def mouseReleaseEvent(self, event):
         viewport = self.ui.videoView.viewport()
@@ -126,26 +134,21 @@ class VideoFrame(QFrame):
     def load_video(self, fn):
         self.ext = os.path.basename(fn).rsplit('.',1)[-1]
         if self.ext=='mp4' or self.ext=='avi':
-            self.player.setMedia(QUrl(f"file:///{fn}"))
+            self.scene.setVideoPath(fn)
             self.ui.videoView.show()
-            # force the player to load the media
-            self.player.play()
-            self.player.pause()
-            # reset to beginning
-            self.player.setPosition(0)
             # self.reader = mp4Io.mp4Io_reader(fn)
         # elif self.ext=='seq':
         #     self.reader = seqIo.seqIo_reader(fn)
         else:
             raise Exception(f"video format {self.ext} not supported.")
-        frame_size = self.playerItem.nativeSize()
+        frame_size = self.scene.playerItem.nativeSize()
         self.aspect_ratio = frame_size.height() / frame_size.width()
         # frame_width = self.reader.header['width']
         # frame_height = self.reader.header['height']
         # self.aspect_ratio = float(frame_height) / float(frame_width)
         print(f"aspect_ratio set to {self.aspect_ratio}")
         self.updateFrame(self.bento.current_time)
-        self.ui.videoView.fitInView(self.playerItem, aspectRadioMode=Qt.KeepAspectRatio)
+        self.ui.videoView.fitInView(self.scene.playerItem, aspectRadioMode=Qt.KeepAspectRatio)
         # self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
 
     def set_pose_class(self, pose_class):
@@ -163,7 +166,7 @@ class VideoFrame(QFrame):
         # if not self.reader:
         #     return 0.
         # return float(self.reader.header['numFrames']) / float(self.reader.header['fps'])
-        return float(self.player.duration() / 1000.)
+        return float(self.scene.player.duration() / 1000.)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Left:
@@ -188,16 +191,16 @@ class VideoFrame(QFrame):
 
     @Slot()
     def play(self):
-        self.player.play()
+        self.scene.player.play()
 
     @Slot()
     def stop(self):
-        self.player.pause()
-        self.bento.set_time(Timecode(30.0, start_seconds=self.player.position()/1000.))
+        self.scene.player.pause()
+        self.bento.set_time(Timecode(30.0, start_seconds=self.scene.player.position()/1000.))
 
     @Slot(float)
     def setPlaybackRate(self, rate):
-        self.player.setPlaybackRate(rate)
+        self.scene.player.setPlaybackRate(rate)
 
     @Slot(Timecode)
     def updateFrame(self, t):
@@ -209,7 +212,7 @@ class VideoFrame(QFrame):
         if self.ext=='mp4' or self.ext=='avi':
             # no need to do anything with native video for normal playing
             # just set the position in response to explicit repositioning
-            self.player.setPosition(int(t.float * 1000.))
+            self.scene.player.setPosition(int(t.float * 1000.))
             # h, w, ch = image.shape
             # bytes_per_line = ch * w
             # convert_to_Qt_format = QImage(image.data, w, h, bytes_per_line, QImage.Format_BGR888)
