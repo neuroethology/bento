@@ -52,7 +52,7 @@ class Player(QObject):
 
     @Slot()
     def doubleFrameRate(self):
-        if self.frame_interval > self.default_frame_interval / 8.:
+        if self.frame_interval > self.default_frame_interval / 2.:
             self.playbackRate *= 2.
             self.frame_interval /= 2.
             # print(f"setting frame interval to {round(self.frame_interval)}")
@@ -413,6 +413,10 @@ class Bento(QObject):
             self.current_time = new_tc
             self.update_current_annotations()
             self.timeChanged.emit(self.current_time)
+
+    @Slot(int)
+    def set_time_msec(self, msec: int):
+        self.set_time(Timecode(30.0, start_seconds=msec / 1000.))
 
     def change_time(self, increment: Timecode):
         self.set_time(self.current_time + increment)

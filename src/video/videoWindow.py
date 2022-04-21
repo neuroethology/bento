@@ -1,93 +1,19 @@
 # videoWindow.py
 
+from pose.pose import PoseBase
 from video.videoWindow_ui import Ui_videoFrame
 import video.seqIo as seqIo
 import video.mp4Io as mp4Io
-from qtpy.QtCore import Signal, Slot, QMargins, QPointF, QRectF, Qt, QUrl
-from qtpy.QtGui import QBrush, QColor, QFontMetrics, QPen, QPixmap, QImage, QPolygonF
+from video.videoScene import VideoSceneAbstractBase, VideoSceneNative, VideoSceneSeq
+from qtpy.QtCore import QEvent, QMargins, QObject, QPointF, QRectF, Qt, QUrl, Signal, Slot
+from qtpy.QtGui import QBrush, QColor, QFontMetrics, QPen, QPainter, QPixmap, QImage, QPolygonF
 from qtpy.QtWidgets import QFrame, QGraphicsScene, QGraphicsItem
-from qtpy.QtMultimedia import QMediaPlayer
+from qtpy.QtMultimedia import QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
 from timecode import Timecode
 import numpy as np
 import os
 import time
-
-class VideoScene(QGraphicsScene):
-    """
-    A scene that knows how to draw annotations text into its foreground
-    """
-
-    def __init__(self, bento, parent=None):
-        super().__init__(parent)
-        self.player = QMediaPlayer()
-        self.playerItem = QGraphicsVideoItem()
-        self.player.setVideoOutput(self.playerItem)
-        self.addItem(self.playerItem)
-        self.player.durationChanged.connect(bento.noteVideoDurationChanged)
-        self.annots = None
-        self.pose_class = None
-        self.pose_frame_ix = 0
-        self.showPoseData = False
-
-    def setAnnots(self, annots):
-        self.annots = annots
-
-    def setPoseClass(self, pose_class):
-        self.pose_class = pose_class
-
-    def setShowPoseData(self, showPoseData):
-        self.showPoseData = showPoseData
-
-    def setPoseFrameIx(self, ix):
-        self.pose_frame_ix = ix
-
-    def setVideoPath(self, videoPath: str):
-        self.player.setMedia(QUrl.fromLocalFile(videoPath))
-        # force the player to load the media
-        self.player.play()
-        self.player.pause()
-        # reset to beginning
-        self.player.setPosition(0)
-
-    def drawPoses(self, painter):
-        if self.showPoseData and self.pose_class:
-            self.pose_class.drawPoses(painter, self.pose_frame_ix)
-
-    def drawForeground(self, painter, rect):
-        # add poses
-        painter.save()
-        videoBounds = self.playerItem.boundingRect()
-        videoNativeSize = self.playerItem.nativeSize()
-        sx = videoBounds.width() / videoNativeSize.width()
-        sy = videoBounds.height() / videoNativeSize.height()
-        painter.scale(sx, sy)
-        self.drawPoses(painter)
-        painter.restore()
-        # add annotations
-        font = painter.font()
-        pointSize = font.pointSize()+10
-        font.setPointSize(pointSize)
-        painter.setFont(font)
-        margins = QMargins(10, 10, 0, 0)
-        fm = QFontMetrics(font)
-        flags = Qt.AlignLeft | Qt.AlignTop
-        rectWithMargins = rect.toRect()
-        rectWithMargins -= margins
-        whiteBrush = QBrush(Qt.white)
-        blackBrush = QBrush(Qt.black)
-        if self.annots:
-            for annot in self.annots:
-                painter.setBrush(whiteBrush if annot[2].lightnessF() < 0.5 else blackBrush)
-                text = annot[0] + ": " + annot[1]
-                bounds = fm.boundingRect(rectWithMargins, flags, text)
-                painter.setPen(Qt.NoPen)
-                painter.drawRect(bounds)
-                painter.setPen(annot[2])
-                painter.drawText(bounds, text)
-                margins.setTop(margins.top() + pointSize + 3)
-                rectWithMargins = rect.toRect()
-                rectWithMargins -= margins
 
 class VideoFrame(QFrame):
 
@@ -104,8 +30,9 @@ class VideoFrame(QFrame):
         bento.quitting.connect(self.close)
 
         # data related to video
+        self.running = False
         self.reader = None
-        self.scene = VideoScene(self.bento)
+        self.scene = VideoSceneNative(self.bento)
         self.ui.videoView.setScene(self.scene)
         self.ui.showPoseCheckBox.stateChanged.connect(self.showPoseDataChanged)
 
@@ -168,7 +95,7 @@ class VideoFrame(QFrame):
         # return float(self.reader.header['numFrames']) / float(self.reader.header['fps'])
         return float(self.scene.player.duration() / 1000.)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QEvent):
         if event.key() == Qt.Key_Left:
             if event.modifiers() & Qt.ShiftModifier:
                 self.bento.skipBackward()
@@ -191,55 +118,46 @@ class VideoFrame(QFrame):
 
     @Slot()
     def play(self):
+        self.running = True
         self.scene.player.play()
 
     @Slot()
     def stop(self):
         self.scene.player.pause()
+        self.running = False
         self.bento.set_time(Timecode(30.0, start_seconds=self.scene.player.position()/1000.))
 
     @Slot(float)
-    def setPlaybackRate(self, rate):
+    def setPlaybackRate(self, rate: float):
         self.scene.player.setPlaybackRate(rate)
 
     @Slot(Timecode)
-    def updateFrame(self, t):
+    def updateFrame(self, t: Timecode):
         # if not self.reader:
         #     return
         # myTc = Timecode(self.reader.header['fps'], start_seconds=t.float)
         # i = min(myTc.frames, self.reader.header['numFrames']-1)
         # image, _ = self.reader.getFrame(i, decode=False)
         if self.ext=='mp4' or self.ext=='avi':
-            # no need to do anything with native video for normal playing
-            # just set the position in response to explicit repositioning
-            self.scene.player.setPosition(int(t.float * 1000.))
-            # h, w, ch = image.shape
-            # bytes_per_line = ch * w
-            # convert_to_Qt_format = QImage(image.data, w, h, bytes_per_line, QImage.Format_BGR888)
-            # convert_to_Qt_format = QPixmap.fromImage(convert_to_Qt_format)
-            # self.pixmapItem.setPixmap(convert_to_Qt_format)
+            if not self.running:
+                # There is no need to do anything with native video for normal playing.
+                # In fact, it messes things up with a "setPosition" infinite loop!
+                # Just set the position in response to explicit repositioning.
+                self.scene.player.setPosition(int(t.float * 1000.))
         # elif self.ext=='seq':
         #     self.pixmap.loadFromData(image.tobytes())
         #     self.pixmapItem.setPixmap(self.pixmap)
         else:
             raise Exception(f"video format {self.ext} not supported")
 
-        # get the frame number for this frame and set it into the scene,
-        # whether we have and are showing pose data or not
-        # self.scene.setPoseFrameIx(myTc.frames)
-        self.scene.setPoseFrameIx(t.frames)
-        self.ui.videoView.update()
-
-        if isinstance(self.scene, VideoScene):
-            self.scene.setAnnots(self.active_annots)
-        self.show()
-
     @Slot(list)
-    def updateAnnots(self, annots):
+    def updateAnnots(self, annots: list):
         self.active_annots = annots
+        if isinstance(self.scene, VideoSceneAbstractBase):
+            self.scene.setAnnots(self.active_annots)
 
     @Slot(Qt.CheckState)
-    def showPoseDataChanged(self, showPoseData):
+    def showPoseDataChanged(self, showPoseData: Qt.CheckState):
         if self.scene:
             self.scene.setShowPoseData(bool(showPoseData))
             self.updateFrame(self.bento.current_time)   # force redraw
