@@ -131,6 +131,7 @@ class TimeSourceQMediaPlayer(TimeSourceAbstractBase):
     @Slot(int)
     def doTick(self, msec: int):
         self._currentTime = Timecode(self._currentTime.framerate, start_seconds=msec / 1000.)
+        self.timeChanged.emit(self._currentTime)
 
     def start(self):
         self.playing = True

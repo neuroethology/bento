@@ -2,7 +2,6 @@
 """
 Implement base class and derived classes for showing videos with pose and annotation overlays
 """
-from pymysql import InternalError
 from pose.pose import PoseBase
 import video.seqIo as seqIo
 from qtpy.QtCore import QEvent, QMargins, QObject, QPointF, QRect, QRectF, Qt, QUrl, Signal, Slot
@@ -158,7 +157,7 @@ class VideoSceneNative(VideoSceneAbstractBase):
     @Slot(Timecode)
     def updateFrame(self, t: Timecode):
         if self.player.state() != QMediaPlayer.PlayingState:
-            self.player.setPosition(int(t.float * 1000.))
+            self.player.setPosition(round(t.float * 1000.))
 
     @Slot()
     def play(self):
