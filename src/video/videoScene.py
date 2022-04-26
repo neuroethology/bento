@@ -4,15 +4,14 @@ Implement base class and derived classes for showing videos with pose and annota
 """
 from pose.pose import PoseBase
 import video.seqIo as seqIo
-from qtpy.QtCore import QEvent, QMargins, QObject, QPointF, QRect, QRectF, Qt, QUrl, Signal, Slot
-from qtpy.QtGui import QBrush, QColor, QFontMetrics, QPen, QPainter, QPixmap, QRegion, QImage, QPolygonF
-from qtpy.QtWidgets import QFrame, QGraphicsScene, QGraphicsItem
+from qtpy.QtCore import QMargins, QObject, QRectF, Qt, QUrl, Slot
+from qtpy.QtGui import QBrush, QFontMetrics, QPainter, QPixmap
+from qtpy.QtWidgets import QGraphicsScene, QGraphicsItem
 from qtpy.QtMultimedia import QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
 from timecode import Timecode
 import numpy as np
 import os
-import time
 
 class VideoSceneAbstractBase(QGraphicsScene):
     """
@@ -210,7 +209,7 @@ class VideoSceneSeq(VideoSceneAbstractBase):
         _, ext = os.path.splitext(videoPath)
         ext = ext.lower()
         if ext != '.seq':
-            raise InternalError("Expected .seq file")
+            raise ValueError("Expected .seq file")
         self.reader = seqIo.seqIo_reader(videoPath)
         self._frameWidth = self.reader.header['width']
         self._frameHeight = self.reader.header['height']

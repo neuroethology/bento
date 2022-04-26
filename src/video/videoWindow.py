@@ -1,19 +1,11 @@
 # videoWindow.py
 
-from pose.pose import PoseBase
 from video.videoWindow_ui import Ui_videoFrame
-import video.seqIo as seqIo
-import video.mp4Io as mp4Io
 from video.videoScene import VideoSceneAbstractBase, VideoSceneNative, VideoSceneSeq
-from qtpy.QtCore import QEvent, QMargins, QObject, QPointF, QRectF, Qt, QUrl, Signal, Slot
-from qtpy.QtGui import QBrush, QColor, QFontMetrics, QPen, QPainter, QPixmap, QImage, QPolygonF
-from qtpy.QtWidgets import QFrame, QGraphicsScene, QGraphicsItem
-from qtpy.QtMultimedia import QMediaPlayer, QVideoSurfaceFormat
-from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
-from timecode import Timecode
-import numpy as np
+from qtpy.QtCore import QEvent, Qt, Signal, Slot
+from qtpy.QtWidgets import QFrame
+from qtpy.QtMultimedia import QMediaPlayer
 import os
-import time
 
 class VideoFrame(QFrame):
 
@@ -36,7 +28,6 @@ class VideoFrame(QFrame):
         self.active_annots = []
 
     def resizeEvent(self, event):
-        # self.ui.videoView.fitInView(self.pixmapItem, aspectRadioMode=Qt.KeepAspectRatio)
         self.ui.videoView.fitInView(self.scene.videoItem(), aspectRadioMode=Qt.KeepAspectRatio)
 
     def mouseReleaseEvent(self, event):

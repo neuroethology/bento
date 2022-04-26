@@ -553,6 +553,8 @@ class Bento(QObject):
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
         self.player.setTimeSource(None)
+        for widget in self.video_widgets:
+            widget.deleteLater()
         self.video_widgets.clear()
         progressTotal = (
             len(videos) +
@@ -569,6 +571,7 @@ class Bento(QObject):
             base_directory = session.base_directory
             # Qt converts paths to platform-specific separators under the hood,
             # so it's correct to use forward-slash ("/") here across all platforms
+            # rather than os.sep
             base_dir = base_directory + "/"
             runningTime = 0.
             sample_rate = 30.0

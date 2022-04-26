@@ -130,6 +130,9 @@ class TimeSourceQMediaPlayer(TimeSourceAbstractBase):
 
     @Slot(int)
     def doTick(self, msec: int):
+        # We need to avoid a recursive "set time" loop with the media player,
+        # so temporarily disconnect the signal from the slot to break the loop
+        blocker = QSignalBlocker(self.player)
         self._currentTime = Timecode(self._currentTime.framerate, start_seconds=msec / 1000.)
         self.timeChanged.emit(self._currentTime)
 
