@@ -1,8 +1,10 @@
 # timeSource.py
 
-from qtpy.QtCore import QObject, QSignalBlocker, QTimer, Signal, Slot
+from qtpy.QtCore import QObject, QTimer, Signal, Slot
+from qtpy.QtWidgets import QGraphicsScene
 from qtpy.QtMultimedia import QMediaPlayer
 from timecode import Timecode
+from video.videoScene import VideoSceneNative
 
 class TimeSourceAbstractBase(QObject):
     """
@@ -111,6 +113,11 @@ class TimeSourceQTimer(TimeSourceAbstractBase):
 class TimeSourceQMediaPlayer(TimeSourceAbstractBase):
     """
     Tick source coming from a video player
+    This is a little tricky to avoid endless signal looping.  The key to
+    understanding is that the QMediaPlayer is the source of time while it
+    is playing, and doesn't act on time updates, but acts on time updates
+    when the player is stopped, and doesn't propagate them.  So it either
+    send or receives time updates, but never both.
     """
 
     #Signals
@@ -118,30 +125,28 @@ class TimeSourceQMediaPlayer(TimeSourceAbstractBase):
     stopCalled = Signal()
     quitCalled = Signal()
 
-    def __init__(self, notifyTimeChanged: Slot, player: QMediaPlayer):
+    def __init__(self, notifyTimeChanged: Slot, scene: QGraphicsScene):
         super().__init__(notifyTimeChanged)
-        self.player = player
+        assert isinstance(scene, VideoSceneNative)
+        self.player = scene.getPlayer()
         self.player.positionChanged.connect(self.doTick)
-        self.startCalled.connect(player.play)
-        self.stopCalled.connect(player.pause)
-        self.tickRateChanged.connect(player.setPlaybackRate)
-        self.quitCalled.connect(player.stop)
-        self.playing = False
+        self.startCalled.connect(scene.play)
+        self.stopCalled.connect(scene.stop)
+        self.tickRateChanged.connect(self.player.setPlaybackRate)
+        self.quitCalled.connect(self.player.stop)
 
     @Slot(int)
     def doTick(self, msec: int):
         # We need to avoid a recursive "set time" loop with the media player,
         # so temporarily disconnect the signal from the slot to break the loop
-        blocker = QSignalBlocker(self.player)
-        self._currentTime = Timecode(self._currentTime.framerate, start_seconds=msec / 1000.)
-        self.timeChanged.emit(self._currentTime)
+        if self.player.state() == QMediaPlayer.PlayingState:
+            self._currentTime = Timecode(self._currentTime.framerate, start_seconds=msec / 1000.)
+            self.timeChanged.emit(self._currentTime)
 
     def start(self):
-        self.playing = True
         self.startCalled.emit()
 
     def stop(self):
-        self.playing = False
         self.stopCalled.emit()
 
     @Slot()
@@ -166,7 +171,5 @@ class TimeSourceQMediaPlayer(TimeSourceAbstractBase):
         self.quitCalled.emit()
 
     def setCurrentTime(self, currentTime: Timecode):
-        # We need to avoid a recursive "set time" loop with the media player,
-        # so disconnect the signal from the slot to break the loop
-        blocker = QSignalBlocker(self.player)
-        super().setCurrentTime(currentTime)
+        if self.player.state() != QMediaPlayer.PlayingState:
+            super().setCurrentTime(currentTime)

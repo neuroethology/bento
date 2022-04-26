@@ -614,9 +614,8 @@ class Bento(QObject):
             # instantiate a time source from the first capable video widget, else from a QTimer
             timeSource = None
             for widget in self.video_widgets:
-                player = widget.getPlayer()
-                if player:
-                    timeSource = TimeSourceQMediaPlayer(self.timeChanged, player)
+                if widget.getPlayer():
+                    timeSource = TimeSourceQMediaPlayer(self.timeChanged, widget.scene)
                     break
             if not timeSource:
                 timeSource = TimeSourceQTimer(self.timeChanged)

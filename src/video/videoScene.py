@@ -10,7 +10,6 @@ from qtpy.QtWidgets import QGraphicsScene, QGraphicsItem
 from qtpy.QtMultimedia import QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
 from timecode import Timecode
-import numpy as np
 import os
 
 class VideoSceneAbstractBase(QGraphicsScene):
@@ -99,6 +98,8 @@ class VideoSceneAbstractBase(QGraphicsScene):
 class VideoSceneNative(VideoSceneAbstractBase):
     """
     A scene that knows how to play video in various standard formats
+    Avoiding endless update loops is tricky.  The player's position is only set
+    explicitly when the player is *not* playing.
     """
 
     # update current time every 1/10 second
@@ -114,6 +115,7 @@ class VideoSceneNative(VideoSceneAbstractBase):
         self.player.setNotifyInterval(self.time_update_msec)
         self.frameRate = 30.0
         self._isTimeSource = False
+        self._running = False
 
     def drawPoses(self, painter: QPainter, frame_ix: int):
         super().drawPoses(painter, frame_ix)
@@ -155,20 +157,27 @@ class VideoSceneNative(VideoSceneAbstractBase):
 
     @Slot(Timecode)
     def updateFrame(self, t: Timecode):
-        if self.player.state() != QMediaPlayer.PlayingState:
+        """
+        Only act on external time updates if we're not currently playing.
+        This is to avoid an endless time update loop when this player is
+        acting as the timeSource for bento.
+        Note that the check for self._running is needed to avoid a problem when
+        playing has just stopped and we set bento's current time (below).
+        """
+        if self.player.state() != QMediaPlayer.PlayingState and not self._running:
             self.player.setPosition(round(t.float * 1000.))
 
     @Slot()
     def play(self):
-        self.running = True
+        self._running = True
         self.player.play()
 
     @Slot()
     def stop(self):
         self.player.pause()
-        self.running = False
         if self._isTimeSource:
             self.bento.set_time(Timecode(30.0, start_seconds=self.player.position()/1000.))
+        self._running = False
 
     @Slot(float)
     def setPlaybackRate(self, rate: float):
