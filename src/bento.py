@@ -552,8 +552,12 @@ class Bento(QObject):
 
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
-        self.player.setTimeSource(None)
+        if self.player.timeSource():
+            self.player.timeSource().disconnectSignals(self)
+            self.player.setTimeSource(None)
         for widget in self.video_widgets:
+            widget.reset()
+            widget.hide()
             widget.deleteLater()
         self.video_widgets.clear()
         progressTotal = (

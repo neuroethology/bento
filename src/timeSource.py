@@ -59,6 +59,9 @@ class TimeSourceAbstractBase(QObject):
     def quit(self):
         raise NotImplementedError("The derived class needs to implement this method")
 
+    def disconnectSignals(self, bento: QObject):
+        pass
+
 
 class TimeSourceQTimer(TimeSourceAbstractBase):
     """
@@ -128,6 +131,7 @@ class TimeSourceQMediaPlayer(TimeSourceAbstractBase):
     def __init__(self, notifyTimeChanged: Slot, scene: QGraphicsScene):
         super().__init__(notifyTimeChanged)
         assert isinstance(scene, VideoSceneNative)
+        self.scene = scene
         self.player = scene.getPlayer()
         self.player.positionChanged.connect(self.doTick)
         self.startCalled.connect(scene.play)
@@ -173,3 +177,12 @@ class TimeSourceQMediaPlayer(TimeSourceAbstractBase):
     def setCurrentTime(self, currentTime: Timecode):
         if self.player.state() != QMediaPlayer.PlayingState:
             super().setCurrentTime(currentTime)
+
+    def disconnectSignals(self, bento: QObject):
+        self.player.stop()
+        self.scene.setIsTimeSource(False)
+        self.player.positionChanged.disconnect(self.doTick)
+        bento.timeChanged.disconnect(self.scene.updateFrame)
+        self.quitCalled.disconnect(self.player.stop)
+        self.tickRateChanged.disconnect(self.player.setPlaybackRate)
+        self.stopCalled.disconnect(self.scene.stop)

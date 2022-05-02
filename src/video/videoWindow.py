@@ -27,8 +27,11 @@ class VideoFrame(QFrame):
 
         self.active_annots = []
 
-    def resizeEvent(self, event):
+    def resizeFrame(self):
         self.ui.videoView.fitInView(self.scene.videoItem(), aspectRadioMode=Qt.KeepAspectRatio)
+
+    def resizeEvent(self, event):
+        self.resizeFrame()
 
     def mouseReleaseEvent(self, event):
         viewport = self.ui.videoView.viewport()
@@ -58,8 +61,8 @@ class VideoFrame(QFrame):
         self.ui.videoView.show()
         self.aspect_ratio = self.scene.aspectRatio()
         print(f"aspect_ratio set to {self.aspect_ratio}")
+        self.resizeFrame()
         self.scene.updateFrame(self.bento.current_time())
-        self.ui.videoView.fitInView(self.scene.videoItem(), aspectRadioMode=Qt.KeepAspectRatio)
 
     def set_pose_class(self, pose_class):
         self.scene.setPoseClass(pose_class)
@@ -92,6 +95,10 @@ class VideoFrame(QFrame):
         else:
             return
         event.accept()
+
+    def reset(self):
+        if isinstance(self.scene, VideoSceneAbstractBase):
+            self.scene.reset()
 
     @Slot(list)
     def updateAnnots(self, annots: list):

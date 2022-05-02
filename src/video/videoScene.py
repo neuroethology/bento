@@ -7,7 +7,7 @@ import video.seqIo as seqIo
 from qtpy.QtCore import QMargins, QObject, QRectF, Qt, QUrl, Slot
 from qtpy.QtGui import QBrush, QFontMetrics, QPainter, QPixmap
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsItem
-from qtpy.QtMultimedia import QMediaPlayer, QVideoSurfaceFormat
+from qtpy.QtMultimedia import QMediaContent, QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
 from timecode import Timecode
 import os
@@ -95,6 +95,9 @@ class VideoSceneAbstractBase(QGraphicsScene):
     def getPlayer(self) -> QMediaPlayer:
         return None
 
+    def reset(self):
+        pass
+
 class VideoSceneNative(VideoSceneAbstractBase):
     """
     A scene that knows how to play video in various standard formats
@@ -122,14 +125,17 @@ class VideoSceneNative(VideoSceneAbstractBase):
 
     def drawForeground(self, painter: QPainter, rect: QRectF):
         self.frame_ix = round(self.player.position() * self.frameRate / 1000.)   # position() is in msec
-        painter.save()
-        videoBounds = self.playerItem.boundingRect()
-        videoNativeSize = self.playerItem.nativeSize()
-        sx = videoBounds.width() / videoNativeSize.width()
-        sy = videoBounds.height() / videoNativeSize.height()
-        painter.scale(sx, sy)
-        super().drawForeground(painter, rect)
-        painter.restore()
+        if self.playerItem:
+            videoBounds = self.playerItem.boundingRect()
+            videoNativeSize = self.playerItem.nativeSize()
+            if not videoNativeSize.isEmpty() and not videoBounds.isEmpty():
+                # prevent divide by zero or pointless work
+                painter.save()
+                sx = videoBounds.width() / videoNativeSize.width()
+                sy = videoBounds.height() / videoNativeSize.height()
+                painter.scale(sx, sy)
+                super().drawForeground(painter, rect)
+                painter.restore()
 
     @Slot(QVideoSurfaceFormat)
     def noteSurfaceFormatChanged(self, surfaceFormat: QVideoSurfaceFormat):
@@ -143,6 +149,7 @@ class VideoSceneNative(VideoSceneAbstractBase):
 
     def setVideoPath(self, videoPath: str):
         self.player.setMedia(QUrl.fromLocalFile(videoPath))
+        self.playerItem.videoSurface().surfaceFormatChanged.connect(self.noteSurfaceFormatChanged)
         # force the player to load the media
         self.player.play()
         self.player.pause()
@@ -152,7 +159,6 @@ class VideoSceneNative(VideoSceneAbstractBase):
         frameRate = self.playerItem.videoSurface().surfaceFormat().frameRate()
         if frameRate > 0:
             self.frameRate = frameRate
-        self.playerItem.videoSurface().surfaceFormatChanged.connect(self.noteSurfaceFormatChanged)
         self.bento.timeChanged.connect(self.updateFrame)
 
     @Slot(Timecode)
@@ -201,6 +207,10 @@ class VideoSceneNative(VideoSceneAbstractBase):
     def getPlayer(self) -> QMediaPlayer:
         return self.player
 
+    def reset(self):
+        if self.player:
+            self.player.setMedia(QMediaContent(None))
+
 class VideoSceneSeq(VideoSceneAbstractBase):
     """
     A scene that knows how to play videos in Caltech Anderson Lab .seq format
@@ -224,7 +234,6 @@ class VideoSceneSeq(VideoSceneAbstractBase):
         self._frameHeight = self.reader.header['height']
         self._aspectRatio = self._frameHeight / self._frameWidth
         self.bento.timeChanged.connect(self.updateFrame)
-        # self.region = QRegion(QRect(0, 0, round(self._frameWidth), round(self._frameHeight)), t=QRegion.Rectangle)
 
     @Slot(Timecode)
     def updateFrame(self, t: Timecode):
@@ -235,7 +244,6 @@ class VideoSceneSeq(VideoSceneAbstractBase):
         image, _ = self.reader.getFrame(self.frame_ix, decode=False)
         self.pixmap.loadFromData(image.tobytes())
         self.pixmapItem.setPixmap(self.pixmap)
-        # self.changed.emit(self.region)
 
     def videoItem(self) -> QGraphicsItem:
         return self.pixmapItem
