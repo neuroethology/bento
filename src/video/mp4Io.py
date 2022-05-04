@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+from qtpy.QtGui import QImage, QPixmap
 
 class mp4Io_reader():
 	def __init__(self, filename, info=[]):
@@ -28,7 +29,7 @@ class mp4Io_reader():
 		self.file.set(cv2.CAP_PROP_POS_FRAMES, index)
 
 	def getTs(self,n=None):
-		if n==None: 
+		if n==None:
 			n = self.header['numFrames']
 
 		ts = np.zeros(n+1)
@@ -47,6 +48,13 @@ class mp4Io_reader():
 
 		ts = self.file.get(cv2.CAP_PROP_POS_MSEC)/1000.
 		return frame, ts
+
+	def getFrameAsQPixmap(self, index, decode=True):
+		image, _ = self.getFrame(index, decode)
+		h, w, ch = image.shape
+		bytes_per_line = ch * w
+		convert_to_Qt_format = QImage(image.data, w, h, bytes_per_line, QImage.Format_BGR888)
+		return QPixmap.fromImage(convert_to_Qt_format)
 
 	def close(self):
 		self.file.release()

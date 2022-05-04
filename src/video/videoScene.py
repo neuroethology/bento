@@ -245,10 +245,7 @@ class VideoScenePixmap(VideoSceneAbstractBase):
             return
         myTc = Timecode(self.reader.header['fps'], start_seconds = t.float)
         self.frame_ix = min(myTc.frames, self.reader.header['numFrames']-1)
-        image, _ = self.reader.getFrame(self.frame_ix, decode=False)
-        result = self.pixmap.loadFromData(image.tobytes())
-        if not result:
-            print(f"QPixmap.loadFromData in VideoScenePixmap.updateFrame() returned {result}")
+        self.pixmap = self.reader.getFrameAsQPixmap(self.frame_ix, decode=False)
         self.pixmapItem.setPixmap(self.pixmap)
 
     def videoItem(self) -> QGraphicsItem:

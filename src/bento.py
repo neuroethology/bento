@@ -589,7 +589,7 @@ class Bento(QObject):
                 else:
                     path = video_data.file_path
                 # force pixmap mode if we already are using a native player as a time source
-                widget = self.newVideoWidget(fix_path(path), True or bool(timeSource))
+                widget = self.newVideoWidget(fix_path(path), bool(timeSource))
                 self.video_widgets.append(widget)
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
