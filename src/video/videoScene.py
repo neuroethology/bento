@@ -4,6 +4,7 @@ Implement base class and derived classes for showing videos with pose and annota
 """
 from pose.pose import PoseBase
 import video.seqIo as seqIo
+import video.mp4Io as mp4Io
 from qtpy.QtCore import QMargins, QObject, QRectF, Qt, QUrl, Slot
 from qtpy.QtGui import QBrush, QFontMetrics, QPainter, QPixmap
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsItem
@@ -211,7 +212,7 @@ class VideoSceneNative(VideoSceneAbstractBase):
         if self.player:
             self.player.setMedia(QMediaContent(None))
 
-class VideoSceneSeq(VideoSceneAbstractBase):
+class VideoScenePixmap(VideoSceneAbstractBase):
     """
     A scene that knows how to play videos in Caltech Anderson Lab .seq format
     """
@@ -227,9 +228,12 @@ class VideoSceneSeq(VideoSceneAbstractBase):
     def setVideoPath(self, videoPath: str):
         _, ext = os.path.splitext(videoPath)
         ext = ext.lower()
-        if ext != '.seq':
+        if ext == '.seq':
+            self.reader = seqIo.seqIo_reader(videoPath)
+        elif ext in ['.avi', '.mp4']:
+            self.reader = mp4Io.mp4Io_reader(videoPath)
+        else:
             raise ValueError("Expected .seq file")
-        self.reader = seqIo.seqIo_reader(videoPath)
         self._frameWidth = self.reader.header['width']
         self._frameHeight = self.reader.header['height']
         self._aspectRatio = self._frameHeight / self._frameWidth
@@ -242,7 +246,9 @@ class VideoSceneSeq(VideoSceneAbstractBase):
         myTc = Timecode(self.reader.header['fps'], start_seconds = t.float)
         self.frame_ix = min(myTc.frames, self.reader.header['numFrames']-1)
         image, _ = self.reader.getFrame(self.frame_ix, decode=False)
-        self.pixmap.loadFromData(image.tobytes())
+        result = self.pixmap.loadFromData(image.tobytes())
+        if not result:
+            print(f"QPixmap.loadFromData in VideoScenePixmap.updateFrame() returned {result}")
         self.pixmapItem.setPixmap(self.pixmap)
 
     def videoItem(self) -> QGraphicsItem:

@@ -537,9 +537,9 @@ class Bento(QObject):
             time.sleep(3./30.)  # wait for threads to shut down
             QApplication.instance().quit()
 
-    def newVideoWidget(self, video_path: str) -> VideoFrame:
+    def newVideoWidget(self, video_path: str, forcePixmapMode: bool) -> VideoFrame:
         video = VideoFrame(self)
-        video.load_video(video_path)
+        video.load_video(video_path, forcePixmapMode)
         self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
@@ -566,6 +566,7 @@ class Bento(QObject):
             (len(videos) if loadPose else 0) +  # potentially one pose per video
             (1 if loadNeural else 0) +
             (1 if loadAudio else 0))
+        timeSource = None
         progressCompleted = 0
         progress = QProgressDialog("Loading Trial ...", "Cancel", 0, progressTotal, None)
         progress.setWindowModality(Qt.WindowModal)
@@ -587,7 +588,8 @@ class Bento(QObject):
                     path = base_dir + video_data.file_path
                 else:
                     path = video_data.file_path
-                widget = self.newVideoWidget(fix_path(path))
+                # force pixmap mode if we already are using a native player as a time source
+                widget = self.newVideoWidget(fix_path(path), True or bool(timeSource))
                 self.video_widgets.append(widget)
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
@@ -604,6 +606,9 @@ class Bento(QObject):
                     else:
                         print("No pose data in trial to load.")
                     progressCompleted += 1
+                # if this widget can be a time source, use it as such
+                if not timeSource and widget.getPlayer():
+                    timeSource = TimeSourceQMediaPlayer(self.timeChanged, widget.scene)
 
                 qr = widget.frameGeometry()
                 # qr.moveCenter(self.screen_center + spacing)
@@ -615,14 +620,10 @@ class Bento(QObject):
                     sample_rate = widget.sample_rate()
                     sample_rate_set = True
                 progressCompleted += 1
-            # instantiate a time source from the first capable video widget, else from a QTimer
-            timeSource = None
-            for widget in self.video_widgets:
-                if widget.getPlayer():
-                    timeSource = TimeSourceQMediaPlayer(self.timeChanged, widget.scene)
-                    break
+            # instantiate a time source from a QTimer if we don't already have one
             if not timeSource:
                 timeSource = TimeSourceQTimer(self.timeChanged)
+            # set up the time source parameters and connect it
             timeSource.setCurrentTime(self.time_start)
             timeSource.setMaxFrameRate(2.)
             timeSource.setMinFrameRate(0.125)

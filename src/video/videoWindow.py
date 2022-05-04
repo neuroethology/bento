@@ -1,7 +1,7 @@
 # videoWindow.py
 
 from video.videoWindow_ui import Ui_videoFrame
-from video.videoScene import VideoSceneAbstractBase, VideoSceneNative, VideoSceneSeq
+from video.videoScene import VideoSceneAbstractBase, VideoSceneNative, VideoScenePixmap
 from qtpy.QtCore import QEvent, Qt, Signal, Slot
 from qtpy.QtWidgets import QFrame
 from qtpy.QtMultimedia import QMediaPlayer
@@ -46,13 +46,13 @@ class VideoFrame(QFrame):
             # too tall
             print("too tall")
 
-    def load_video(self, fn):
+    def load_video(self, fn: str, forcePixmapMode: bool):
         self.ext = os.path.basename(fn).rsplit('.',1)[-1]
         self.ext = self.ext.lower()
-        if self.ext in ['mp4', 'avi']:
+        if forcePixmapMode or self.ext == 'seq':
+            self.scene = VideoScenePixmap(self.bento)
+        elif self.ext in ['mp4', 'avi']:
             self.scene = VideoSceneNative(self.bento)
-        elif self.ext == 'seq':
-            self.scene = VideoSceneSeq(self.bento)
         else:
             raise Exception(f"video format {self.ext} not supported.")
         self.scene.setVideoPath(fn)
