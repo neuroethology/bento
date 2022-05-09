@@ -560,6 +560,7 @@ class Bento(QObject):
             widget.hide()
             widget.deleteLater()
         self.video_widgets.clear()
+        self.neural_widgets.clear()
         progressTotal = (
             len(videos) +
             (1 if annotation else 0) +

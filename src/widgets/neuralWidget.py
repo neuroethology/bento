@@ -75,7 +75,6 @@ class NeuralView(QGraphicsView):
         self.start_transform = None
         self.start_x = 0.
         self.scale_h = 1.
-        self.min_scale_v = 0.2
         self.center_y = 0.
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.verticalScrollBar().sliderReleased.connect(self.updateFromScroll)
@@ -112,28 +111,27 @@ class NeuralView(QGraphicsView):
         if oldHeight < 0.:
             return
         newHeight = float(event.size().height())
-        self.min_scale_v *= newHeight / oldHeight
+        min_scale_v = newHeight / self.sceneRect().height()
         t = self.transform()
-        if t.m22() < self.min_scale_v:
-            self.setTransformScaleV(t, self.min_scale_v)
-            self.update()
+        if t.m22() < min_scale_v:
+            self.setTransformScaleV(t, min_scale_v)
+        self.updatePosition(self.bento.current_time)
+        self.synchronizeHScale()
 
     @Slot()
     def updateScene(self):
         self.sample_rate = self.scene().sample_rate
-        # self.time_x.framerate(self.sample_rate)
 
         self.center_y = self.scene().height() / 2.
-        scale_v = max(self.viewport().height() / self.scene().height(), self.min_scale_v)
+        scale_v = self.viewport().height() / self.scene().height()
         self.scale(10., scale_v)
-        self.min_scale_v = self.transform().m22()
-        self.updatePosition(self.bento.current_time())
+        self.updatePosition(self.bento.current_time)
 
     @Slot(Timecode)
     def updatePosition(self, t):
         pt = QPointF(t.float, self.center_y)
         self.centerOn(pt)
-        self.show()
+        self.update()
 
     def synchronizeHScale(self):
         self.hScaleChanged.emit(self.transform().m11())
@@ -141,9 +139,10 @@ class NeuralView(QGraphicsView):
     def mousePressEvent(self, event):
         assert isinstance(event, QMouseEvent)
         assert self.bento
-        assert not self.transform().isRotating()
-        self.start_transform = QTransform(self.transform())
-        self.scale_h = self.transform().m11()
+        t = self.transform()
+        assert not t.isRotating()
+        self.start_transform = QTransform(t)
+        self.scale_h = t.m11()
         self.start_x = event.localPos().x()
         self.start_y = event.localPos().y()
         self.time_x = self.bento.get_time()
@@ -157,7 +156,8 @@ class NeuralView(QGraphicsView):
             factor_y = event.localPos().y() / self.start_y
             t = QTransform(self.start_transform)
             t.scale(factor_x, factor_y)
-            self.setTransformScaleV(t, min(64., max(self.min_scale_v, t.m22())))
+            min_scale_v = self.viewport().rect().height() / self.sceneRect().height()
+            self.setTransformScaleV(t, min(64., max(min_scale_v, t.m22())))
             self.synchronizeHScale()
         else:
             x = event.localPos().x() / self.scale_h
