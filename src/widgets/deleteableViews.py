@@ -2,7 +2,40 @@
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QKeyEvent
-from qtpy.QtWidgets import QTableView, QMessageBox, QTreeWidget, QTreeWidgetItem
+from qtpy.QtWidgets import (QTableView, QMessageBox, QTreeWidget, QTreeWidgetItem, 
+                        QDateTimeEdit, QStyledItemDelegate, QLineEdit)
+
+
+class DateTimeItemDelegate(QStyledItemDelegate):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createEditor(self, parent, option, index):
+        editor = super().createEditor(parent, option, index)
+        if (isinstance(editor, QLineEdit) and
+            index.model().headerData(index.column(), Qt.Horizontal, Qt.DisplayRole) == 'Start Time'):
+            editor = QDateTimeEdit(parent)
+            editor.setDisplayFormat("yyyy-MM-dd HH:mm:ss.zzz")
+            return editor
+        return editor
+
+    def setEditorData(self, editor, index):
+        if (isinstance(editor, QLineEdit) and
+            index.model().headerData(index.column(), Qt.Horizontal, Qt.DisplayRole) == 'Start Time'):
+            dt_str = index.data(Qt.EditRole)
+            dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+            editor.setDateTime(dt)
+            return
+        super().setEditorData(editor, index)
+
+    def setModelData(self, editor, model, index):
+        if isinstance(editor, QDateTimeEdit):
+            dt = str(editor.dateTime().toPython().isoformat(' ', timespec='milliseconds'))
+            model.setData(index, dt, Qt.EditRole)
+            return
+        super().setModelData(editor, model, index)
+
 
 class DeleteableTableView(QTableView):
 

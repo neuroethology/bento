@@ -10,7 +10,7 @@ from qtpy.QtGui import QBrush, QIntValidator
 from qtpy.QtWidgets import (QDialog, QFileDialog, QHeaderView, QMessageBox,
     QTreeWidgetItem, QTreeWidgetItemIterator)
 from models.tableModel import EditableTableModel
-from widgets.deleteableViews import DeleteableTreeWidget
+from widgets.deleteableViews import DeleteableTreeWidget, DateTimeItemDelegate
 # from models.videoTreeModel import VideoTreeModel
 from timecode import Timecode
 from os.path import expanduser, getmtime, basename
@@ -29,6 +29,7 @@ def addPoseHeaderIfNeeded(parent):
         flags &= ~Qt.ItemIsEditable
         flags &= ~Qt.ItemIsSelectable
         poseHeaderItem.setFlags(flags)
+        poseHeaderItem.setToolTip(header.index('Start Time'), 'YYYY:MM:DD hh:mm:ss.ms')
         font = poseHeaderItem.font(0)
         font.setBold(True)
         for column in range(poseHeaderItem.columnCount()):
@@ -107,13 +108,16 @@ class EditTrialDialog(QDialog):
                         self.ui.videosTreeWidget.setHeaderLabels(header)
                         self.ui.videosTreeWidget.hideColumn(header.index('id'))
                         self.ui.videosTreeWidget.hideColumn(header.index('trial_id'))
+                        self.ui.videosTreeWidget.setItemDelegate(DateTimeItemDelegate())
                         headerItem = self.ui.videosTreeWidget.headerItem()
+                        headerItem.setToolTip(header.index('Start Time'), 'YYYY:MM:DD hh:mm:ss.ms')
                         font = headerItem.font(0)
                         font.setBold(True)
                         for column in range(headerItem.columnCount()):
                             headerItem.setFont(column, font)
                             headerItem.setTextAlignment(column, Qt.AlignCenter)
                         headerSet = True
+                    videoTreeItem.setToolTip(header.index('Start Time'), 'YYYY:MM:DD hh:mm:ss.ms')
                     for ix, key in enumerate(header):
                         videoTreeItem.setData(ix, Qt.EditRole, videoDict[key])
                     if len(elem.pose_data) > 0:
@@ -121,6 +125,7 @@ class EditTrialDialog(QDialog):
                         for poseItem in elem.pose_data:
                             poseTreeItem = QTreeWidgetItem(videoTreeItem)
                             poseTreeItem.setFlags(poseTreeItem.flags() | Qt.ItemIsEditable)
+                            poseTreeItem.setToolTip(poseItem.header().index('Start Time'), 'YYYY:MM:DD hh:mm:ss.ms')
                             poseDict = poseItem.toDict()
                             for iy, poseKey in enumerate(poseItem.header()):
                                 poseTreeItem.setData(iy, Qt.EditRole, poseDict[poseKey])
@@ -150,8 +155,10 @@ class EditTrialDialog(QDialog):
         try:
             if ext=='mp4'or ext=='avi':
                 reader = mp4Io_reader(file_path)
+                create_time = getmtime(file_path)
             elif ext=='seq':
                 reader = seqIo_reader(file_path, buildTable=False)
+                create_time = 0.
             else:
                 raise Exception(f"video format {ext} not supported.")
         except Exception:
@@ -161,9 +168,9 @@ class EditTrialDialog(QDialog):
         sample_rate = float(reader.header['fps'])
         ts = reader.getTs(1)[0]
         reader.close()
-        dt = datetime.fromtimestamp(ts)
+        dt = datetime.fromtimestamp(ts+create_time).isoformat(sep=' ', timespec='milliseconds')
         # set the video start time
-        start_time = Timecode(sample_rate, dt.time().isoformat()).float
+        start_time = str(dt)
 
         if file_path.startswith(baseDir):
             file_path = file_path[len(baseDir):]
@@ -177,7 +184,7 @@ class EditTrialDialog(QDialog):
             'id': None,
             'Video File Path': file_path,
             'Sample Rate': sample_rate,
-            'Start Time': start_time,
+            'Start Time': str(start_time),
             'Camera Position': this_camera_position,
             'trial_id': self.trial_id,
             'pose_data': [],
@@ -190,9 +197,11 @@ class EditTrialDialog(QDialog):
             self.ui.videosTreeWidget.setColumnCount(len(videoKeys))
             self.ui.videosTreeWidget.setHeaderLabels(videoKeys)
             self.ui.videosTreeWidget.hideColumn(videoKeys.index('id'))
+            self.ui.videosTreeWidget.setItemDelegate(DateTimeItemDelegate())
         # Attach the video file to treeWidget as a top-level item
         videoItem = QTreeWidgetItem(self.ui.videosTreeWidget)
         videoItem.setFlags(videoItem.flags() | Qt.ItemIsEditable)
+        videoItem.setToolTip(videoKeys.index('Start Time'), 'YYYY:MM:DD hh:mm:ss.ms')
         # insert the data into item
         for key in videoKeys:
             videoItem.setData(videoKeys.index(key), Qt.EditRole, item[key])
@@ -237,6 +246,7 @@ class EditTrialDialog(QDialog):
         videosHeader = [videosHeaderItem.data(ix, Qt.DisplayRole) for ix in range(videosHeaderItem.columnCount())]
         # insert the data into the pose child item
         poseKeys = PoseData().keys
+        poseItem.setToolTip(poseKeys.index('Start Time'), 'YYYY:MM:DD hh:mm:ss.ms')
         poseItem.setData(poseKeys.index('Pose File Path'), Qt.EditRole, poseFilePath)
         poseItem.setData(poseKeys.index('Sample Rate'), Qt.EditRole, videoItem.data(videosHeader.index('Sample Rate'), Qt.DisplayRole))
         poseItem.setData(poseKeys.index('Start Time'), Qt.EditRole, videoItem.data(videosHeader.index('Start Time'), Qt.DisplayRole))
@@ -363,6 +373,7 @@ class EditTrialDialog(QDialog):
         self.ui.neuralsTableView.hideColumn(keys.index('trial_id')) # also don't show the trial_id field
         self.ui.neuralsTableView.setSortingEnabled(False)
         self.ui.neuralsTableView.setAutoScroll(False)
+        self.ui.neuralsTableView.setItemDelegate(DateTimeItemDelegate())
         if oldModel:
             oldModel.deleteLater()
 
@@ -409,9 +420,8 @@ class EditTrialDialog(QDialog):
         else:
             sample_rate = 30.0
             # get start time (seconds from midnight) from file create time
-            create_time = datetime.fromtimestamp(getmtime(file_path))
-            create_day_midnight = datetime.fromordinal(create_time.toordinal())
-            start_time = create_time.timestamp() - create_day_midnight.timestamp()
+            create_time = datetime.fromtimestamp(getmtime(file_path)).isoformat(sep=' ', timespec='milliseconds')
+            start_time = str(create_time)
         start_frame = 1
         stop_frame = data.shape[1]
 
@@ -423,7 +433,7 @@ class EditTrialDialog(QDialog):
             'Neural File Path': file_path,
             'Sample Rate': sample_rate,
             'Format': 'CNMFE', # by default
-            'Start Time': start_time,
+            'Start Time': str(start_time),
             'Start Frame': start_frame,
             'Stop Frame': stop_frame,
             'trial_id': self.trial_id,
@@ -506,6 +516,7 @@ class EditTrialDialog(QDialog):
         self.ui.annotationsTableView.hideColumn(keys.index('trial_id')) # also don't show the internal trial_id field
         self.ui.annotationsTableView.setSortingEnabled(False)
         self.ui.annotationsTableView.setAutoScroll(False)
+        self.ui.annotationsTableView.setItemDelegate(DateTimeItemDelegate())
         if oldModel:
             oldModel.deleteLater()
 
@@ -558,12 +569,17 @@ class EditTrialDialog(QDialog):
                 if investigator:
                     annotator_name = investigator.user_name
 
+        if annotations.start_date_time():
+            start_time = annotations.start_date_time().isoformat(sep=' ', timespec='milliseconds')
+        else:
+            start_time = str(datetime.fromtimestamp(self.bento.time_start.float).isoformat(sep=' ', timespec='milliseconds'))
+
         item = {
             'id': None,
             'Annotations File Path': file_path,
             'Sample Rate': sample_rate,
             'Format': annotations.format(),
-            'Start Time': self.bento.time_start.float,
+            'Start Time': str(start_time),
             'Start Frame': annotations.start_frame(),
             'Stop Frame': annotations.end_frame(),
             'Annotator Name': annotator_name,

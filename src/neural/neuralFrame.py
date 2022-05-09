@@ -58,7 +58,7 @@ class NeuralFrame(QFrame):
             neuralData.sample_rate,
             neuralData.start_frame,
             neuralData.stop_frame,
-            self.bento.time_start,
+            self.bento.time_start_end_timecode['neural'][0][0],
             self.ui.showTraceRadioButton.isChecked(),
             self.ui.showHeatMapRadioButton.isChecked(),
             self.ui.showAnnotationsCheckBox.checkState()

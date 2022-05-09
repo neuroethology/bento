@@ -6,6 +6,7 @@ from sortedcontainers import SortedKeyList
 from qtpy.QtCore import QObject, QRectF, Signal, Slot
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QGraphicsItem
+from datetime import datetime
 
 class Bout(object):
     """
@@ -298,12 +299,13 @@ class Annotations(QObject):
         super().__init__()
         self._channels = {}
         self._behaviors = behaviors
-        self._movies = []
+        self._version = None
         self._start_frame = None
         self._end_frame = None
         self._sample_rate = None
-        self._stimulus = None
         self._format = None
+        self._start_date_time = None
+        self._offset_time = tc.Timecode('30.0', '0:0:0:0')
         self.annotation_names = []
         behaviors.behaviors_changed.connect(self.note_annotations_changed)
 
@@ -311,7 +313,7 @@ class Annotations(QObject):
         with open(fn, "r") as f:
             line = f.readline()
             line = line.strip().lower()
-            if line.endswith("annotation file"):
+            if line.startswith("bento annotation file"):
                 self._format = 'Caltech'
                 self._read_caltech(f)
             elif line.startswith("scorevideo log"):
@@ -321,10 +323,10 @@ class Annotations(QObject):
                 print("Unsupported annotation file format")
 
     def _read_caltech(self, f):
-        found_movies = False
         found_timecode = False
-        found_stimulus = False
         found_channel_names = False
+        found_version = False
+        found_start_date_time = False
         found_annotation_names = False
         found_all_channels = False
         found_all_annotations = False
@@ -350,18 +352,19 @@ class Annotations(QObject):
                     reading_channel = False
                     current_channel = None
                     current_bout = None
-            elif line.lower().startswith("movie file"):
+            elif line.lower().startswith("bento annotation file v"):
                 items = line.split()
-                for item in items:
-                    if item.lower().startswith("movie"):
-                        continue
-                    if item.lower().startswith("file"):
-                        continue
-                    self._movies.append(item)
-                found_movies = True
-            elif line.lower().startswith("stimulus name"):
-                # TODO: do something when we know what one of these looks like
-                found_stimulus = True
+                if len(items)>3:
+                    self._version = str(items[3])
+                found_version = True
+            elif line.lower().startswith("start date time"):  
+                items = line.split()
+                print(items)
+                if len(items)>3:
+                    print(items[-2]+' '+items[-1])
+                    self._start_date_time = datetime.fromisoformat(items[-2]+' '+items[-1])
+                    print('while reading : ', self._start_date_time, type(self._start_date_time))
+                found_start_date_time = True
             elif line.lower().startswith("annotation start frame"):
                 items = line.split()
                 if len(items) > 3:
@@ -429,10 +432,10 @@ class Annotations(QObject):
                             is_float = '.' in items[0] or '.' in items[1] or '.' in items[2]
                             self.add_bout(
                                 Bout(
-                                    tc.Timecode(self._sample_rate, start_seconds=float(items[0])) if is_float
-                                        else tc.Timecode(self._sample_rate, frames=int(items[0])),
-                                    tc.Timecode(self._sample_rate, start_seconds=float(items[1])) if is_float
-                                        else tc.Timecode(self._sample_rate, frames=int(items[1])),
+                                    tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(items[0])) if is_float
+                                        else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(items[0])),
+                                    tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(items[1])) if is_float
+                                        else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(items[1])),
                                     self._behaviors.get(current_bout)),
                                 current_channel)
                         line = f.readline()
@@ -440,16 +443,12 @@ class Annotations(QObject):
         print(f"Done reading Caltech annotation file {f.name}")
         self.note_annotations_changed()
 
-    def write_caltech(self, f, video_files, stimulus):
+    def write_caltech(self, f, video_files):
         if not f.writable():
             raise RuntimeError("File not writable")
-        f.write("Bento annotation file\n")
-        f.write("Movie file(s):")
-        for file in video_files:
-            f.write(' ' + file)
-        f.write('\n\n')
-
-        f.write(f"Stimulus name: {stimulus}\n")
+        f.write(f"Bento annotation file v2\n")
+        f.write('\n')
+        f.write(f"Start date time: {str(self._start_date_time)}\n")
         f.write(f"Annotation start frame: {self._start_frame}\n")
         f.write(f"Annotation stop frame: {self._end_frame}\n")
         f.write(f"Annotation framerate: {self._sample_rate}\n")
@@ -478,8 +477,8 @@ class Annotations(QObject):
                 f.write(f">{annot}\n")
                 f.write("Start\tStop\tDuration\n")
                 for bout in by_name[annot]:
-                    start = bout.start().frames
-                    end = bout.end().frames
+                    start = bout.start().float
+                    end = bout.end().float
                     f.write(f"{start}\t{end}\t{end - start}\n")
                 f.write("\n")
 
@@ -510,6 +509,18 @@ class Annotations(QObject):
         self._channels[channel].add(bout)
         if bout.end() > self.end_time():
             self.set_end_frame(bout.end())
+
+    def set_start_date_time(self, dt):
+        if isinstance(dt, float):
+            self._start_date_time = datetime.fromtimestamp(dt-self._offset_time.float).isoformat(sep=' ', timespec='milliseconds')
+        else:
+            raise TypeError("Expected start date time in seconds.")
+
+    def start_date_time(self):
+        return self._start_date_time
+
+    def set_offset_time(self, t):
+        self._offset_time = t
 
     def start_time(self):
         """

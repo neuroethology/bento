@@ -88,6 +88,7 @@ class VideoFrame(QFrame):
         self.pixmap = QPixmap()
         self.pixmapItem = self.scene.addPixmap(self.pixmap)
         self.active_annots = []
+        self.start_time = self.bento.time_start
         self.aspect_ratio = 1.
 
     def resizeEvent(self, event):
@@ -161,6 +162,8 @@ class VideoFrame(QFrame):
     @Slot(Timecode)
     def updateFrame(self, t):
         if not self.reader:
+            return
+        if t<self.start_time:
             return
         myTc = Timecode(self.reader.header['fps'], start_seconds=t.float)
         i = min(myTc.frames, self.reader.header['numFrames']-1)
