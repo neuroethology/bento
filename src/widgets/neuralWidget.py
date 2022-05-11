@@ -133,6 +133,12 @@ class NeuralView(QGraphicsView):
         self.centerOn(pt)
         self.update()
 
+    @Slot(float)
+    def setHScaleAndUpdate(self, hScale):
+        self.scale_h = hScale
+        self.setHScale(hScale)
+        self.updatePosition(self.bento.current_time()) # calls update()
+
     def synchronizeHScale(self):
         self.hScaleChanged.emit(self.transform().m11())
 

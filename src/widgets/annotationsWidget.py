@@ -2,7 +2,7 @@
 """
 """
 
-from qtpy.QtCore import Qt, QPointF, QRectF, Slot
+from qtpy.QtCore import Qt, QPointF, QRectF, Signal, Slot
 from qtpy.QtGui import (QBrush, QPen, QKeyEvent, QMouseEvent,
     QTransform, QWheelEvent)
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsView
@@ -18,6 +18,8 @@ class AnnotationsView(QGraphicsView):
     from QtGraphicsScene
     """
 
+    hScaleChanged = Signal(float)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.bento = None
@@ -28,6 +30,8 @@ class AnnotationsView(QGraphicsView):
         self.scale(self.scale_v, self.scale_h)
         self.sample_rate = 30.
         self.time_x = Timecode(str(self.sample_rate), '0:0:0:1')
+        self.horizontalScrollBar().setTracking(True)
+        self.connectScrollBarSignal()
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.ticksScale = 1.
@@ -37,14 +41,24 @@ class AnnotationsView(QGraphicsView):
     def set_bento(self, bento):
         self.bento = bento
 
-    #def set_v_factor(self, v_factor):
-    #    self.v_factor = self.height
+    def connectScrollBarSignal(self):
+        self.horizontalScrollBar().valueChanged.connect(self.updateFromScroll)
+
+    def disconnectScrollBarSignal(self):
+        self.horizontalScrollBar().valueChanged.disconnect(self.updateFromScroll)
 
     @Slot(Timecode)
     def updatePosition(self, t):
+        # We need to prevent the update of the horizontal scroll bar when
+        # triggered by the centerOn() call from emitting the valueChanged
+        # signal.  We do this by disconnecting the scroll bar's valueChanged
+        # signal, and reconnecting it when we're done.  Note that this is not
+        # safe in the face of exceptions, but no exceptions are expected here.
+        self.disconnectScrollBarSignal()
         pt = QPointF(t.float, self.scene().height/2.)
         self.centerOn(pt)
-        self.show()
+        self.update()
+        self.connectScrollBarSignal()
 
     def setTransformScale(self, t, scale_h: float=None, scale_v: float=None):
         if scale_h == None:
@@ -74,16 +88,16 @@ class AnnotationsView(QGraphicsView):
         self.setTransformScale(self.transform(), scale_v=vScale)
 
     @Slot(float)
-    def setHScaleAndShow(self, hScale):
+    def setHScaleAndUpdate(self, hScale):
         self.scale_h = hScale
         self.setHScale(hScale)
-        self.updatePosition(self.bento.current_time()) # calls show()
+        self.updatePosition(self.bento.current_time()) # calls update()
 
     @Slot(float)
-    def setVScaleAndShow(self, v_factor):
+    def setVScaleAndUpdate(self, v_factor):
         self.scale_v = self.height()/v_factor
         self.setVScale(self.scale_v)
-        self.show()
+        self.update()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         # Override the widget behavior on key strokes
@@ -100,24 +114,56 @@ class AnnotationsView(QGraphicsView):
             event.ignore()
         # super().wheelEvent(event)
 
+    # def mousePressEvent(self, event):
+    #     assert isinstance(event, QMouseEvent)
+    #     assert self.bento
+    #     assert not self.transform().isRotating()
+    #     self.scale_h = self.transform().m11()
+    #     self.start_x = event.localPos().x() / self.scale_h
+    #     self.time_x = self.bento.get_time()
+    #     event.accept()
+
     def mousePressEvent(self, event):
         assert isinstance(event, QMouseEvent)
         assert self.bento
-        assert not self.transform().isRotating()
-        self.scale_h = self.transform().m11()
-        self.start_x = event.localPos().x() / self.scale_h
+        t = self.transform()
+        assert not t.isRotating()
+        self.start_transform = QTransform(t)
+        self.scale_h = t.m11()
+        self.start_x = event.localPos().x()
         self.time_x = self.bento.get_time()
         event.accept()
 
     def mouseMoveEvent(self, event):
         assert isinstance(event, QMouseEvent)
         assert self.bento
-        x = event.localPos().x() / self.scale_h
-        self.bento.set_time(Timecode(
-            self.time_x.framerate,
-            start_seconds=self.time_x.float + (self.start_x - x)
-        ))
+        if event.modifiers() & Qt.ShiftModifier:
+            factor_x = event.localPos().x() / self.start_x
+            t = QTransform(self.start_transform)
+            t.scale(factor_x, 1.)
+            self.setTransform(t, combine=False)
+            self.synchronizeHScale()
+        else:
+            x = event.localPos().x() / self.scale_h
+            start_x = self.start_x / self.scale_h
+            self.bento.set_time(Timecode(
+                self.time_x.framerate,
+                start_seconds=self.time_x.float + (start_x - x)
+            ))
         event.accept()
+
+    # def mouseMoveEvent(self, event):
+    #     assert isinstance(event, QMouseEvent)
+    #     assert self.bento
+    #     x = event.localPos().x() / self.scale_h
+    #     self.bento.set_time(Timecode(
+    #         self.time_x.framerate,
+    #         start_seconds=self.time_x.float + (self.start_x - x)
+    #     ))
+    #     event.accept()
+
+    def synchronizeHScale(self):
+        self.hScaleChanged.emit(self.transform().m11())
 
     def updateFromScroll(self):
         assert self.bento
