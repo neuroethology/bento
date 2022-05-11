@@ -39,7 +39,6 @@ class MainWindow(QMainWindow):
         self.ui.annotationsView.setScene(bento.annotationsScene)
         bento.annotationsScene.sceneRectChanged.connect(self.ui.annotationsView.update)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
-        self.ui.annotationsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         bento.annotationsSceneHeightChanged.connect(self.ui.annotationsView.setVScaleAndShow)
         self.populateChannelsCombo()
         self.ui.channelComboBox.currentTextChanged.connect(bento.setActiveChannel)
