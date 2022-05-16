@@ -5,7 +5,7 @@ Implement base class and derived classes for showing videos with pose and annota
 from pose.pose import PoseBase
 import video.seqIo as seqIo
 import video.mp4Io as mp4Io
-from qtpy.QtCore import QMargins, QObject, QRectF, Qt, QUrl, Slot
+from qtpy.QtCore import QMargins, QObject, QRectF, QSizeF, Qt, QUrl, Signal, Slot
 from qtpy.QtGui import QBrush, QFontMetrics, QPainter, QPixmap
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsItem
 from qtpy.QtMultimedia import QMediaContent, QMediaPlayer, QVideoSurfaceFormat
@@ -18,6 +18,8 @@ class VideoSceneAbstractBase(QGraphicsScene):
     An abstract scene that knows how to draw annotations text and pose data
     into its foreground
     """
+
+    videoSizeChanged = Signal()
 
     def __init__(self, bento: QObject, parent: QObject=None):
         super().__init__(parent)
@@ -79,6 +81,9 @@ class VideoSceneAbstractBase(QGraphicsScene):
 
     def aspectRatio(self) -> float:
         return self._aspectRatio
+
+    def size(self) -> QSizeF:
+        return QSizeF(self._frameWidth, self._frameHeight)
 
     def videoItem(self) -> QGraphicsItem:
         raise NotImplementedError("Derived class needs to override this method")
@@ -144,9 +149,11 @@ class VideoSceneNative(VideoSceneAbstractBase):
         self._frameWidth = surfaceFormat.frameWidth()
         self._frameHeight = surfaceFormat.frameHeight()
         self._aspectRatio = surfaceFormat.pixelAspectRatio()
+        print(f"playerItem.boundingRect(): {self.playerItem.boundingRect()}")
         if frameRate > 0.:
             print(f"Setting frameRate to {frameRate}")
             self.frameRate = frameRate
+        self.videoSizeChanged.emit()
 
     def setVideoPath(self, videoPath: str):
         self.player.setMedia(QUrl.fromLocalFile(videoPath))
@@ -214,7 +221,8 @@ class VideoSceneNative(VideoSceneAbstractBase):
 
 class VideoScenePixmap(VideoSceneAbstractBase):
     """
-    A scene that knows how to play videos in Caltech Anderson Lab .seq format
+    A scene that knows how to play videos in Caltech Anderson Lab .seq format,
+    and also supports playing .avi and .mp4 files, but not natively.
     """
 
     def __init__(self, bento: QObject, parent: QObject=None):
@@ -223,7 +231,6 @@ class VideoScenePixmap(VideoSceneAbstractBase):
         self.frame_ix: int = 0
         self.pixmap = QPixmap()
         self.pixmapItem = self.addPixmap(self.pixmap)
-        # self.region = None
 
     def setVideoPath(self, videoPath: str):
         _, ext = os.path.splitext(videoPath)

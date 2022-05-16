@@ -3,6 +3,7 @@
 from video.videoWindow_ui import Ui_videoFrame
 from video.videoScene import VideoSceneAbstractBase, VideoSceneNative, VideoScenePixmap
 from qtpy.QtCore import QEvent, Qt, Signal, Slot
+from qtpy.QtGui import QTransform
 from qtpy.QtWidgets import QFrame
 from qtpy.QtMultimedia import QMediaPlayer
 import os
@@ -27,8 +28,24 @@ class VideoFrame(QFrame):
 
         self.active_annots = []
 
+    def setScale(self, sx: float, sy: float):
+        t = QTransform(self.ui.videoView.transform())
+        assert not t.isRotating()
+        t.setMatrix(sx, t.m12(), t.m13(),
+            t.m21(), sy, t.m23(), t.m31(), t.m32(), t.m33())
+        self.ui.videoView.setTransform(t)
+
+    @Slot()
     def resizeFrame(self):
+        # view_size = self.ui.videoView.size()
+        # video_size = self.scene.size()
+        # if not video_size.isEmpty():
+        #     sx = view_size.width() / video_size.width()
+        #     sy = view_size.height() / video_size.height()
+        #     s = min(sx, sy)
+        #     self.setScale(s, s)
         self.ui.videoView.fitInView(self.scene.videoItem(), aspectRadioMode=Qt.KeepAspectRatio)
+        self.ui.videoView.show()
 
     def resizeEvent(self, event):
         self.resizeFrame()
@@ -53,6 +70,7 @@ class VideoFrame(QFrame):
             self.scene = VideoScenePixmap(self.bento)
         elif self.ext in ['mp4', 'avi']:
             self.scene = VideoSceneNative(self.bento)
+            self.scene.videoSizeChanged.connect(self.resizeFrame)
         else:
             raise Exception(f"video format {self.ext} not supported.")
         self.scene.setVideoPath(fn)
@@ -108,11 +126,11 @@ class VideoFrame(QFrame):
 
     @Slot(Qt.CheckState)
     def showPoseDataChanged(self, showPoseData: Qt.CheckState):
-        if self.scene:
+        if isinstance(self.scene, VideoSceneAbstractBase):
             self.scene.setShowPoseData(bool(showPoseData))
             self.scene.updateFrame(self.bento.current_time())   # force redraw
 
     def getPlayer(self) -> QMediaPlayer:
-        if not self.scene:
+        if not isinstance(self.scene, VideoSceneAbstractBase):
             return None
         return self.scene.getPlayer()

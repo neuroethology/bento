@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(604, 409)
+        MainWindow.resize(601, 328)
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -56,11 +56,18 @@ class Ui_MainWindow(object):
 
         self.annotationsView = AnnotationsView(self.centralwidget)
         self.annotationsView.setObjectName(u"annotationsView")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.annotationsView.sizePolicy().hasHeightForWidth())
+        self.annotationsView.setSizePolicy(sizePolicy2)
         self.annotationsView.setMinimumSize(QSize(0, 50))
         self.annotationsView.setAcceptDrops(False)
         self.annotationsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.annotationsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.annotationsView.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
         self.annotationsView.setResizeAnchor(QGraphicsView.AnchorViewCenter)
+        self.annotationsView.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
         self.verticalLayout.addWidget(self.annotationsView)
 
@@ -175,7 +182,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 604, 24))
+        self.menubar.setGeometry(QRect(0, 0, 601, 24))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")

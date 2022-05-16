@@ -3,15 +3,21 @@
 ################################################################################
 ## Form generated from reading UI file 'videoWindow.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.1.2
+## Created by: Qt User Interface Compiler version 6.2.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from qtpy.QtCore import *  # type: ignore
-from qtpy.QtGui import *  # type: ignore
-from qtpy.QtWidgets import *  # type: ignore
-
+from qtpy.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from qtpy.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from qtpy.QtWidgets import (QAbstractScrollArea, QApplication, QCheckBox, QFrame,
+    QGraphicsView, QHBoxLayout, QSizePolicy, QSpacerItem,
+    QVBoxLayout, QWidget)
 
 class Ui_videoFrame(object):
     def setupUi(self, videoFrame):
@@ -52,7 +58,17 @@ class Ui_videoFrame(object):
 
         self.videoView = QGraphicsView(videoFrame)
         self.videoView.setObjectName(u"videoView")
+        sizePolicy2 = QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.videoView.sizePolicy().hasHeightForWidth())
+        self.videoView.setSizePolicy(sizePolicy2)
+        self.videoView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.videoView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.videoView.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.videoView.setInteractive(False)
+        self.videoView.setAlignment(Qt.AlignCenter)
+        self.videoView.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
         self.verticalLayout.addWidget(self.videoView)
 
