@@ -157,7 +157,7 @@ class NeuralView(QGraphicsView):
             t = QTransform(self.start_transform)
             t.scale(factor_x, factor_y)
             min_scale_v = self.viewport().rect().height() / self.sceneRect().height()
-            self.setTransformScaleV(t, min(64., max(min_scale_v, t.m22())))
+            self.setTransformScaleV(t, max(min_scale_v, t.m22()))
             self.synchronizeHScale()
         else:
             x = event.localPos().x() / self.scale_h
