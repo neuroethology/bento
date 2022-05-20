@@ -115,7 +115,7 @@ class NeuralView(QGraphicsView):
         t = self.transform()
         if t.m22() < min_scale_v:
             self.setTransformScaleV(t, min_scale_v)
-        self.updatePosition(self.bento.current_time)
+        self.updatePosition(self.bento.current_time())
         self.synchronizeHScale()
 
     @Slot()
@@ -125,7 +125,7 @@ class NeuralView(QGraphicsView):
         self.center_y = self.scene().height() / 2.
         scale_v = self.viewport().height() / self.scene().height()
         self.scale(10., scale_v)
-        self.updatePosition(self.bento.current_time)
+        self.updatePosition(self.bento.current_time())
 
     @Slot(Timecode)
     def updatePosition(self, t):
