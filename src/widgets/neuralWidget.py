@@ -115,7 +115,7 @@ class NeuralView(QGraphicsView):
         t = self.transform()
         if t.m22() < min_scale_v:
             self.setTransformScaleV(t, min_scale_v)
-        self.updatePosition(self.bento.current_time)
+        self.updatePosition(self.bento.current_time())
         self.synchronizeHScale()
 
     @Slot()
@@ -125,7 +125,7 @@ class NeuralView(QGraphicsView):
         self.center_y = self.scene().height() / 2.
         scale_v = self.viewport().height() / self.scene().height()
         self.scale(10., scale_v)
-        self.updatePosition(self.bento.current_time)
+        self.updatePosition(self.bento.current_time())
 
     @Slot(Timecode)
     def updatePosition(self, t):
@@ -302,7 +302,6 @@ class NeuralScene(QGraphicsScene):
         self.addItem(self.traces)
         # pad some time on left and right to allow centering
         sceneRect = padded_rectf(self.sceneRect())
-        sceneRect.setY(-1.)
         sceneRect.setHeight(float(self.num_chans) + 1.)
         self.setSceneRect(sceneRect)
         if isinstance(self.traces, QGraphicsItem):
@@ -321,7 +320,7 @@ class NeuralScene(QGraphicsScene):
         pen.setWidth(0)
         trace = QPainterPath()
         trace.reserve(self.stop_frame - self.start_frame + 1)
-        y = float(chan) + self.normalize(data[chan][self.start_frame])
+        y = float(chan+0.5) + self.normalize(data[chan][self.start_frame])
         trace.moveTo(self.time_start.float, y)
         time_start_float = self.time_start.float
 
@@ -329,7 +328,7 @@ class NeuralScene(QGraphicsScene):
             t = (ix - self.start_frame)/self.sample_rate + time_start_float
             val = self.normalize(data[chan][ix])
             # Add a section to the trace path
-            y = float(chan) + val
+            y = float(chan+0.5) + val
             trace.lineTo(t, y)
         traceItem = QGraphicsPathItem(trace)
         traceItem.setPen(pen)
