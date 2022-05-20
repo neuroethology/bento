@@ -290,6 +290,8 @@ class Channel(QGraphicsItem):
 class Annotations(QObject):
     """
     """
+    # backward-compatible change, so only update minor version number
+    _current_annotation_version_ = 1.1
 
     # Signals
     annotations_changed = Signal()
@@ -299,7 +301,7 @@ class Annotations(QObject):
         super().__init__()
         self._channels = {}
         self._behaviors = behaviors
-        self._version = None
+        self._version = self._current_annotation_version_
         self._start_frame = None
         self._end_frame = None
         self._sample_rate = None
@@ -355,9 +357,12 @@ class Annotations(QObject):
             elif line.lower().startswith("bento annotation file v"):
                 items = line.split()
                 if len(items)>3:
-                    self._version = str(items[3])
+                    version = str(items[3])
+                    if version[0] == "v":
+                        version = version[1:]
+                    self._version = version
                 found_version = True
-            elif line.lower().startswith("start date time"):  
+            elif line.lower().startswith("start date time"):
                 items = line.split()
                 print(items)
                 if len(items)>3:
@@ -446,7 +451,7 @@ class Annotations(QObject):
     def write_caltech(self, f, video_files):
         if not f.writable():
             raise RuntimeError("File not writable")
-        f.write(f"Bento annotation file v2\n")
+        f.write(f"Bento annotation file v{str(self._current_annotation_version_)}\n")
         f.write('\n')
         f.write(f"Start date time: {str(self._start_date_time)}\n")
         f.write(f"Annotation start frame: {self._start_frame}\n")
