@@ -12,12 +12,17 @@ from qtpy.QtMultimedia import QMediaContent, QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
 from timecode import Timecode
 import os
+from typing import List
 
 class VideoSceneAbstractBase(QGraphicsScene):
     """
     An abstract scene that knows how to draw annotations text and pose data
     into its foreground
     """
+
+    @staticmethod
+    def supportedFormats() -> List:
+        raise NotImplementedError("Derived class needs to override this method")
 
     def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
         super().__init__(parent)
@@ -106,6 +111,10 @@ class VideoSceneNative(VideoSceneAbstractBase):
     Avoiding endless update loops is tricky.  The player's position is only set
     explicitly when the player is *not* playing.
     """
+
+    @staticmethod
+    def supportedFormats() -> List:
+        return ['mp4', 'avi']
 
     # update current time every 1/10 second
     time_update_msec: int = round(1000 / 10)
@@ -217,6 +226,10 @@ class VideoScenePixmap(VideoSceneAbstractBase):
     """
     A scene that knows how to play videos in Caltech Anderson Lab .seq format
     """
+
+    @staticmethod
+    def supportedFormats() -> List:
+        return ['seq', 'mp4', 'avi']
 
     def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
         super().__init__(bento, start_time, parent)

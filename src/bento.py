@@ -100,7 +100,6 @@ class Bento(QObject):
                                 }   # 'data_type' : [start_time, end_time]
         self.time_start_end_timecode = dict()
         self.min_max_times = list()
-        self.current_time = self.time_start
         self.investigator_id = None
         self.current_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
@@ -543,9 +542,9 @@ class Bento(QObject):
             time.sleep(3./30.)  # wait for threads to shut down
             QApplication.instance().quit()
 
-    def newVideoWidget(self, video_path: str, forcePixmapMode: bool) -> VideoFrame:
+    def newVideoWidget(self, video_path: str, start_time: Timecode, forcePixmapMode: bool) -> VideoFrame:
         video = VideoFrame(self)
-        video.load_video(video_path, forcePixmapMode)
+        video.load_video(video_path, start_time, forcePixmapMode)
         self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
@@ -565,7 +564,9 @@ class Bento(QObject):
         self.min_max_times = [min_time, max_time]
 
         for key in time_start_end:
-            time_start_end[key] = [t - min_time for t in time_start_end[key]]
+            # We need to subtract min_time from a list of lists, so convert the inner list
+            # into a numpy array, so that the subtraction is dispatched across all the elements.
+            time_start_end[key] = [list(np.array(t) - min_time) for t in time_start_end[key]]
 
         for key in time_start_end:
             if time_start_end[key]:
@@ -655,7 +656,14 @@ class Bento(QObject):
             # Find the native video that starts earliest, if there are native videos
             # Start a native player for that, and then force pixmap players for any
             # other videos.
-            for ix, video_data in enumerate(videos):
+            # We give native videos priority by artificially pushing their start times 6 hours earlier
+            pairs = [[video_data.start_time, video_data] for video_data in videos]
+            for item in pairs:
+                if VideoFrame(self).supported_by_native_player(item[1].file_path):
+                    item[0] -= 6 * 60 * 60
+            ordered_pairs = sorted(pairs, key=lambda tuple: tuple[0])
+            for ix, item in enumerate(ordered_pairs):
+                video_data = item[1]
                 progress.setLabelText(f"Loading video #{ix}...")
                 progress.setValue(progressCompleted)
                 if not isabs(video_data.file_path):
@@ -663,7 +671,7 @@ class Bento(QObject):
                 else:
                     path = video_data.file_path
                 # force pixmap mode if we already are using a native player as a time source
-                widget = self.newVideoWidget(fix_path(path), bool(timeSource))
+                widget = self.newVideoWidget(fix_path(path), video_data.start_time, bool(timeSource))
                 self.video_widgets.append(widget)
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
