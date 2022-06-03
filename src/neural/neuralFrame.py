@@ -7,20 +7,22 @@ from qtpy.QtWidgets import QFrame
 import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
+from dataExporter import DataExporter
 import numpy as np
 from utils import fix_path
 from os.path import isabs
 
-class NeuralFrame(QFrame):
+class NeuralFrame(QFrame, DataExporter):
 
     openReader = Signal(str)
     quitting = Signal()
     neuralSceneUpdated = Signal()
     active_channel_changed = Signal(str)
 
-    def __init__(self, bento):
-        # super(NeuralDockWidget, self).__init__()
-        super(NeuralFrame, self).__init__()
+    def __init__(self, bento, id):
+        QFrame.__init__(self)
+        DataExporter.__init__(self, id)
+        self.dataExportType = "neural"
         self.bento = bento
         # self.ui = Ui_NeuralDockWidget()
         self.ui = Ui_neuralFrame()

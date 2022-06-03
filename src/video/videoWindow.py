@@ -5,15 +5,18 @@ from video.videoScene import VideoSceneAbstractBase, VideoSceneNative, VideoScen
 from qtpy.QtCore import QEvent, Qt, Signal, Slot
 from qtpy.QtWidgets import QFrame
 from qtpy.QtMultimedia import QMediaPlayer
+from dataExporter import DataExporter
 import os
 
-class VideoFrame(QFrame):
+class VideoFrame(QFrame, DataExporter):
 
     openReader = Signal(str)
     quitting = Signal()
 
-    def __init__(self, bento):
-        super().__init__()
+    def __init__(self, bento, id):
+        QFrame.__init__(self)
+        DataExporter.__init__(self, id)
+        self.dataExportType = "video"
         self.bento = bento
         self.sizePolicy().setHeightForWidth(True)
         self.ui = Ui_videoFrame()

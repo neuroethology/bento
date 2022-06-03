@@ -105,8 +105,7 @@ class Bento(QObject):
         self.player = Player(self)
         self.annotationsScene = AnnotationsScene()
         self.newAnnotations = False
-        self.video_widgets = []
-        self.neural_widgets = []
+        self.widgets = []
         self.annotations = Annotations(self.behaviors)
         self.annotations.annotations_changed.connect(self.noteAnnotationsChanged)
         self.pose_registry = PoseRegistry()
@@ -537,14 +536,14 @@ class Bento(QObject):
             time.sleep(3./30.)  # wait for threads to shut down
             QApplication.instance().quit()
 
-    def newVideoWidget(self, video_path: str, forcePixmapMode: bool) -> VideoFrame:
-        video = VideoFrame(self)
+    def newVideoWidget(self, video_path: str, id: int, forcePixmapMode: bool) -> VideoFrame:
+        video = VideoFrame(self, id)
         video.load_video(video_path, forcePixmapMode)
         self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
-    def newNeuralWidget(self, neuralData, base_dir: str) -> NeuralFrame:
-        neuralWidget = NeuralFrame(self)
+    def newNeuralWidget(self, neuralData, id: int, base_dir: str) -> NeuralFrame:
+        neuralWidget = NeuralFrame(self, id)
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
         self.active_channel_changed.connect(neuralWidget.setActiveChannel)
@@ -555,12 +554,13 @@ class Bento(QObject):
         if self.player.timeSource():
             self.player.timeSource().disconnectSignals(self)
             self.player.setTimeSource(None)
-        for widget in self.video_widgets:
+        for widget in self.widgets:
+            if widget.dataExportType.lower() != 'video':
+                continue
             widget.reset()
             widget.hide()
             widget.deleteLater()
-        self.video_widgets.clear()
-        self.neural_widgets.clear()
+        self.widgets.clear()
         progressTotal = (
             len(videos) +
             (1 if annotation else 0) +
@@ -590,8 +590,8 @@ class Bento(QObject):
                 else:
                     path = video_data.file_path
                 # force pixmap mode if we already are using a native player as a time source
-                widget = self.newVideoWidget(fix_path(path), bool(timeSource))
-                self.video_widgets.append(widget)
+                widget = self.newVideoWidget(fix_path(path), ix, bool(timeSource))
+                self.widgets.append(widget)
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
                     if len(video.pose_data) > 0:
@@ -649,9 +649,10 @@ class Bento(QObject):
             # except Exception as e:
             #     QMessageBox.about(self.selectTrialWindow, "Error", f"Attempt to load annotations from {annot_path} "
             #         f"failed with error {str(e)}")
-            #     for widget in self.video_widgets:
-            #         widget.close()
-            #     self.video_widgets.clear()
+            #     for widget in self.widgets:
+            #         if widget.dataExportType.lower() == 'video':
+            #             widget.close()
+            #     self.widgets.clear()
             #     return False
             progressCompleted += 1
             self.noteAnnotationsChanged(self.time_start, self.time_end)
@@ -663,8 +664,8 @@ class Bento(QObject):
                     if trial.neural_data:
                         progress.setLabelText("Loading neural data...")
                         progress.setValue(progressCompleted)
-                        neuralWidget = self.newNeuralWidget(trial.neural_data[0], base_dir)
-                        self.neural_widgets.append(neuralWidget)
+                        neuralWidget = self.newNeuralWidget(trial.neural_data[0], 0, base_dir)
+                        self.widgets.append(neuralWidget)
                         if self.annotationsScene:
                             neuralWidget.overlayAnnotations(self.annotationsScene)
                         if runningTime==0 and self.newAnnotations and len(videos)==0:
