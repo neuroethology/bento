@@ -6,6 +6,7 @@ from qtpy.QtCore import QEvent, Qt, Signal, Slot
 from qtpy.QtWidgets import QFrame
 from qtpy.QtMultimedia import QMediaPlayer
 from dataExporter import DataExporter
+import h5py as h5
 import os
 
 class VideoFrame(QFrame, DataExporter):
@@ -119,3 +120,6 @@ class VideoFrame(QFrame, DataExporter):
         if not self.scene:
             return None
         return self.scene.getPlayer()
+
+    def exportToH5File(self, openH5File: h5.File):
+        print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")

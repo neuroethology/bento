@@ -6,6 +6,8 @@ from sortedcontainers import SortedKeyList
 from qtpy.QtCore import QObject, QRectF, Signal, Slot
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QGraphicsItem
+from dataExporter import DataExporter
+import h5py as h5
 
 class Bout(object):
     """
@@ -68,14 +70,16 @@ class Bout(object):
     def __repr__(self):
         return f"Bout: start = {self.start()}, end = {self.end()}, behavior: {self.behavior()}"
 
-class Channel(QGraphicsItem):
+class Channel(QGraphicsItem, DataExporter):
     """
     """
 
     contentChanged = Signal()
 
-    def __init__(self, chan = None):
-        super().__init__()
+    def __init__(self, id: int, chan = None):
+        QGraphicsItem.__init__(self)
+        DataExporter.__init__(self, id)
+        self.dataExportType = "annotationChannel"
         if not chan is None:
             self._bouts_by_start = chan._bouts_by_start
             self._bouts_by_end = chan._bouts_by_end
@@ -286,7 +290,10 @@ class Channel(QGraphicsItem):
         for item in to_delete:
             self.remove(item)
 
-class Annotations(QObject):
+    def exportToH5File(self, openH5File: h5.File):
+        print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
+
+class Annotations(QObject, DataExporter):
     """
     """
 
@@ -295,7 +302,9 @@ class Annotations(QObject):
     active_annotations_changed = Signal()
 
     def __init__(self, behaviors):
-        super().__init__()
+        QObject.__init__(self)
+        DataExporter.__init__(self, 0)  # only one annotation, so id is always 0
+        self.dataExportType = "annotations"
         self._channels = {}
         self._behaviors = behaviors
         self._movies = []
@@ -610,3 +619,8 @@ class Annotations(QObject):
     @Slot()
     def note_annotations_changed(self):
         self.annotations_changed.emit()
+
+    def exportToH5File(self, openH5File: h5.File):
+        print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
+        for chan in self._channels:
+            chan.exportToH5File(openH5File)

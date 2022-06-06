@@ -1,8 +1,9 @@
 # bento.py
 import faulthandler
+
 faulthandler.enable()
 from timecode import Timecode
-from qtpy.QtCore import QMarginsF, QObject, QRectF, QTimer, Qt, Signal, Slot
+from qtpy.QtCore import QMarginsF, QObject, QRectF, Qt, Signal, Slot
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QApplication, QFileDialog, QMessageBox, QProgressDialog
 from annot.annot import Annotations, Bout
@@ -26,6 +27,8 @@ from neural.neuralFrame import NeuralFrame
 from pose.pose import PoseRegistry
 from channelDialog import ChannelDialog
 from os.path import expanduser, isabs, sep, relpath, splitext
+from dataExporter import DataExporter
+import h5py as h5
 from utils import fix_path, padded_rectf
 import sys, traceback, time
 
@@ -81,12 +84,14 @@ class Player(QObject):
         if self._timeSource:
             self._timeSource.setCurrentTime(t)
 
-class Bento(QObject):
+class Bento(QObject, DataExporter):
     """
     Bento - class representing core machinery (no UI)
     """
     def __init__(self):
-        super().__init__()
+        QObject.__init__(self)
+        DataExporter.__init__(self, 0)
+        self.dataExportType = "bento"
         self.config = BentoConfig()
         goodConfig = self.config.read()
         self.time_start = Timecode('30.0', '0:0:0:1')
@@ -233,6 +238,8 @@ class Bento(QObject):
             print(f"Caught Exception {e}")
             QMessageBox.about(self.mainWindow, "Error", f"Saving behaviors to {fn} failed.  {e}")
 
+    # File menu actions
+
     @Slot()
     def save_annotations(self):
         msgBox = QMessageBox(
@@ -294,7 +301,33 @@ class Bento(QObject):
                         db_sess.commit()
                         self.newAnnotations = False
 
-    # File menu actions
+    @Slot()
+    def export_data(self):
+        if self.session_id == None or self.trial_id == None:
+            msgBox = QMessageBox(QMessageBox.Warning, "Please select session and trial before trying to export data")
+            return
+        with self.db_sessionMaker() as db_sess:
+            base_directory = db_sess.query(Session).filter(Session.id == self.session_id).one().base_directory
+        fileName, selectedFilter = QFileDialog.getSaveFileName(
+            self.mainWindow,
+            caption="Data Export File Name",
+            # filter="HDF5 file (*.h5);;Neurodata Without Borders file (*.nwb)",
+            filter="HDF5 file (*.h5)",
+            selectedFilter="HDF5 file (*.h5)",
+            dir=base_directory)
+        if selectedFilter == "HDF5 file (*.h5)":
+            with h5.File(fileName, 'a') as f:
+                # export the metadata
+                self.exportToH5File(f)
+                # ask each widget to export its data
+                for widget in self.widgets:
+                    widget.exportToH5File(f)
+                # export the annotation data
+                self.annotations.exportToH5File(f)
+        elif selectedFilter == "Neurodata Without Borders file (*.nwb)":
+            raise NotImplementedError("NWB file export not yet supported")
+        else:
+            raise NotImplementedError(f"Data export format {selectedFilter} not supported")
 
     @Slot()
     def set_investigator(self):
@@ -718,6 +751,10 @@ class Bento(QObject):
         beh = self.behaviors.get(behaviorName)
         for chan in self.annotations.channel_names():
             self.annotations.truncate_or_remove_bouts(beh, self.time_start, self.time_end, chan)
+
+    def exportToH5File(self, openH5File: h5.File):
+        print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
+        # export session and trial metadata here
 
    # Signals
     quitting = Signal()
