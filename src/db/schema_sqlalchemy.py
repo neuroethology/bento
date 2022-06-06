@@ -7,7 +7,7 @@ from typing import KeysView
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String, Time, create_engine, func
 from sqlalchemy.orm import relationship, sessionmaker
-from datetime import date
+from datetime import date, datetime
 import enum
 from os.path import expanduser, exists, sep
 
@@ -106,7 +106,7 @@ class NeuralData(Base):
             'Neural File Path': self.file_path,
             'Sample Rate': self.sample_rate,
             'Format': self.format,
-            'Start Time': self.start_time,
+            'Start Time': str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
             'Start Frame': self.start_frame,
             'Stop Frame': self.stop_frame,
             'trial_id': self.trial
@@ -125,7 +125,7 @@ class NeuralData(Base):
         if 'Format' in d.keys() and d['Format'] != self.format:
             self.format = d['Format']
         if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = d['Start Time']
+            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
         if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
             self.start_frame = d['Start Frame']
         if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
@@ -169,7 +169,7 @@ class VideoData(Base):
             'id': self.id,
             'Video File Path': self.file_path,
             'Sample Rate': self.sample_rate,
-            'Start Time': self.start_time,
+            'Start Time': str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
             'Camera Position': self.camera.position,
             'trial_id': self.trial,
             'pose_data': pose_data
@@ -190,7 +190,7 @@ class VideoData(Base):
         if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
             self.sample_rate = d['Sample Rate']
         if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = d['Start Time']
+            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
         if self.camera_id != camera.id:
             self.camera_id = camera.id
         if self.camera != camera:
@@ -241,7 +241,7 @@ class AnnotationsData(Base):
             'Annotations File Path': self.file_path,
             'Sample Rate': self.sample_rate,
             'Format': self.format,
-            'Start Time': self.start_time,
+            'Start Time': str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
             'Start Frame': self.start_frame,
             'Stop Frame': self.stop_frame,
             'Annotator Name': self.annotator_name,
@@ -262,7 +262,7 @@ class AnnotationsData(Base):
         if 'Format' in d.keys() and d['Format'] != self.format:
             self.format = d['Format']
         if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = d['Start Time']
+            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
         if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
             self.start_frame = d['Start Frame']
         if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
@@ -310,7 +310,7 @@ class AudioData(Base):
             'id': self.id,
             'Audio File Path': self.file_path,
             'Sample Rate': self.sample_rate,
-            'Start Time': self.start_time,
+            'Start Time':str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
             'Processed Audio File Path': self.processed_audio_file_path,
             # 'annotations_id': self.annotations_id,
             'trial_id': self.trial
@@ -327,7 +327,7 @@ class AudioData(Base):
         if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
             self.sample_rate = d['Sample Rate']
         if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = d['Start Time']
+            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
         if ('Processed Audio File Path' in d.keys()
             and d['Processed Audio File Path'] != self.processed_audio_file_path):
             self.processed_audio_file_path = d['Processed Audio File Path']
@@ -371,7 +371,7 @@ class PoseData(Base):
             'id': self.pose_id,
             'Pose File Path': self.file_path,
             'Sample Rate': self.sample_rate,
-            'Start Time': self.start_time,
+            'Start Time': str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
             'Format': self.format,
             'video_id': self.video,
             'trial_id': self.trial
@@ -388,7 +388,7 @@ class PoseData(Base):
         if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
             self.sample_rate = d['Sample Rate']
         if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = d['Start Time']
+            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
         if 'Format' in d.keys() and d['Format'] != self.format:
             self.format = d['Format']
         if 'video_id' in d.keys() and d['video_id'] != self.video:
