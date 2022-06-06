@@ -31,7 +31,7 @@ class VideoSceneAbstractBase(QGraphicsScene):
         self.pose_class = None
         self.showPoseData = False
         self.frame_ix = 0
-        self.start_time = start_time
+        self._start_time = start_time
         self._frameWidth = 0.
         self._frameHeight = 0.
         self._aspectRatio = 0.
@@ -48,6 +48,9 @@ class VideoSceneAbstractBase(QGraphicsScene):
     def drawPoses(self, painter: QPainter, frame_ix: int):
         if self.showPoseData and self.pose_class:
             self.pose_class.drawPoses(painter, frame_ix)
+
+    def setStartTime(self, t: Timecode):
+        self._start_time = t 
 
     def drawForeground(self, painter: QPainter, rect: QRectF):
         # add poses
@@ -160,11 +163,9 @@ class VideoSceneNative(VideoSceneAbstractBase):
             self.frameRate = frameRate
 
     def setVideoPath(self, videoPath: str):
-        _, ext = os.path.splitext(videoPath)
-        ext = ext.lower()
-        if self.duration == 0.0 and ext in ['.avi', '.mp4']:
-            self.reader = mp4Io.mp4Io_reader(videoPath)
-            self.duration = float(self.reader.header['numFrames']) / float(self.reader.header['fps'])
+        if self.duration == 0.0:
+            reader = mp4Io.mp4Io_reader(videoPath)
+            self.duration = float(reader.header['numFrames']) / float(reader.header['fps'])
         self.player.setMedia(QUrl.fromLocalFile(videoPath))
         self.playerItem.videoSurface().surfaceFormatChanged.connect(self.noteSurfaceFormatChanged)
         # force the player to load the media
@@ -261,7 +262,7 @@ class VideoScenePixmap(VideoSceneAbstractBase):
 
     @Slot(Timecode)
     def updateFrame(self, t: Timecode):
-        if not self.reader or t < self.start_time:
+        if not self.reader or t < self._start_time:
             return
         myTc = Timecode(self.reader.header['fps'], start_seconds = t.float)
         self.frame_ix = min(myTc.frames, self.reader.header['numFrames']-1)

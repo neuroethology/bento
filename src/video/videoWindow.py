@@ -75,8 +75,8 @@ class VideoFrame(QFrame):
         self.scene.setShowPoseData(bool(pose_class) and self.ui.showPoseCheckBox.isChecked())
 
     def set_start_time(self, t):
-        self.scene.start_time = t
-    
+        self.scene.setStartTime(t)
+
     def sample_rate(self) -> float:
         return self.scene.sample_rate()
 
