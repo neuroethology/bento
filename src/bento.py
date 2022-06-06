@@ -30,7 +30,9 @@ from os.path import expanduser, isabs, sep, relpath, splitext
 from dataExporter import DataExporter
 import h5py as h5
 from utils import fix_path, padded_rectf
-import sys, traceback, time
+import sys, traceback, time, itertools
+from datetime import datetime
+import numpy as np
 
 class Player(QObject):
 
@@ -96,6 +98,13 @@ class Bento(QObject, DataExporter):
         goodConfig = self.config.read()
         self.time_start = Timecode('30.0', '0:0:0:1')
         self.time_end = Timecode('30.0', '23:59:59:29')
+        self.time_start_end = {
+                                'video':[],
+                                'annotations':[],
+                                'neural':[]
+                                }   # 'data_type' : [start_time, end_time]
+        self.time_start_end_timecode = dict()
+        self.min_max_times = list()
         self.investigator_id = None
         self.current_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
@@ -152,7 +161,7 @@ class Bento(QObject, DataExporter):
         self.config.set_investigator_id(investigator_id)
         self.config.write()
 
-    def load_or_init_annotations(self, fn, sample_rate = 30., running_time = None):
+    def load_or_init_annotations(self, fn, sample_rate = 30., start_time = None):
         self.annotationsScene.setSampleRate(sample_rate)
         self.annotations.clear_channels()
         self.active_channels.clear()
@@ -162,6 +171,8 @@ class Bento(QObject, DataExporter):
             print(f"Try loading annotations from {fn}")
             try:
                 self.annotationsScene.clear()
+                self.annotations.set_offset_time(self.time_start_end_timecode['annotations'][0][0]-self.time_start)
+                self.annotations.set_start_date_time(start_time)
                 self.annotations.read(fn)
                 if self.annotations.channel_names():
                     self.mainWindow.addChannelToCombo(self.annotations.channel_names())
@@ -171,8 +182,6 @@ class Bento(QObject, DataExporter):
                 height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
                 self.annotationsScene.setSceneRect(padded_rectf(self.annotationsScene.sceneRect()) + QMarginsF(0., 0., 0., float(height)))
                 self.annotationsSceneHeightChanged.emit(float(self.annotationsScene.sceneRect().height()))
-                self.time_start = self.annotations.start_time()
-                self.time_end = self.annotations.end_time()
                 loaded = True
             except Exception as e:
                 pass
@@ -182,8 +191,9 @@ class Bento(QObject, DataExporter):
             print("Initializing new annotations")
             self.active_channels.clear()
             self.annotationsScene.clear()
-            self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., running_time, 1.)))
-            self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
+            self.annotationsScene.setSceneRect(padded_rectf(QRectF(0., 0., self.time_end.float, 1.)))
+            self.time_start_end_timecode['annotations'] = [[self.time_start, self.time_end]]
+            self.annotations.set_start_date_time(min(self.min_max_times))
             self.annotations.set_sample_rate(sample_rate)
             self.annotations.set_start_frame(self.time_start)
             self.annotations.set_end_frame(self.time_end)
@@ -274,7 +284,6 @@ class Bento(QObject, DataExporter):
                         self.annotations.write_caltech(
                             file,
                             [video_data.file_path for video_data in trial.video_data],
-                            trial.stimulus
                             )
                     # Is the annotation filename a new one, or does it exist already?
                     existingAnnot = None
@@ -289,7 +298,7 @@ class Bento(QObject, DataExporter):
                         newAnnot.file_path = relpath(fileName, base_directory)
                         newAnnot.sample_rate = self.annotations.sample_rate()
                         newAnnot.format = self.annotations.format()
-                        newAnnot.start_time = self.time_start.float
+                        newAnnot.start_time = datetime.timestamp(datetime.fromisoformat(self.annotations.start_date_time()))
                         newAnnot.start_frame = self.time_start.frame_number
                         newAnnot.stop_frame = self.time_end.frame_number
                         newAnnot.annotator_name = investigator.user_name
@@ -441,10 +450,6 @@ class Bento(QObject, DataExporter):
         new_tc = max(self.time_start, min(self.time_end, new_tc))
         self.player.setCurrentTime(new_tc)
 
-    # @Slot(int)
-    # def set_time_msec(self, msec: int):
-    #     self.set_time(Timecode(30.0, start_seconds=msec / 1000.))
-
     def change_time(self, increment: Timecode):
         self.set_time(self.player.currentTime() + increment)
 
@@ -569,9 +574,9 @@ class Bento(QObject, DataExporter):
             time.sleep(3./30.)  # wait for threads to shut down
             QApplication.instance().quit()
 
-    def newVideoWidget(self, video_path: str, id: int, forcePixmapMode: bool) -> VideoFrame:
+    def newVideoWidget(self, video_path: str, id: int, start_time: Timecode, forcePixmapMode: bool) -> VideoFrame:
         video = VideoFrame(self, id)
-        video.load_video(video_path, forcePixmapMode)
+        video.load_video(video_path, start_time, forcePixmapMode)
         self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
@@ -581,6 +586,82 @@ class Bento(QObject, DataExporter):
         self.timeChanged.connect(neuralWidget.updateTime)
         self.active_channel_changed.connect(neuralWidget.setActiveChannel)
         return neuralWidget
+
+    def timeToTimecode(self, time_start_end, video_info, sample_rate=30.):
+        times = list()
+        for ix, item in enumerate(video_info):
+            if VideoFrame(self).supported_by_native_player(item[1].file_path):
+                times = times + time_start_end['video'][ix]
+            else:
+                continue
+        if len(times)==0:
+            for key in time_start_end:
+                times = times + list(itertools.chain(*time_start_end[key]))
+        min_time, max_time = min(times), max(times)
+        self.min_max_times = [min_time, max_time]
+
+        for key in time_start_end:
+            # We need to subtract min_time from a list of lists, so convert the inner list
+            # into a numpy array, so that the subtraction is dispatched across all the elements.
+            time_start_end[key] = [list(np.array(t) - min_time) for t in time_start_end[key]]
+
+        for key in time_start_end:
+            if time_start_end[key]:
+                self.time_start_end_timecode[key] = [[Timecode(sample_rate, frames=1)+Timecode(sample_rate, start_seconds=start),
+                                                      Timecode(sample_rate, frames=1)+Timecode(sample_rate, start_seconds=end)]
+                                                     for start, end in time_start_end[key]]
+            else:
+                self.time_start_end_timecode[key] = list()
+
+        timecodes = []
+        for key in self.time_start_end_timecode:
+            timecodes = timecodes + list(itertools.chain(*self.time_start_end_timecode[key]))
+
+        if min(timecodes).float<0:
+            self.time_start = self.time_start
+        else:
+            self.time_start = min(timecodes)
+        self.time_end = max(timecodes)
+
+        for ix, start_end in enumerate(self.time_start_end_timecode['video']):
+            self.video_widgets[ix].set_start_time(start_end[0])    # pull the start time out of the list pair
+
+        self.set_time(self.time_start)
+
+    def getTimes(self, videos, annotation, loadNeural, loadAudio):
+
+        # just clearing each list was not working for some reason
+        # so, re-initializing the dict
+        self.time_start_end = {
+                                'video':[],
+                                'annotations':[],
+                                'neural':[]
+                                }   # 'data_type' : [start_time, end_time]
+        sample_rate = 30.0
+        sample_rate_set = False
+
+        for video in videos:
+            self.time_start_end['video'].append([video.start_time, video.start_time+float(24*60*60)])
+            if not sample_rate_set:
+                sample_rate = video.sample_rate
+                sample_rate_set = True
+        if annotation:
+            sample_rate = annotation.sample_rate
+            start_time = annotation.start_time
+            end_time = start_time + Timecode(sample_rate, frames=annotation.stop_frame).float
+            self.time_start_end['annotations'].append([start_time, end_time])
+        if loadNeural:
+            with self.db_sessionMaker() as db_sess:
+                trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
+                if trial.neural_data:
+                    running_time = Timecode(str(trial.neural_data[0].sample_rate),
+                                            frames=trial.neural_data[0].stop_frame-trial.neural_data[0].start_frame).float
+                    self.time_start_end['neural'].append([trial.neural_data[0].start_time, trial.neural_data[0].start_time+running_time])
+        if loadAudio:
+            # not supported yet
+            pass
+
+        return sample_rate
 
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
@@ -594,6 +675,7 @@ class Bento(QObject, DataExporter):
             widget.hide()
             widget.deleteLater()
         self.widgets.clear()
+        sample_rate = self.getTimes(videos, annotation, loadNeural, loadAudio)
         progressTotal = (
             len(videos) +
             (1 if annotation else 0) +
@@ -613,9 +695,17 @@ class Bento(QObject, DataExporter):
             # rather than os.sep
             base_dir = base_directory + "/"
             runningTime = 0.
-            sample_rate = 30.0
-            sample_rate_set = False
-            for ix, video_data in enumerate(videos):
+            # Find the native video that starts earliest, if there are native videos
+            # Start a native player for that, and then force pixmap players for any
+            # other videos.
+            # We give native videos priority by artificially pushing their start times 6 hours earlier
+            pairs = [[video_data.start_time, video_data] for video_data in videos]
+            for item in pairs:
+                if VideoFrame(self).supported_by_native_player(item[1].file_path):
+                    item[0] -= 6 * 60 * 60
+            ordered_pairs = sorted(pairs, key=lambda tuple: tuple[0])
+            for ix, item in enumerate(ordered_pairs):
+                video_data = item[1]
                 progress.setLabelText(f"Loading video #{ix}...")
                 progress.setValue(progressCompleted)
                 if not isabs(video_data.file_path):
@@ -623,7 +713,7 @@ class Bento(QObject, DataExporter):
                 else:
                     path = video_data.file_path
                 # force pixmap mode if we already are using a native player as a time source
-                widget = self.newVideoWidget(fix_path(path), ix, bool(timeSource))
+                widget = self.newVideoWidget(fix_path(path), ix, video_data.start_time, bool(timeSource))
                 self.widgets.append(widget)
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
@@ -650,19 +740,20 @@ class Bento(QObject, DataExporter):
                 widget.move(qr.topLeft())    #TODO: need to space multiple videos out
                 widget.show()
                 runningTime = max(runningTime, widget.running_time())
-                if not sample_rate_set:
-                    sample_rate = widget.sample_rate()
-                    sample_rate_set = True
+                self.time_start_end['video'][ix][1] = self.time_start_end['video'][ix][0] + runningTime
                 progressCompleted += 1
             # instantiate a time source from a QTimer if we don't already have one
             if not timeSource:
                 timeSource = TimeSourceQTimer(self.timeChanged)
             # set up the time source parameters and connect it
-            timeSource.setCurrentTime(self.time_start)
             timeSource.setMaxFrameRate(2.)
             timeSource.setMinFrameRate(0.125)
             self.timeChanged.connect(timeSource.setCurrentTime)
             self.player.setTimeSource(timeSource)
+            # compute the trial start and end times from the min and max of all the media
+            # This also (finally) sets the time in the timeSource via self.set_time(), which calls
+            # self.player.setCurrentTime(), which sets the timeSource time.
+            self.timeToTimecode(self.time_start_end, ordered_pairs, sample_rate)
 
             # Load Annotations
             if annotation:
@@ -671,12 +762,13 @@ class Bento(QObject, DataExporter):
                 else:
                     annot_path = annotation.file_path
                 annot_path = fix_path(annot_path)
-                sample_rate = annotation.sample_rate
+                annot_start_time = annotation.start_time
             else:
                 annot_path = None
+                annot_start_time = None
             progress.setLabelText("Loading annotations...")
             progress.setValue(progressCompleted)
-            self.load_or_init_annotations(annot_path, sample_rate, runningTime)
+            self.load_or_init_annotations(annot_path, sample_rate, annot_start_time)
             # try:
             #     self.load_or_init_annotations(annot_path, sample_rate, runningTime)
             # except Exception as e:
@@ -701,9 +793,6 @@ class Bento(QObject, DataExporter):
                         self.widgets.append(neuralWidget)
                         if self.annotationsScene:
                             neuralWidget.overlayAnnotations(self.annotationsScene)
-                        if runningTime==0 and self.newAnnotations and len(videos)==0:
-                            running_time = trial.neural_data[0].sample_rate * (trial.neural_data[0].stop_frame-trial.neural_data[0].start_frame)
-                            self.time_end = Timecode(self.time_start.framerate, start_seconds=self.time_start.float + running_time)
                         neuralWidget.show()
                         progressCompleted += 1
                     else:
@@ -737,7 +826,7 @@ class Bento(QObject, DataExporter):
             end = self.time_end.float
         elif isinstance(end, Timecode):
             end = end.float
-        self.newAnnotations = True
+        #self.newAnnotations = True
         self.annotationsScene.sceneChanged(start, end)
 
     @Slot(int)

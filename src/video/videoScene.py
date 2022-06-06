@@ -12,6 +12,7 @@ from qtpy.QtMultimedia import QMediaContent, QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
 from timecode import Timecode
 import os
+from typing import List
 
 class VideoSceneAbstractBase(QGraphicsScene):
     """
@@ -19,13 +20,18 @@ class VideoSceneAbstractBase(QGraphicsScene):
     into its foreground
     """
 
-    def __init__(self, bento: QObject, parent: QObject=None):
+    @staticmethod
+    def supportedFormats() -> List:
+        raise NotImplementedError("Derived class needs to override this method")
+
+    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
         super().__init__(parent)
         self.bento = bento
         self.annots = None
         self.pose_class = None
         self.showPoseData = False
         self.frame_ix = 0
+        self._start_time = start_time
         self._frameWidth = 0.
         self._frameHeight = 0.
         self._aspectRatio = 0.
@@ -42,6 +48,9 @@ class VideoSceneAbstractBase(QGraphicsScene):
     def drawPoses(self, painter: QPainter, frame_ix: int):
         if self.showPoseData and self.pose_class:
             self.pose_class.drawPoses(painter, frame_ix)
+
+    def setStartTime(self, t: Timecode):
+        self._start_time = t 
 
     def drawForeground(self, painter: QPainter, rect: QRectF):
         # add poses
@@ -106,11 +115,15 @@ class VideoSceneNative(VideoSceneAbstractBase):
     explicitly when the player is *not* playing.
     """
 
+    @staticmethod
+    def supportedFormats() -> List:
+        return ['mp4', 'avi']
+
     # update current time every 1/10 second
     time_update_msec: int = round(1000 / 10)
 
-    def __init__(self, bento: QObject, parent: QObject=None):
-        super().__init__(bento, parent)
+    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
+        super().__init__(bento, start_time, parent)
         self.player = QMediaPlayer()
         self.playerItem = QGraphicsVideoItem()
         self.player.setVideoOutput(self.playerItem)
@@ -118,6 +131,7 @@ class VideoSceneNative(VideoSceneAbstractBase):
         self.player.durationChanged.connect(bento.noteVideoDurationChanged)
         self.player.setNotifyInterval(self.time_update_msec)
         self.frameRate = 30.0
+        self.duration = 0.0
         self._isTimeSource = False
         self._running = False
 
@@ -149,6 +163,9 @@ class VideoSceneNative(VideoSceneAbstractBase):
             self.frameRate = frameRate
 
     def setVideoPath(self, videoPath: str):
+        if self.duration == 0.0:
+            reader = mp4Io.mp4Io_reader(videoPath)
+            self.duration = float(reader.header['numFrames']) / float(reader.header['fps'])
         self.player.setMedia(QUrl.fromLocalFile(videoPath))
         self.playerItem.videoSurface().surfaceFormatChanged.connect(self.noteSurfaceFormatChanged)
         # force the player to load the media
@@ -194,7 +211,7 @@ class VideoSceneNative(VideoSceneAbstractBase):
         return self.playerItem
 
     def running_time(self) -> float:
-        return float(self.player.duration() / 1000.)
+        return float(self.duration)
 
     def sample_rate(self) -> float:
         if self.frameRate == 0.:
@@ -217,8 +234,12 @@ class VideoScenePixmap(VideoSceneAbstractBase):
     A scene that knows how to play videos in Caltech Anderson Lab .seq format
     """
 
-    def __init__(self, bento: QObject, parent: QObject=None):
-        super().__init__(bento, parent)
+    @staticmethod
+    def supportedFormats() -> List:
+        return ['seq', 'mp4', 'avi']
+
+    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
+        super().__init__(bento, start_time, parent)
         self.reader = None
         self.frame_ix: int = 0
         self.pixmap = QPixmap()
@@ -241,7 +262,7 @@ class VideoScenePixmap(VideoSceneAbstractBase):
 
     @Slot(Timecode)
     def updateFrame(self, t: Timecode):
-        if not self.reader:
+        if not self.reader or t < self._start_time:
             return
         myTc = Timecode(self.reader.header['fps'], start_seconds = t.float)
         self.frame_ix = min(myTc.frames, self.reader.header['numFrames']-1)

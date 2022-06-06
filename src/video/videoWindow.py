@@ -8,6 +8,7 @@ from qtpy.QtMultimedia import QMediaPlayer
 from dataExporter import DataExporter
 import h5py as h5
 import os
+from timecode import Timecode
 
 class VideoFrame(QFrame, DataExporter):
 
@@ -50,15 +51,19 @@ class VideoFrame(QFrame, DataExporter):
             # too tall
             print("too tall")
 
-    def load_video(self, fn: str, forcePixmapMode: bool):
-        self.ext = os.path.basename(fn).rsplit('.',1)[-1]
-        self.ext = self.ext.lower()
-        if forcePixmapMode or self.ext == 'seq':
-            self.scene = VideoScenePixmap(self.bento)
-        elif self.ext in ['mp4', 'avi']:
-            self.scene = VideoSceneNative(self.bento)
+    def supported_by_native_player(self, fn: str) -> bool:
+        ext = os.path.basename(fn).rsplit('.',1)[-1].lower()
+        if ext in VideoSceneNative(self.bento, self.bento.current_time()).supportedFormats():
+            return True
+        if not ext in VideoScenePixmap(self.bento, self.bento.current_time()).supportedFormats():
+            raise Exception(f"video format {ext} not supported.")
+        return False
+
+    def load_video(self, fn: str, start_time: Timecode, forcePixmapMode: bool):
+        if not forcePixmapMode and self.supported_by_native_player(fn):
+            self.scene = VideoSceneNative(self.bento, start_time)
         else:
-            raise Exception(f"video format {self.ext} not supported.")
+            self.scene = VideoScenePixmap(self.bento, start_time)
         self.scene.setVideoPath(fn)
         self.ui.videoView.setScene(self.scene)
         self.ui.showPoseCheckBox.stateChanged.connect(self.showPoseDataChanged)
@@ -72,6 +77,9 @@ class VideoFrame(QFrame, DataExporter):
         self.scene.setPoseClass(pose_class)
         self.ui.showPoseCheckBox.setEnabled(bool(pose_class))
         self.scene.setShowPoseData(bool(pose_class) and self.ui.showPoseCheckBox.isChecked())
+
+    def set_start_time(self, t):
+        self.scene.setStartTime(t)
 
     def sample_rate(self) -> float:
         return self.scene.sample_rate()
