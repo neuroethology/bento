@@ -128,6 +128,7 @@ class VideoSceneNative(VideoSceneAbstractBase):
         self.player.durationChanged.connect(bento.noteVideoDurationChanged)
         self.player.setNotifyInterval(self.time_update_msec)
         self.frameRate = 30.0
+        self.duration = 0.0
         self._isTimeSource = False
         self._running = False
 
@@ -159,6 +160,11 @@ class VideoSceneNative(VideoSceneAbstractBase):
             self.frameRate = frameRate
 
     def setVideoPath(self, videoPath: str):
+        _, ext = os.path.splitext(videoPath)
+        ext = ext.lower()
+        if self.duration == 0.0 and ext in ['.avi', '.mp4']:
+            self.reader = mp4Io.mp4Io_reader(videoPath)
+            self.duration = float(self.reader.header['numFrames']) / float(self.reader.header['fps'])
         self.player.setMedia(QUrl.fromLocalFile(videoPath))
         self.playerItem.videoSurface().surfaceFormatChanged.connect(self.noteSurfaceFormatChanged)
         # force the player to load the media
@@ -204,7 +210,7 @@ class VideoSceneNative(VideoSceneAbstractBase):
         return self.playerItem
 
     def running_time(self) -> float:
-        return float(self.player.duration() / 1000.)
+        return float(self.duration)
 
     def sample_rate(self) -> float:
         if self.frameRate == 0.:

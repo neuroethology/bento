@@ -274,8 +274,8 @@ class EditTrialDialog(QDialog):
             self,
             "Select Video Files to add to Trial",
             baseDir,
-            "Seq files (*.seq);;mp4 files (*.mp4);;Generic video files (*.avi)",
-            "Seq files (*.seq)")
+            "Seq files (*.seq);;mp4 files (*.mp4);;Generic video files (*.avi);; Supported videos (*.seq *.mp4 *.avi)",
+            "Supported videos (*.seq *.mp4 *.avi)")
         if len(videoFiles) > 0:
             for file_path in videoFiles:
                 self.addVideoFile(file_path, baseDir, available_cameras)

@@ -555,11 +555,16 @@ class Bento(QObject):
         self.active_channel_changed.connect(neuralWidget.setActiveChannel)
         return neuralWidget
 
-    def timeToTimecode(self, time_start_end, sample_rate=30.):
+    def timeToTimecode(self, time_start_end, video_info, sample_rate=30.):
         times = list()
-        for key in time_start_end:
-            times = times + list(itertools.chain(*time_start_end[key]))
-
+        for ix, item in enumerate(video_info):
+            if VideoFrame(self).supported_by_native_player(item[1].file_path):
+                times = times + time_start_end['video'][ix]
+            else:
+                continue
+        if len(times)==0:
+            for key in time_start_end:
+                times = times + list(itertools.chain(*time_start_end[key]))
         min_time, max_time = min(times), max(times)
         self.min_max_times = [min_time, max_time]
 
@@ -580,10 +585,14 @@ class Bento(QObject):
         for key in self.time_start_end_timecode:
             timecodes = timecodes + list(itertools.chain(*self.time_start_end_timecode[key]))
 
-        self.time_start, self.time_end = min(timecodes), max(timecodes)
+        if min(timecodes).float<0:
+            self.time_start = self.time_start
+        else:
+            self.time_start = min(timecodes)
+        self.time_end = max(timecodes)
 
         for ix, start_end in enumerate(self.time_start_end_timecode['video']):
-            self.video_widgets[ix].start_time = start_end[0]    # pull the start time out of the list pair
+            self.video_widgets[ix].set_start_time(start_end[0])    # pull the start time out of the list pair
 
         self.set_time(self.time_start)
 
@@ -711,7 +720,7 @@ class Bento(QObject):
             # compute the trial start and end times from the min and max of all the media
             # This also (finally) sets the time in the timeSource via self.set_time(), which calls
             # self.player.setCurrentTime(), which sets the timeSource time.
-            self.timeToTimecode(self.time_start_end, sample_rate)
+            self.timeToTimecode(self.time_start_end, ordered_pairs, sample_rate)
 
             # Load Annotations
             if annotation:
