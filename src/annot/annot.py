@@ -418,7 +418,8 @@ class Annotations(QObject, DataExporter):
             elif line.strip().lower().endswith("---"):
                 for ch_name in channel_names:
                     if line.startswith(ch_name):
-                        self._channels[ch_name] = Channel()
+                        ix = len(self._channels)
+                        self._channels[ch_name] = Channel(ix)
                         current_channel = ch_name
                         reading_channel = True
                         break
@@ -638,5 +639,5 @@ class Annotations(QObject, DataExporter):
 
     def exportToH5File(self, openH5File: h5.File):
         print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
-        for chan in self._channels:
-            chan.exportToH5File(openH5File)
+        for chanName in self._channels:
+            self._channels[chanName].exportToH5File(openH5File)

@@ -12,7 +12,7 @@ from mainWindow import MainWindow
 from timeSource import TimeSourceAbstractBase, TimeSourceQMediaPlayer, TimeSourceQTimer
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
-from db.schema_sqlalchemy import (AnnotationsData, Investigator, Session, Trial,
+from db.schema_sqlalchemy import (Animal, AnnotationsData, Investigator, Session, Trial,
     VideoData, new_session, create_tables)
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
@@ -590,13 +590,13 @@ class Bento(QObject, DataExporter):
     def timeToTimecode(self, time_start_end, video_info, sample_rate=30.):
         times = list()
         for ix, item in enumerate(video_info):
-            if VideoFrame(self).supported_by_native_player(item[1].file_path):
-                times = times + time_start_end['video'][ix]
+            if VideoFrame(self, 0).supported_by_native_player(item[1].file_path):
+                times.append(time_start_end['video'][ix])
             else:
                 continue
         if len(times)==0:
             for key in time_start_end:
-                times = times + list(itertools.chain(*time_start_end[key]))
+                times.extend(itertools.chain(*time_start_end[key]))
         min_time, max_time = min(times), max(times)
         self.min_max_times = [min_time, max_time]
 
@@ -615,7 +615,7 @@ class Bento(QObject, DataExporter):
 
         timecodes = []
         for key in self.time_start_end_timecode:
-            timecodes = timecodes + list(itertools.chain(*self.time_start_end_timecode[key]))
+            timecodes.extend(itertools.chain(*self.time_start_end_timecode[key]))
 
         if min(timecodes).float<0:
             self.time_start = self.time_start
@@ -623,8 +623,15 @@ class Bento(QObject, DataExporter):
             self.time_start = min(timecodes)
         self.time_end = max(timecodes)
 
-        for ix, start_end in enumerate(self.time_start_end_timecode['video']):
-            self.video_widgets[ix].set_start_time(start_end[0])    # pull the start time out of the list pair
+        # set the start time for each video widget, pulling it out of the list pair
+        ix = 0
+        start_end_list = self.time_start_end_timecode['video']
+        for widget in self.widgets:
+            if widget.dataExportType.lower() != 'video':
+                continue
+            assert(ix < len(start_end_list))
+            widget.set_start_time(start_end_list[ix][0])
+            ix += 1
 
         self.set_time(self.time_start)
 
@@ -701,7 +708,7 @@ class Bento(QObject, DataExporter):
             # We give native videos priority by artificially pushing their start times 6 hours earlier
             pairs = [[video_data.start_time, video_data] for video_data in videos]
             for item in pairs:
-                if VideoFrame(self).supported_by_native_player(item[1].file_path):
+                if VideoFrame(self, 0).supported_by_native_player(item[1].file_path):
                     item[0] -= 6 * 60 * 60
             ordered_pairs = sorted(pairs, key=lambda tuple: tuple[0])
             for ix, item in enumerate(ordered_pairs):
@@ -844,6 +851,37 @@ class Bento(QObject, DataExporter):
     def exportToH5File(self, openH5File: h5.File):
         print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
         # export session and trial metadata here
+        metadata = openH5File.create_group("metadata")
+        with self.db_sessionMaker() as db_sess:
+            # get session from DB
+            session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
+            assert session != None
+
+            # get investigator data from DB
+            investigator = db_sess.query(Investigator).filter(Investigator.id == session.investigator_id).scalar()
+            assert investigator != None
+            investigatorGroup = metadata.create_group('investigator')
+            investigatorGroup['user_name'] = investigator.user_name
+            investigatorGroup['first_name'] = investigator.first_name
+            investigatorGroup['last_name'] = investigator.last_name
+            investigatorGroup['institution'] = investigator.institution
+            investigatorGroup['e_mail'] = investigator.e_mail
+
+            # get animal data from DB
+            animal = db_sess.query(Animal).filter(Animal.id == session.animal_id).scalar()
+            assert animal != None
+            animalGroup = metadata.create_group("animal")
+            animalGroup['animal_services_id'] = animal.animal_services_id
+            animalGroup['nickname'] = animal.nickname
+            animalGroup['genotype'] = animal.genotype
+            animalGroup['date_of_birth'] = animal.dob.isoformat()
+            animalGroup['sex'] = animal.sex.name
+
+            # get trial data from DB
+            trial = db_sess.query(Trial).filter(Trial.session_id == self.session_id, Trial.id == self.trial_id).scalar()
+            assert trial != None
+            metadata['trial_num'] = trial.trial_num
+            metadata['stimulus'] = trial.stimulus
 
    # Signals
     quitting = Signal()
