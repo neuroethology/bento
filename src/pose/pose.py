@@ -5,6 +5,7 @@ from qtpy.QtWidgets import QFileDialog, QMessageBox, QWidget
 from os import curdir, listdir
 from os.path import abspath, sep, splitext
 from importlib import import_module
+import h5py as h5
 import sys
 
 class PoseBase():
@@ -58,6 +59,9 @@ class PoseBase():
         """
         raise NotImplementedError("PoseBase: abstract base class.  ",
             "Please implement this in your derived class")
+
+    def exportPosesToH5(self, id: int, openH5File: h5.File):
+        pass
 
 class PoseRegistry():
     """

@@ -10,11 +10,13 @@ from qtpy.QtGui import QBrush, QFontMetrics, QPainter, QPixmap
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsItem
 from qtpy.QtMultimedia import QMediaContent, QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
+from dataExporter import DataExporter
+import h5py as h5
 from timecode import Timecode
 import os
 from typing import List
 
-class VideoSceneAbstractBase(QGraphicsScene):
+class VideoSceneAbstractBase(QGraphicsScene, DataExporter):
     """
     An abstract scene that knows how to draw annotations text and pose data
     into its foreground
@@ -24,8 +26,9 @@ class VideoSceneAbstractBase(QGraphicsScene):
     def supportedFormats() -> List:
         raise NotImplementedError("Derived class needs to override this method")
 
-    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
-        super().__init__(parent)
+    def __init__(self, bento: QObject, id: int, start_time: Timecode, parent: QObject=None):
+        QGraphicsScene.__init__(self, parent)
+        DataExporter.__init__(self, id)
         self.bento = bento
         self.annots = None
         self.pose_class = None
@@ -49,8 +52,12 @@ class VideoSceneAbstractBase(QGraphicsScene):
         if self.showPoseData and self.pose_class:
             self.pose_class.drawPoses(painter, frame_ix)
 
+    def exportToH5File(self, openH5File: h5.File):
+        if self.pose_class:
+            self.pose_class.exportPosesToH5(self.id, openH5File)
+
     def setStartTime(self, t: Timecode):
-        self._start_time = t 
+        self._start_time = t
 
     def drawForeground(self, painter: QPainter, rect: QRectF):
         # add poses
@@ -122,8 +129,8 @@ class VideoSceneNative(VideoSceneAbstractBase):
     # update current time every 1/10 second
     time_update_msec: int = round(1000 / 10)
 
-    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
-        super().__init__(bento, start_time, parent)
+    def __init__(self, bento: QObject, id: int, start_time: Timecode, parent: QObject=None):
+        super().__init__(bento, id, start_time, parent)
         self.player = QMediaPlayer()
         self.playerItem = QGraphicsVideoItem()
         self.player.setVideoOutput(self.playerItem)
@@ -238,8 +245,8 @@ class VideoScenePixmap(VideoSceneAbstractBase):
     def supportedFormats() -> List:
         return ['seq', 'mp4', 'avi']
 
-    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
-        super().__init__(bento, start_time, parent)
+    def __init__(self, bento: QObject, id: int, start_time: Timecode, parent: QObject=None):
+        super().__init__(bento, id, start_time, parent)
         self.reader = None
         self.frame_ix: int = 0
         self.pixmap = QPixmap()

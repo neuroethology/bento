@@ -4,6 +4,7 @@ from qtpy.QtCore import Qt, QPointF
 from qtpy.QtGui import QPainter, QPen, QPolygonF
 from qtpy.QtWidgets import QMessageBox, QWidget
 from pose.pose import PoseBase
+import h5py as h5
 import pymatreader as pmr
 import warnings
 
@@ -20,7 +21,9 @@ class PoseMARS(PoseBase):
         super().__init__()
         self.pose_polys = []
         self.num_frames = 0
+        self.num_mice = 0
         self.pose_colors = [Qt.blue, Qt.green]
+        self.keypoints = None
 
     def drawPoses(self, painter: QPainter, frame_ix: int):
         frame_ix = min(frame_ix, self.num_frames)
@@ -65,16 +68,17 @@ class PoseMARS(PoseBase):
             warnings.simplefilter('ignore', category=UserWarning)
             mat = pmr.read_mat(path)
         try:
-            keypoints = mat['keypoints']
+            self.keypoints = mat['keypoints']
         except Exception as e:
             QMessageBox.about(parent_widget, "Load Error", f"Error loading pose data from file {path}: {e}")
             return None
         self.pose_polys = []
-        self.num_frames = len(keypoints)
+        self.num_frames = len(self.keypoints)
         for frame_ix in range(self.num_frames):
-            frame_keypoints = keypoints[frame_ix]
+            frame_keypoints = self.keypoints[frame_ix]
             frame_polys = []
-            for mouse_ix in range(len(frame_keypoints)):
+            self.num_mice = len(frame_keypoints)
+            for mouse_ix in range(self.num_mice):
                 mouse_keypoints = frame_keypoints[mouse_ix]
                 pose_x = mouse_keypoints[0]
                 pose_y = mouse_keypoints[1]
@@ -91,6 +95,21 @@ class PoseMARS(PoseBase):
                 poly.append(nose)    # nose
                 frame_polys.append(poly)
             self.pose_polys.append(frame_polys)
+
+    def exportPosesToH5(self, id: int, openH5File: h5.File):
+        if not 'pose_data' in openH5File or not f'id_{id}' in openH5File['pose_data']:
+            openH5File.create_group(f'pose_data/id_{id}')
+        pose_data_group = openH5File[f'pose_data/id_{id}']
+        pose_nodes = pose_data_group.create_dataset('pose_nodes', shape=(7,), dtype='S10')
+        pose_nodes[0] = b'nose'
+        pose_nodes[1] = b'left ear'
+        pose_nodes[2] = b'right ear'
+        pose_nodes[3] = b'neck'
+        pose_nodes[4] = b'left hip'
+        pose_nodes[5] = b'right hip'
+        pose_nodes[6] = b'tail'
+        for mouse_ix in range(self.num_mice):
+            pose_data_group.create_dataset(f"mouse_{mouse_ix}", data=self.keypoints[:,mouse_ix,:,:])
 
 def register(registry):
     mars_pose_plugin = PoseMARS()

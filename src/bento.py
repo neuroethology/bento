@@ -882,6 +882,7 @@ class Bento(QObject, DataExporter):
             assert trial != None
             metadata['trial_num'] = trial.trial_num
             metadata['stimulus'] = trial.stimulus
+            #TODO: add date of trial
 
    # Signals
     quitting = Signal()

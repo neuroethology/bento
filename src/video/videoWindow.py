@@ -53,17 +53,17 @@ class VideoFrame(QFrame, DataExporter):
 
     def supported_by_native_player(self, fn: str) -> bool:
         ext = os.path.basename(fn).rsplit('.',1)[-1].lower()
-        if ext in VideoSceneNative(self.bento, self.bento.current_time()).supportedFormats():
+        if ext in VideoSceneNative(self.bento, self.id, self.bento.current_time()).supportedFormats():
             return True
-        if not ext in VideoScenePixmap(self.bento, self.bento.current_time()).supportedFormats():
+        if not ext in VideoScenePixmap(self.bento, self.id, self.bento.current_time()).supportedFormats():
             raise Exception(f"video format {ext} not supported.")
         return False
 
     def load_video(self, fn: str, start_time: Timecode, forcePixmapMode: bool):
         if not forcePixmapMode and self.supported_by_native_player(fn):
-            self.scene = VideoSceneNative(self.bento, start_time)
+            self.scene = VideoSceneNative(self.bento, self.id, start_time)
         else:
-            self.scene = VideoScenePixmap(self.bento, start_time)
+            self.scene = VideoScenePixmap(self.bento, self.id, start_time)
         self.scene.setVideoPath(fn)
         self.ui.videoView.setScene(self.scene)
         self.ui.showPoseCheckBox.stateChanged.connect(self.showPoseDataChanged)
@@ -131,3 +131,5 @@ class VideoFrame(QFrame, DataExporter):
 
     def exportToH5File(self, openH5File: h5.File):
         print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
+        if self.scene:
+            self.scene.exportToH5File(openH5File)
