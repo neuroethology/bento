@@ -1,6 +1,6 @@
 # bento.py
-# import faulthandler
-# faulthandler.enable()
+import faulthandler
+faulthandler.enable()
 from timecode import Timecode
 from qtpy.QtCore import QMarginsF, QObject, QRectF, QTimer, Qt, Signal, Slot
 from qtpy.QtGui import QColor
@@ -8,6 +8,7 @@ from qtpy.QtWidgets import QApplication, QFileDialog, QMessageBox, QProgressDial
 from annot.annot import Annotations, Bout
 from annot.behavior import Behaviors
 from mainWindow import MainWindow
+from timeSource import TimeSourceAbstractBase, TimeSourceQMediaPlayer, TimeSourceQTimer
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
 from db.schema_sqlalchemy import (AnnotationsData, Investigator, Session, Trial,
@@ -34,45 +35,53 @@ class Player(QObject):
 
     def __init__(self, bento):
         super().__init__()
-        self.playing = False
-        self.timer = QTimer()
-        self.frame_interval = self.default_frame_interval = 1000./30.
-        self.timer.setInterval(round(self.frame_interval))
-        self.timer.timeout.connect(bento.incrementTime)
+        self._playing = False
+        self._timeSource = None
 
     @Slot()
     def togglePlayer(self):
-        # print(f"Setting playing to {not self.playing}")
-        self.playing = not self.playing
-        if self.playing:
-            self.timer.start()
+        if not self._timeSource:
+            return
+        self._playing = not self._playing
+        if self._playing:
+            self._timeSource.start()
         else:
-            self.timer.stop()
+            self._timeSource.stop()
 
     @Slot()
     def doubleFrameRate(self):
-        if self.frame_interval > self.default_frame_interval / 8.:
-            self.frame_interval /= 2.
-            print(f"setting frame interval to {round(self.frame_interval)}")
-            self.timer.setInterval(round(self.frame_interval))
+        if self._timeSource:
+            self._timeSource.doubleFrameRate()
 
     @Slot()
     def halveFrameRate(self):
-        if self.frame_interval < self.default_frame_interval * 8.:
-            self.frame_interval *= 2.
-            print(f"setting frame interval to {round(self.frame_interval)}")
-            self.timer.setInterval(round(self.frame_interval))
+        if self._timeSource:
+            self._timeSource.halveFrameRate()
 
     @Slot()
     def resetFrameRate(self):
-        self.frame_interval = self.default_frame_interval
-        print(f"resetting frame interval to {round(self.frame_interval)}")
-        self.timer.setInterval(round(self.frame_interval))
+        if self._timeSource:
+            self._timeSource.resetFrameRate()
 
     @Slot()
     def quit(self):
-        if self.timer.isActive():
-            self.timer.stop()
+        if self._timeSource:
+            self._timeSource.quit()
+
+    def setTimeSource(self, timeSource: TimeSourceAbstractBase):
+        self._timeSource = timeSource
+
+    def timeSource(self) -> TimeSourceAbstractBase:
+        return self._timeSource
+
+    def currentTime(self) -> Timecode:
+        if self._timeSource:
+            return self._timeSource.currentTime()
+        return Timecode("30.0", "00.00.00.01")
+
+    def setCurrentTime(self, t: Timecode):
+        if self._timeSource:
+            self._timeSource.setCurrentTime(t)
 
 class Bento(QObject):
     """
@@ -91,7 +100,6 @@ class Bento(QObject):
                                 }   # 'data_type' : [start_time, end_time]
         self.time_start_end_timecode = dict()
         self.min_max_times = list()
-        self.current_time = self.time_start
         self.investigator_id = None
         self.current_annotations = [] # tuples ('ch_key', bout)
         self.behaviors = Behaviors()
@@ -113,9 +121,9 @@ class Bento(QObject):
         self.pose_registry = PoseRegistry()
         self.pose_registry.load_plugins()
         self.mainWindow = MainWindow(self)
-        self.current_time.set_fractional(False)
         self.active_channels = []
         self.quitting.connect(self.player.quit)
+        self.timeChanged.connect(self.noteTimeChanged)
         self.timeChanged.connect(self.mainWindow.updateTime)
         self.currentAnnotsChanged.connect(self.mainWindow.updateAnnotLabel)
         self.active_channel_changed.connect(self.mainWindow.selectChannelByName)
@@ -384,10 +392,10 @@ class Bento(QObject):
 
     # State-related methods
 
-    def update_current_annotations(self):
+    def update_current_annotations(self, t):
         self.current_annotations.clear()
         for ch in self.active_channels:
-            bouts = self.annotations.channel(ch).get_at(self.current_time)
+            bouts = self.annotations.channel(ch).get_at(t)
             for bout in bouts:
                 if bout.is_visible():
                     self.current_annotations.append((ch, bout))
@@ -397,20 +405,24 @@ class Bento(QObject):
             bout.color())
             for (c, bout) in self.current_annotations])
 
+    def current_time(self) -> Timecode:
+        return self.player.currentTime()
+
+    @Slot(Timecode)
+    def noteTimeChanged(self, t: Timecode):
+        self.update_current_annotations(t)
+
     def set_time(self, new_tc: Timecode):
         if not isinstance(new_tc, Timecode):
             new_tc = Timecode('30.0', new_tc)
         new_tc = max(self.time_start, min(self.time_end, new_tc))
-        if self.current_time != new_tc:
-            self.current_time = new_tc
-            self.update_current_annotations()
-            self.timeChanged.emit(self.current_time)
+        self.player.setCurrentTime(new_tc)
 
     def change_time(self, increment: Timecode):
-        self.set_time(self.current_time + increment)
+        self.set_time(self.player.currentTime() + increment)
 
     def get_time(self):
-        return self.current_time
+        return self.player.currentTime()
 
     @Slot()
     def incrementTime(self):
@@ -442,7 +454,7 @@ class Bento(QObject):
         for (ch, bout) in self.current_annotations:
             next_event = min(next_event, bout.end() + 1)
         for ch in self.active_channels:
-            next_bout = self.annotations.channel(ch).get_next_start(self.current_time)
+            next_bout = self.annotations.channel(ch).get_next_start(self.player.currentTime())
             next_event = min(next_event, next_bout.start())
         self.set_time(next_event)
 
@@ -452,7 +464,7 @@ class Bento(QObject):
         for (ch, bout) in self.current_annotations:
             prev_event = max(prev_event, bout.start() - 1)
         for ch in self.active_channels:
-            prev_bout = self.annotations.channel(ch).get_prev_end(self.current_time - 1)
+            prev_bout = self.annotations.channel(ch).get_prev_end(self.player.currentTime() - 1)
             prev_event = max(prev_event, prev_bout.end())
         self.set_time(prev_event)
 
@@ -483,12 +495,12 @@ class Bento(QObject):
         # Is there a pending bout?  If so, complete the annotation activity
         if self.pending_bout:
             chan = self.active_channels[0]
-            if self.pending_bout.start() > self.current_time:
+            if self.pending_bout.start() > self.player.currentTime():
                 # swap start and end before completing
                 self.pending_bout.set_end(self.pending_bout.start())
-                self.pending_bout.set_start(self.current_time)
+                self.pending_bout.set_start(self.player.currentTime())
             else:
-                self.pending_bout.set_end(self.current_time)
+                self.pending_bout.set_end(self.player.currentTime())
 
             if do_delete:
                 # truncate or remove any bouts of the same behavior as pending_bout
@@ -511,7 +523,7 @@ class Bento(QObject):
             self.noteAnnotationsChanged(start, end)
         else:
             # Start a new annotation activity by saving a pending_bout
-            self.pending_bout = Bout(self.current_time, self.current_time, beh)
+            self.pending_bout = Bout(self.player.currentTime(), self.player.currentTime(), beh)
 
     @Slot()
     def quit(self, event):
@@ -530,10 +542,9 @@ class Bento(QObject):
             time.sleep(3./30.)  # wait for threads to shut down
             QApplication.instance().quit()
 
-    def newVideoWidget(self, video_path: str) -> VideoFrame:
+    def newVideoWidget(self, video_path: str, start_time: Timecode, forcePixmapMode: bool) -> VideoFrame:
         video = VideoFrame(self)
-        video.load_video(video_path)
-        self.timeChanged.connect(video.updateFrame)
+        video.load_video(video_path, start_time, forcePixmapMode)
         self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
@@ -544,33 +555,44 @@ class Bento(QObject):
         self.active_channel_changed.connect(neuralWidget.setActiveChannel)
         return neuralWidget
 
-    def timeToTimecode(self, time_start_end, sample_rate=30.):
+    def timeToTimecode(self, time_start_end, video_info, sample_rate=30.):
         times = list()
-        for ix, key in enumerate(time_start_end):
-            times = times + list(itertools.chain(*time_start_end[key]))
-
+        for ix, item in enumerate(video_info):
+            if VideoFrame(self).supported_by_native_player(item[1].file_path):
+                times = times + time_start_end['video'][ix]
+            else:
+                continue
+        if len(times)==0:
+            for key in time_start_end:
+                times = times + list(itertools.chain(*time_start_end[key]))
         min_time, max_time = min(times), max(times)
         self.min_max_times = [min_time, max_time]
-    
-        for ix, key in enumerate(time_start_end):
-            time_start_end[key] = list(np.array(time_start_end[key]) - min_time)
 
-        for ix, key in enumerate(time_start_end):
+        for key in time_start_end:
+            # We need to subtract min_time from a list of lists, so convert the inner list
+            # into a numpy array, so that the subtraction is dispatched across all the elements.
+            time_start_end[key] = [list(np.array(t) - min_time) for t in time_start_end[key]]
+
+        for key in time_start_end:
             if time_start_end[key]:
-                self.time_start_end_timecode[key] = [[Timecode(sample_rate, frames=1)+Timecode(sample_rate, start_seconds=start), 
-                                                      Timecode(sample_rate, frames=1)+Timecode(sample_rate, start_seconds=end)] 
+                self.time_start_end_timecode[key] = [[Timecode(sample_rate, frames=1)+Timecode(sample_rate, start_seconds=start),
+                                                      Timecode(sample_rate, frames=1)+Timecode(sample_rate, start_seconds=end)]
                                                      for start, end in time_start_end[key]]
             else:
                 self.time_start_end_timecode[key] = list()
 
-        timecodes = list()
-        for ix, key in enumerate(self.time_start_end_timecode):
+        timecodes = []
+        for key in self.time_start_end_timecode:
             timecodes = timecodes + list(itertools.chain(*self.time_start_end_timecode[key]))
 
-        self.time_start, self.time_end = min(timecodes), max(timecodes)
-        
+        if min(timecodes).float<0:
+            self.time_start = self.time_start
+        else:
+            self.time_start = min(timecodes)
+        self.time_end = max(timecodes)
+
         for ix, start_end in enumerate(self.time_start_end_timecode['video']):
-            self.video_widgets[ix].start_time = start_end[0]
+            self.video_widgets[ix].set_start_time(start_end[0])    # pull the start time out of the list pair
 
         self.set_time(self.time_start)
 
@@ -585,11 +607,11 @@ class Bento(QObject):
                                 }   # 'data_type' : [start_time, end_time]
         sample_rate = 30.0
         sample_rate_set = False
-        
-        for ix, video_data in enumerate(videos):
-            self.time_start_end['video'].append([video_data.start_time, video_data.start_time+86400.])
+
+        for video in videos:
+            self.time_start_end['video'].append([video.start_time, video.start_time+float(24*60*60)])
             if not sample_rate_set:
-                sample_rate = video_data.sample_rate
+                sample_rate = video.sample_rate
                 sample_rate_set = True
         if annotation:
             sample_rate = annotation.sample_rate
@@ -600,7 +622,7 @@ class Bento(QObject):
             with self.db_sessionMaker() as db_sess:
                 trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
                 if trial.neural_data:
-                    running_time = Timecode(str(trial.neural_data[0].sample_rate), 
+                    running_time = Timecode(str(trial.neural_data[0].sample_rate),
                                             frames=trial.neural_data[0].stop_frame-trial.neural_data[0].start_frame).float
                     self.time_start_end['neural'].append([trial.neural_data[0].start_time, trial.neural_data[0].start_time+running_time])
         if loadAudio:
@@ -611,6 +633,13 @@ class Bento(QObject):
 
     @Slot()
     def loadTrial(self, videos, annotation, loadPose, loadNeural, loadAudio):
+        if self.player.timeSource():
+            self.player.timeSource().disconnectSignals(self)
+            self.player.setTimeSource(None)
+        for widget in self.video_widgets:
+            widget.reset()
+            widget.hide()
+            widget.deleteLater()
         self.video_widgets.clear()
         self.neural_widgets.clear()
         sample_rate = self.getTimes(videos, annotation, loadNeural, loadAudio)
@@ -620,6 +649,7 @@ class Bento(QObject):
             (len(videos) if loadPose else 0) +  # potentially one pose per video
             (1 if loadNeural else 0) +
             (1 if loadAudio else 0))
+        timeSource = None
         progressCompleted = 0
         progress = QProgressDialog("Loading Trial ...", "Cancel", 0, progressTotal, None)
         progress.setWindowModality(Qt.WindowModal)
@@ -629,16 +659,28 @@ class Bento(QObject):
             base_directory = session.base_directory
             # Qt converts paths to platform-specific separators under the hood,
             # so it's correct to use forward-slash ("/") here across all platforms
+            # rather than os.sep
             base_dir = base_directory + "/"
             runningTime = 0.
-            for ix, video_data in enumerate(videos):
+            # Find the native video that starts earliest, if there are native videos
+            # Start a native player for that, and then force pixmap players for any
+            # other videos.
+            # We give native videos priority by artificially pushing their start times 6 hours earlier
+            pairs = [[video_data.start_time, video_data] for video_data in videos]
+            for item in pairs:
+                if VideoFrame(self).supported_by_native_player(item[1].file_path):
+                    item[0] -= 6 * 60 * 60
+            ordered_pairs = sorted(pairs, key=lambda tuple: tuple[0])
+            for ix, item in enumerate(ordered_pairs):
+                video_data = item[1]
                 progress.setLabelText(f"Loading video #{ix}...")
                 progress.setValue(progressCompleted)
                 if not isabs(video_data.file_path):
                     path = base_dir + video_data.file_path
                 else:
                     path = video_data.file_path
-                widget = self.newVideoWidget(fix_path(path))
+                # force pixmap mode if we already are using a native player as a time source
+                widget = self.newVideoWidget(fix_path(path), video_data.start_time, bool(timeSource))
                 self.video_widgets.append(widget)
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
@@ -655,6 +697,9 @@ class Bento(QObject):
                     else:
                         print("No pose data in trial to load.")
                     progressCompleted += 1
+                # if this widget can be a time source, use it as such
+                if not timeSource and widget.getPlayer():
+                    timeSource = TimeSourceQMediaPlayer(self.timeChanged, widget.scene)
 
                 qr = widget.frameGeometry()
                 # qr.moveCenter(self.screen_center + spacing)
@@ -664,7 +709,20 @@ class Bento(QObject):
                 runningTime = max(runningTime, widget.running_time())
                 self.time_start_end['video'][ix][1] = self.time_start_end['video'][ix][0] + runningTime
                 progressCompleted += 1
-            self.timeToTimecode(self.time_start_end, sample_rate)
+            # instantiate a time source from a QTimer if we don't already have one
+            if not timeSource:
+                timeSource = TimeSourceQTimer(self.timeChanged)
+            # set up the time source parameters and connect it
+            timeSource.setMaxFrameRate(2.)
+            timeSource.setMinFrameRate(0.125)
+            self.timeChanged.connect(timeSource.setCurrentTime)
+            self.player.setTimeSource(timeSource)
+            # compute the trial start and end times from the min and max of all the media
+            # This also (finally) sets the time in the timeSource via self.set_time(), which calls
+            # self.player.setCurrentTime(), which sets the timeSource time.
+            self.timeToTimecode(self.time_start_end, ordered_pairs, sample_rate)
+
+            # Load Annotations
             if annotation:
                 if not isabs(annotation.file_path):
                     annot_path = base_dir + annotation.file_path
@@ -736,6 +794,13 @@ class Bento(QObject):
             end = end.float
         #self.newAnnotations = True
         self.annotationsScene.sceneChanged(start, end)
+
+    @Slot(int)
+    def noteVideoDurationChanged(self, duration):
+        video_end = duration / 1000.
+        time_end = max(video_end, self.time_end.float)
+        self.time_end = Timecode(self.time_end.framerate, start_seconds=time_end)
+        self.annotations.set_end_frame(self.time_end)
 
     def deleteAnnotationsByName(self, behaviorName):
         beh = self.behaviors.get(behaviorName)

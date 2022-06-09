@@ -77,7 +77,7 @@ class AnnotationsView(QGraphicsView):
     def setHScaleAndShow(self, hScale):
         self.scale_h = hScale
         self.setHScale(hScale)
-        self.updatePosition(self.bento.current_time) # calls show()
+        self.updatePosition(self.bento.current_time()) # calls show()
 
     @Slot(float)
     def setVScaleAndShow(self, v_factor):
