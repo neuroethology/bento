@@ -197,6 +197,7 @@ class Bento(QObject):
             self.annotationsScene.loaded = True
         self.annotations.active_annotations_changed.connect(self.noteAnnotationsChanged)
         self.set_time(self.time_start)
+        self.annotationsScene.sceneRectChanged.emit(self.annotationsScene.sceneRect())
 
     @Slot()
     def newChannel(self):
