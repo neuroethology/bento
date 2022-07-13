@@ -9,6 +9,12 @@ from qtpy.QtWidgets import QDialogButtonBox, QMessageBox
 from db.schema_sqlalchemy import Investigator
 
 class InvestigatorDialog(DBDialog):
+    """
+    Dialog Box class for access to the Investigator class in Bento's experiments database.
+
+    This class derives from DBDialog, and only provides the configuration dict "dialogConfig".
+    All actual implementation code is in the base class.
+    """
 
     quitting = Signal()
 

@@ -14,39 +14,36 @@ from models.tableModel import TableModel
 import datetime
 
 class AnimalDialog(DBDialog):
+    """
+    A dialog widget for viewing, adding, deleting and editing instances of Animal
+    data in Bento's experiments database.
+
+    This class derives from the DBDialog class, so it needs to provide a dialogConfig dict,
+    but the operation of the AnimalDialog differs enough from other similar database fields
+    that this class implements most of its own functionality.
+
+    The key additional need is to support the viewing and editing the surgery log.
+    """
 
     quitting = Signal()
 
     def __init__(self, bento):
+        """
+        Construct and return an instance of the AnimalDialog class.
+
+        Since the Animal db class mostly implements its own functionality, the it doesn't call some of the parameterized functions
+        provided by DBDialog, and so the dialogConfig doesn't need to provide as many parameterizations.  The dialogConfig dict
+        for AnimalDialog only defines these dialogConfig keys:
+        - newItemName
+        - dbClass
+        - selectionKey
+        - newOwnerAttr
+        """
         dialogConfig = {
             'newItemName': "New Animal",
             'dbClass': "Animal",
-            # 'comboBoxName': "cameraComboBox",
             'selectionKey': "animal_id",
-            'newOwnerAttr': 'animal_id' #,
-            # 'allFieldsBlankLambda': lambda ui : (
-            #     not ui.nameLineEdit.text() and
-            #     not ui.modelLineEdit.text() and
-            #     not ui.lensLineEdit.text() and
-            #     not ui.positionLineEdit.text()
-            # ),
-            # 'requiredFieldsLambda': lambda ui : (
-            #     ui.nameLineEdit.text() and
-            #     ui.positionLineEdit.text()
-            # ),
-            # 'requiredFieldsWarning': "You need to provide at least a camera name and position",
-            # 'toDisposition': [
-            #     {
-            #         'field': 'sessions',
-            #         'description': "sessions"
-            #     }
-            # ],
-            # 'fields': [
-            #     ('name', 'nameLineEdit'),
-            #     ('model', 'modelLineEdit'),
-            #     ('lens', 'lensLineEdit'),
-            #     ('position', 'positionLineEdit')
-            # ]
+            'newOwnerAttr': 'animal_id'
         }
         super().__init__(bento, dialogConfig, Ui_AnimalDialog())
         self.ui.asiLineEdit.setValidator(QIntValidator())
@@ -65,6 +62,12 @@ class AnimalDialog(DBDialog):
         self.ui.buttonBox.clicked.connect(self.update)
 
     def populateAnimalTable(self, investigator_id, db_sess):
+        """
+        Populate the animalTableView UI element.
+
+        When a new row is selected, trigger populateFields to populate the other fields with
+        data for the selected animal.
+        """
         results = db_sess.query(Animal).filter(Animal.investigator_id == investigator_id).all()
         header = ['id', 'Animal Services ID', 'Nickname', 'Date of Birth', 'Sex', 'Genotype']
         data_list = [(
@@ -95,6 +98,10 @@ class AnimalDialog(DBDialog):
 
     @Slot()
     def investigatorChanged(self):
+        """
+        Handle the situation when the user selects a different investigator, which involves starting
+        over, repopulating the dialog's main animal table.
+        """
         username = self.ui.investigatorComboBox.currentText()
         with self.bento.db_sessionMaker() as db_sess:
             investigators = db_sess.query(Investigator).filter(Investigator.user_name == username).distinct().all()
@@ -117,6 +124,10 @@ class AnimalDialog(DBDialog):
         self.ui.animalTableView.selectRow(0)
 
     def clearFields(self):
+        """
+        Clear all of UI fields that are specific to a particular animal, e.g. when
+        no animal is currently selected.
+        """
         self.ui.nicknameLineEdit.clear()
         self.ui.asiLineEdit.clear()
         self.ui.dobDateEdit.setDate(datetime.date.today())
@@ -128,6 +139,10 @@ class AnimalDialog(DBDialog):
             oldModel.deleteLater()
 
     def populateFields(self):
+        """
+        Populate the dialog box fields specific to a particular animal in response
+        to a different animal being selected in the main animal table.
+        """
         animal_id = None
         current_animal_row = self.ui.animalTableView.currentIndex().row()
         if current_animal_row > 0:  # not "New Animal" row
@@ -158,6 +173,9 @@ class AnimalDialog(DBDialog):
             self.ui.addSurgeryPushButton.setDisabled(True)
 
     def populateSurgeryLog(self, animal_id, db_sess):
+        """
+        Populate the surgery log for the selected animal.
+        """
         results = db_sess.query(Surgery).filter(Surgery.animal_id == animal_id).all()
         header = ['Date', 'Implant Side', 'Injection Side', 'Procedure', 'Anesthesia', 'Follow-up Care']
         data_list = [(
@@ -183,6 +201,12 @@ class AnimalDialog(DBDialog):
 
     @Slot()
     def addSurgeryAction(self):
+        """
+        Display the SurgeryDialog to add a new surgery item.
+
+        When the SurgeryDialog returns, repopulate the surgery log field of the AnimalDialog
+        to reflect the new or edited data.
+        """
         surgeryDialog = SurgeryDialog(self.bento, self.investigator_id, self.animal_id)
         surgeryDialog.exec()
         with self.bento.db_sessionMaker() as db_sess:
@@ -190,6 +214,15 @@ class AnimalDialog(DBDialog):
 
     @Slot(object)
     def update(self, button) -> bool:   # returns successful update
+        """
+        Update the database with new or edited data for this animal.
+
+        Args:
+            button: The UI button that was clicked to close the dialog.
+
+        Returns:
+            Whether the database was successfully updated or not.
+        """
         buttonRole = self.ui.buttonBox.buttonRole(button)
         if not self.investigator_id:
             QMessageBox.warning(self, "Warning", "No valid investigator.  Please select one.")

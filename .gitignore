@@ -4,3 +4,7 @@
 .DS_Store
 timecode-1.3.1/
 timecode-1.3.1.tar
+documentation/doctrees
+documentation/source/_static
+documentation/source/_templates
+documentation/html

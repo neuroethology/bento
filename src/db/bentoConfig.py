@@ -7,6 +7,9 @@ import json
 from cryptography.fernet import Fernet
 
 class BentoConfig(object):
+    """
+    The BentoConfig class handles configuration data for Bento, particularly related to the experiments database.
+    """
 
     def __init__(self):
         self.key = b'AKGnrrxYhjanPOEZIP1PIc_17YRCsO-fBmTuQyEeLX0='
@@ -21,6 +24,13 @@ class BentoConfig(object):
         self._investigator_id = None
 
     def write(self):
+        """
+        Write the configuration data to the file "config.json" in the ".bento" subdirectory (folder) of
+        the user's platform-specific home directory.
+
+        :params: None
+        :returns: None
+        """
         print(f"BentoConfig.write: writing to path {self.config_path}")
         if not exists(self.config_path):
             makedirs(self.bento_dir, exist_ok=True)
@@ -36,6 +46,16 @@ class BentoConfig(object):
             json.dump(config, file)
 
     def read(self):
+        """
+        Read the configuration data from the file "config.json" in the ".bento" subdirectory (folder) of
+        the user's platform-specific home directory.
+
+        If the config file exists, the class instance is populated from its contents and the call returns True.
+        If the config file doesn't exist, the call returns False
+
+        :params: None
+        :returns: True if the config file exists, otherwise False
+        """
         if exists(self.config_path):
             with open(self.bento_dir + 'config.json') as file:
                 config = json.load(file)
@@ -50,6 +70,11 @@ class BentoConfig(object):
             return False
 
     def usePrivateDB(self):
+        """
+        Returns the value of the usePrivateDB config entry.
+        :params: None
+        :returns: value (bool)
+        """
         return bool(self._usePrivateDB)
 
     def setUsePrivateDB(self, val):

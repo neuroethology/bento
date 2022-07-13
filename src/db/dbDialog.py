@@ -7,7 +7,28 @@ from qtpy.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 import db.schema_sqlalchemy as sa
 
 class DBDialog(QDialog):
+    """
+    Implementation of a parameterizable dialog box base class used for a variety of interactions with Bento's experiments database.
 
+    The class is parameterized using a "dialogConfig" dict that must be supplied at the construction of an instance of this class.
+    The dialogConfig dict will generally be defined in the __init__() function of the deriving class.
+
+    The dialogConfig dict should include the following keys:
+
+    Args:
+        <newItemName> str:  What a new instance of the class is called, e.g. "New Investigator"
+        dbClass str: The name of the class as found in schema_sqlalchemy, e.g. "Investigator"
+        comboBoxName str: The name of a comboBox UI element to populate. found in the dialog's .ui file, e.g. "investigatorComboBox"
+        selectionKey str: The field of the database class to be used to select an entry, e.g. "user_name"
+        newOwnerAttr str: The database entry of the possible new owners of items owned by the entry being deleted, e.g. 'investigator_id',
+        allFieldsBlankLambda lambda: a lambda function that takes the ui as input and returns True only if all relevant fields in the ui are blank.
+        requiredFieldsLambda lambda: a lambda function that takes the ui as input and returns True only if all the required fields have been provided.
+        requiredFieldsWarning str: The text to display if not all required fields have been provided, e.g. "You need to provide at least a user name, last name and first name",
+        toDisposition list: a list of dicts, where each dict contains a "field" key consisting of the name of
+        the field in the database to find items that need to be dispositioned, and a "description" key describing that field in common English, e.g.'fields' (list of tuples): A list of tuples where the first element if each tuple is a field name to be populated from the dialog, and the second element is
+        the name of the ui element/widget (typically a QLineEdit widget) from which to get the data, e.g.
+
+    """
     quitting = Signal()
 
     def __init__(self, bento, dialogConfig, ui):
@@ -33,6 +54,11 @@ class DBDialog(QDialog):
             self.comboBox = None
 
     def populateComboBox(self, preSelect: bool=False):
+        """
+        Populate the dialog's comboBox from the database based on the dialogConfig dict provided at construction.
+
+        This involves database queries.
+        """
         # prevent unwanted side effects while we're populating the combo box
         self.comboBox.blockSignals(True)
         if preSelect:
@@ -175,11 +201,17 @@ class DBDialog(QDialog):
 
     @Slot()
     def accept(self):
+        """
+        Process a click of the "OK" button or equivalent.
+        """
         # implicitly calls self.update()
         super().accept()
 
     @Slot()
     def reject(self):
+        """
+        Process a click of the "Cancel" button or equivalent.
+        """
         super().reject()
 
     def clearFields(self):
@@ -188,6 +220,11 @@ class DBDialog(QDialog):
 
     @Slot()
     def showSelected(self):
+        """
+        Populate widgets in the dialog (typically QLineEdit widgets) from the database when a new item
+        of the main comboBox has been selected.
+        This happens by iterating through the dialogConfig's "fields" entry, which is a list of (field_name, description) tuples.
+        """
         if not self.comboBox or self.comboBox.currentIndex() == 0:
             self.item_id = None
         else:

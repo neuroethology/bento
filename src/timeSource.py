@@ -115,12 +115,13 @@ class TimeSourceQTimer(TimeSourceAbstractBase):
 
 class TimeSourceQMediaPlayer(TimeSourceAbstractBase):
     """
-    Tick source coming from a video player
+    Tick source coming from a platform-specific video player.
+
     This is a little tricky to avoid endless signal looping.  The key to
     understanding is that the QMediaPlayer is the source of time while it
     is playing, and doesn't act on time updates, but acts on time updates
     when the player is stopped, and doesn't propagate them.  So it either
-    send or receives time updates, but never both.
+    sends or receives time updates, but never both.
     """
 
     #Signals
