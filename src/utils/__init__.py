@@ -3,6 +3,8 @@
 from os.path import abspath, sep
 from qtpy.QtCore import QMarginsF, QRectF
 from qtpy.QtGui import QColor
+from bisect import bisect_left
+from math import floor, log10, pow
 
 def fix_path(path):
     return abspath(path.replace('\\', sep).replace('/', sep))
@@ -10,6 +12,35 @@ def fix_path(path):
 SCENE_PADDING = 200.
 def padded_rectf(rectf: QRectF):
     return rectf + QMarginsF(SCENE_PADDING, 0., SCENE_PADDING, 0.)
+
+def take_nearest(myList: list, value: float) -> float:
+    """
+    Return nearest entry in myList to value
+    """
+    pos = bisect_left(myList, value)
+    if pos == 0:
+        return myList[0]
+    if pos == len(myList):
+        return myList[-1]
+    before = myList[pos - 1]
+    after = myList[pos]
+    if after - value < value - before:
+        return after
+    else:
+        return before
+
+def quantizeTicksScale(ticksScale: float) -> float:
+    """
+    Quantize the ticks scale so that the leading digit is 1, 2 or 5
+    and all the other digits are 0, e.g. 2, 500, 10, 2000.
+    The minimum tick scale is 1.0 (that is, a tick every second)
+    """
+    fact = pow(10., floor(log10(ticksScale)))
+    sigDig = take_nearest([1., 2., 5.], ticksScale / fact)
+    return sigDig * fact
+
+def round_to_3(x):
+    return round(x, -(int(floor(log10(abs(x))))-2))
 
 cm_data_parula = [
     [ 0.26710521,  0.03311059,  0.6188155 ],
@@ -786,6 +817,18 @@ cm_data_turbo = [
     [ 0.47960,     0.01583,     0.01055]]
 
 def get_colormap(colormap_name: str) -> list:
+    """
+    Return a color map (list of QColor) given the color map name.
+
+    Args:
+        colormap_name (str): The name of a supported colormap.
+
+    Returns:
+        A list of QColor corresponding to the color map.
+
+    Raises:
+        Exception: If the color map name is not among those supported.
+    """
     if colormap_name.lower() == "parula":
         cm_data = cm_data_parula
     elif colormap_name.lower() == "turbo":
