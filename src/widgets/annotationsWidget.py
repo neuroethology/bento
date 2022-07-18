@@ -7,6 +7,7 @@ from qtpy.QtGui import (QBrush, QPen, QKeyEvent, QMouseEvent,
     QTransform, QWheelEvent)
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsView
 from timecode import Timecode
+import matplotlib.ticker as mt
 
 class AnnotationsView(QGraphicsView):
     """
@@ -84,6 +85,10 @@ class AnnotationsView(QGraphicsView):
         self.scale_v = self.height()/v_factor
         self.setVScale(self.scale_v)
         self.show()
+
+    @Slot(float)
+    def setTicksScale(self, ticksScale):
+        self.ticksScale = ticksScale
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         # Override the widget behavior on key strokes

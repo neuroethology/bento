@@ -13,6 +13,7 @@ import pymatreader as pmr
 from qimage2ndarray import gray2qimage
 from timecode import Timecode
 from utils import get_colormap, padded_rectf
+import matplotlib.ticker as mt
 import warnings
 
 class QGraphicsSubSceneItem(QGraphicsItem):
@@ -69,6 +70,7 @@ class NeuralView(QGraphicsView):
     """
 
     hScaleChanged = Signal(float)
+    ticksScaleChanged = Signal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -150,6 +152,9 @@ class NeuralView(QGraphicsView):
     def synchronizeHScale(self):
         self.hScaleChanged.emit(self.transform().m11())
 
+    def synchronizeTicksScale(self):
+        self.ticksScaleChanged.emit(self.ticksScale)
+
     def mousePressEvent(self, event):
         assert isinstance(event, QMouseEvent)
         assert self.bento
@@ -166,6 +171,7 @@ class NeuralView(QGraphicsView):
         assert isinstance(event, QMouseEvent)
         assert self.bento
         if event.modifiers() & Qt.ShiftModifier:
+            now = self.bento.get_time().float
             factor_x = max(0.1, event.localPos().x()) / self.start_x
             factor_y = event.localPos().y() / self.start_y
             t = QTransform(self.start_transform)
@@ -174,7 +180,13 @@ class NeuralView(QGraphicsView):
             self.setTransformScaleV(t, max(min_scale_v, t.m22()))
             min_scale_h = self.viewport().rect().width() / self.sceneRect().width()
             self.setTransformScaleH(t, max(min_scale_h, t.m11()))
+            ticker = mt.MaxNLocator()
+            ticker.set_params(nbins='auto', steps=[1,2,5,10], prune='both')
+            visible_trace = self.viewport().rect().width()/self.transform().m11()           
+            tick_values = ticker.tick_values(now-(visible_trace/2), now+(visible_trace/2))
+            self.ticksScale = tick_values[1] - tick_values[0]
             self.synchronizeHScale()
+            self.synchronizeTicksScale()
         else:
             x = event.localPos().x() / self.scale_h
             start_x = self.start_x / self.scale_h

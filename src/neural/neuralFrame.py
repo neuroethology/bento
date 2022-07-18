@@ -42,6 +42,7 @@ class NeuralFrame(QFrame):
         self.ui.annotationsView.setVScaleAndShow(bento.annotationsScene.sceneRect().height())
         self.ui.annotationsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
+        self.ui.neuralView.ticksScaleChanged.connect(self.ui.annotationsView.setTicksScale)
         bento.annotationsSceneHeightChanged.connect(self.ui.annotationsView.setVScaleAndShow)
         self.annotations = self.bento.annotations
         self.activeChannel = None
@@ -70,6 +71,7 @@ class NeuralFrame(QFrame):
         self.ui.colormapImageLabel.setPixmap(QPixmap.fromImageInPlace(legendImage, Qt.NoFormatConversion))
         self.neuralSceneUpdated.emit()
         self.ui.neuralView.synchronizeHScale()
+        self.ui.neuralView.synchronizeTicksScale()
         # synchronize viewer times
         self.updateTime(self.bento.time_start)
 
