@@ -16,18 +16,17 @@ class DBDialog(QDialog):
     The dialogConfig dict should include the following keys:
 
     Args:
-        <newItemName> str:  What a new instance of the class is called, e.g. "New Investigator"
-        dbClass str: The name of the class as found in schema_sqlalchemy, e.g. "Investigator"
-        comboBoxName str: The name of a comboBox UI element to populate. found in the dialog's .ui file, e.g. "investigatorComboBox"
-        selectionKey str: The field of the database class to be used to select an entry, e.g. "user_name"
-        newOwnerAttr str: The database entry of the possible new owners of items owned by the entry being deleted, e.g. 'investigator_id',
-        allFieldsBlankLambda lambda: a lambda function that takes the ui as input and returns True only if all relevant fields in the ui are blank.
-        requiredFieldsLambda lambda: a lambda function that takes the ui as input and returns True only if all the required fields have been provided.
-        requiredFieldsWarning str: The text to display if not all required fields have been provided, e.g. "You need to provide at least a user name, last name and first name",
-        toDisposition list: a list of dicts, where each dict contains a "field" key consisting of the name of
+        newItemName (str):  What a new instance of the class is called, e.g. "New Investigator"
+        dbClass (str): The name of the class as found in schema_sqlalchemy, e.g. "Investigator"
+        comboBoxName (str): The name of a comboBox UI element to populate. found in the dialog's .ui file, e.g. "investigatorComboBox"
+        selectionKey (str): The field of the database class to be used to select an entry, e.g. "user_name"
+        newOwnerAttr (str): The database entry of the possible new owners of items owned by the entry being deleted, e.g. 'investigator_id',
+        allFieldsBlankLambda (lambda): a lambda function that takes the ui as input and returns True only if all relevant fields in the ui are blank.
+        requiredFieldsLambda (lambda): a lambda function that takes the ui as input and returns True only if all the required fields have been provided.
+        requiredFieldsWarning (str): The text to display if not all required fields have been provided, e.g. "You need to provide at least a user name, last name and first name",
+        toDisposition (list): a list of dicts, where each dict contains a "field" key consisting of the name of
         the field in the database to find items that need to be dispositioned, and a "description" key describing that field in common English, e.g.'fields' (list of tuples): A list of tuples where the first element if each tuple is a field name to be populated from the dialog, and the second element is
         the name of the ui element/widget (typically a QLineEdit widget) from which to get the data, e.g.
-
     """
     quitting = Signal()
 

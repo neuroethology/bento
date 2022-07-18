@@ -1,5 +1,5 @@
 Animal Dialog GUI Class
-==========================
+=======================
 
 .. module:: bento
     :noindex:

@@ -8,3 +8,4 @@ Documentation for the core Bento APIs
 
     database.rst
     timesource.rst
+    utils.rst

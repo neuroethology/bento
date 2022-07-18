@@ -27,7 +27,7 @@ class DispositionItemsDialog(QDialog):
             db_sess:    An open sqlalchemy session with the database on which database transactions can be executed.
             ownerCategoryStr:   A string describing the kind of database item that is about to be deleted.
             ownerDbType:    The class of database item that is being deleted.  This should be one of the classes defined in schema_sqlalchemy.py.
-            displayField:   The field in the database used to populate the dialog's main comboBox
+            displayField (str):   The field in the database used to populate the dialog's main comboBox
             itemCategoryStr:    The name of category of items owned by the item being deleted.
             current_id: The id of the item being deleted, so that it is not displayed as a possible new owner.
 
