@@ -36,6 +36,7 @@ class MainWindow(QMainWindow):
         self.ui.doubleFrameRateButton.clicked.connect(bento.player.doubleFrameRate)
         self.ui.oneXFrameRateButton.clicked.connect(bento.player.resetFrameRate)
         self.ui.annotationsView.set_bento(bento)
+        self.ui.annotationsView.set_showTickLabels(False)
         self.ui.annotationsView.setScene(bento.annotationsScene)
         bento.annotationsScene.sceneRectChanged.connect(self.ui.annotationsView.update)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
