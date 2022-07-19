@@ -12,7 +12,7 @@ import numpy as np
 import pymatreader as pmr
 from qimage2ndarray import gray2qimage
 from timecode import Timecode
-from utils import get_colormap, padded_rectf
+from utils import get_colormap, padded_rectf, quantizeTicksScale
 import warnings
 
 class QGraphicsSubSceneItem(QGraphicsItem):
@@ -173,7 +173,10 @@ class NeuralView(QGraphicsView):
             min_scale_v = self.viewport().rect().height() / self.sceneRect().height()
             self.setTransformScaleV(t, max(min_scale_v, t.m22()))
             min_scale_h = self.viewport().rect().width() / self.sceneRect().width()
-            self.setTransformScaleH(t, max(min_scale_h, t.m11()))
+            h_scale = max(min_scale_h, t.m11())
+            initialTicksScale = 100./h_scale
+            self.ticksScale = quantizeTicksScale(initialTicksScale)
+            self.setTransformScaleH(t, h_scale)
             self.synchronizeHScale()
         else:
             x = event.localPos().x() / self.scale_h
