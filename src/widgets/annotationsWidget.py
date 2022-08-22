@@ -2,11 +2,12 @@
 """
 """
 
-from qtpy.QtCore import Qt, QPointF, QRectF, Slot
-from qtpy.QtGui import (QBrush, QPen, QKeyEvent, QMouseEvent,
+from qtpy.QtCore import Qt, QMargins, QPointF, QRectF, Slot
+from qtpy.QtGui import (QBrush, QFontMetrics, QPen, QKeyEvent, QMouseEvent,
     QTransform, QWheelEvent)
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsView
 from timecode import Timecode
+from utils import quantizeTicksScale, round_to_3
 
 class AnnotationsView(QGraphicsView):
     """
@@ -18,7 +19,7 @@ class AnnotationsView(QGraphicsView):
     from QtGraphicsScene
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, showTickLabels = True):
         super().__init__(parent)
         self.bento = None
         self.start_x = 0.
@@ -33,9 +34,13 @@ class AnnotationsView(QGraphicsView):
         self.ticksScale = 1.
         self.setInteractive(False)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
+        self.showTickLabels = showTickLabels
 
     def set_bento(self, bento):
         self.bento = bento
+
+    def set_showTickLabels(self, showTickLabels):
+        self.showTickLabels = showTickLabels
 
     #def set_v_factor(self, v_factor):
     #    self.v_factor = self.height
@@ -69,6 +74,8 @@ class AnnotationsView(QGraphicsView):
 
     def setHScale(self, hScale):
         self.setTransformScale(self.transform(), scale_h=hScale)
+        initialTicksScale = 100./hScale
+        self.ticksScale = quantizeTicksScale(initialTicksScale)
 
     def setVScale(self, vScale):
         self.setTransformScale(self.transform(), scale_v=vScale)
@@ -145,40 +152,83 @@ class AnnotationsView(QGraphicsView):
         painter.setBrush(Qt.NoBrush)
 
     def drawForeground(self, painter, rect):
+        """
+        drawForeground
+        Draws a pending annotation bout, if one is in the process of being added, deleted or changed,
+        and timing tick marks and labels, if enabled.  Overrides the default drawForeground, which
+        does nothing.
+
+        In order to draw the tick labels, we need to change the transform to identity so that
+        the labels (and tick amrks themselves) don't scale when the user changes
+        the view's horizontal scale.  To figure out where to draw the ticks and labels,
+        we need to get their positions in pixels before we change the transform, do the drawing
+        in pixel coordinates, and finally restore the transform.
+        """
         self.maybeDrawPendingBout(painter, rect)
-        # draw current time indicator
+
+        # gather the position data we need in pixel coordinates
+        # Note that mapFromScene requires both x and y coordinates, expressed in one of several ways,
+        # and also returns a QPointF
         now = self.bento.get_time().float
         pen = QPen(Qt.black)
         pen.setWidth(0)
         painter.setPen(pen)
+        nowTop = QPointF(now, rect.top())
+        nowBottom = QPointF(now, rect.bottom())
+        device_nowTop = self.mapFromScene(nowTop)
+        device_nowBottom = self.mapFromScene(nowBottom)
+        device_now = device_nowTop.x()
+        device_left, device_top = self.mapFromScene(rect.topLeft()).toTuple()
+        device_right, device_bottom = self.mapFromScene(rect.bottomRight()).toTuple()
+        device_ticksScale = self.mapFromScene(QPointF(now + self.ticksScale, rect.top())).x() - device_now
+
+        # transform to identity to facilitate drawing tick labels that don't scale
+        savedTransform = painter.transform()
+        painter.setTransform(QTransform())
         painter.drawLine(
-            QPointF(now, rect.top()),
-            QPointF(now, rect.bottom())
+            device_nowTop,
+            device_nowBottom
             )
+        # draw the time label
+        if self.showTickLabels:
+            font = painter.font()
+            fm = QFontMetrics(font)
+            text = '0.0'
+            tickLabelY = device_top + fm.ascent() + 2
+            painter.drawText(device_now + 4, tickLabelY, text)
         # draw tick marks
         if self.scene().loaded:
+            eighth = (device_bottom - device_top) / 8.
+            eighthDown = device_top + eighth
+            eighthUp = device_bottom - eighth
+            device_offset = device_ticksScale
             offset = self.ticksScale
-            eighth = (rect.bottom() - rect.top()) / 8.
-            eighthDown = rect.top() + eighth
-            eighthUp = rect.bottom() - eighth
-            while now + offset < rect.right():
+            while device_now + device_offset < device_right:
                 painter.drawLine(
-                    QPointF(now + offset, rect.top()),
-                    QPointF(now + offset, eighthDown)
+                    QPointF(device_now + device_offset, device_top),
+                    QPointF(device_now + device_offset, eighthDown)
                 )
                 painter.drawLine(
-                    QPointF(now + offset, eighthUp),
-                    QPointF(now + offset, rect.bottom())
+                    QPointF(device_now + device_offset, eighthUp),
+                    QPointF(device_now + device_offset, device_bottom)
                 )
                 painter.drawLine(
-                    QPointF(now - offset, rect.top()),
-                    QPointF(now - offset, eighthDown)
+                    QPointF(device_now - device_offset, device_top),
+                    QPointF(device_now - device_offset, eighthDown)
                 )
                 painter.drawLine(
-                    QPointF(now - offset, eighthUp),
-                    QPointF(now - offset, rect.bottom())
+                    QPointF(device_now - device_offset, eighthUp),
+                    QPointF(device_now - device_offset, device_bottom)
                 )
-                offset += self.ticksScale
+                if self.showTickLabels:
+                    text = str(round_to_3(offset))
+                    painter.drawText(device_now + device_offset + 4, tickLabelY, text)
+                    text = "-" + text
+                    painter.drawText(device_now - device_offset + 4, tickLabelY, text)
+                    offset += self.ticksScale
+                device_offset += device_ticksScale
+        # restore original transform
+        painter.setTransform(savedTransform)
 
 class AnnotationsScene(QGraphicsScene):
     """
