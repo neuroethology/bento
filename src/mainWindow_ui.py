@@ -3,30 +3,37 @@
 ################################################################################
 ## Form generated from reading UI file 'mainWindow.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.1.2
+## Created by: Qt User Interface Compiler version 6.2.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from qtpy.QtCore import *  # type: ignore
-from qtpy.QtGui import *  # type: ignore
-from qtpy.QtWidgets import *  # type: ignore
+from qtpy.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from qtpy.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from qtpy.QtWidgets import (QApplication, QComboBox, QGraphicsView, QHBoxLayout,
+    QLabel, QMainWindow, QMenuBar, QPushButton,
+    QSizePolicy, QSpacerItem, QStatusBar, QVBoxLayout,
+    QWidget)
 
 from widgets.annotationsWidget import AnnotationsView
-
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(460, 328)
-        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        MainWindow.resize(604, 328)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
         MainWindow.setMinimumSize(QSize(460, 328))
-        MainWindow.setMaximumSize(QSize(457, 328))
+        MainWindow.setMaximumSize(QSize(10000, 10000))
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         sizePolicy1 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -52,6 +59,7 @@ class Ui_MainWindow(object):
         self.annotationsView.setMinimumSize(QSize(0, 50))
         self.annotationsView.setAcceptDrops(False)
         self.annotationsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.annotationsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.annotationsView.setResizeAnchor(QGraphicsView.AnchorViewCenter)
 
         self.verticalLayout.addWidget(self.annotationsView)
@@ -96,21 +104,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addLayout(self.controlButtonLayout)
 
-        self.nextPrevLayout = QHBoxLayout()
-        self.nextPrevLayout.setObjectName(u"nextPrevLayout")
-        self.previousButton = QPushButton(self.centralwidget)
-        self.previousButton.setObjectName(u"previousButton")
-
-        self.nextPrevLayout.addWidget(self.previousButton)
-
-        self.nextButton = QPushButton(self.centralwidget)
-        self.nextButton.setObjectName(u"nextButton")
-
-        self.nextPrevLayout.addWidget(self.nextButton)
-
-
-        self.verticalLayout.addLayout(self.nextPrevLayout)
-
         self.playbackSpeedLayout = QHBoxLayout()
         self.playbackSpeedLayout.setObjectName(u"playbackSpeedLayout")
         self.halveFrameRateButton = QPushButton(self.centralwidget)
@@ -128,8 +121,27 @@ class Ui_MainWindow(object):
 
         self.playbackSpeedLayout.addWidget(self.doubleFrameRateButton)
 
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.playbackSpeedLayout.addItem(self.horizontalSpacer_4)
+
+        self.previousButton = QPushButton(self.centralwidget)
+        self.previousButton.setObjectName(u"previousButton")
+
+        self.playbackSpeedLayout.addWidget(self.previousButton)
+
+        self.nextButton = QPushButton(self.centralwidget)
+        self.nextButton.setObjectName(u"nextButton")
+
+        self.playbackSpeedLayout.addWidget(self.nextButton)
+
 
         self.verticalLayout.addLayout(self.playbackSpeedLayout)
+
+        self.nextPrevLayout = QHBoxLayout()
+        self.nextPrevLayout.setObjectName(u"nextPrevLayout")
+
+        self.verticalLayout.addLayout(self.nextPrevLayout)
 
         self.mainButtonLayout = QHBoxLayout()
         self.mainButtonLayout.setObjectName(u"mainButtonLayout")
@@ -163,7 +175,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 460, 24))
+        self.menubar.setGeometry(QRect(0, 0, 604, 24))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -185,11 +197,11 @@ class Ui_MainWindow(object):
         self.stepButton.setText(QCoreApplication.translate("MainWindow", u">", None))
         self.ffButton.setText(QCoreApplication.translate("MainWindow", u">>", None))
         self.toEndButton.setText(QCoreApplication.translate("MainWindow", u">|", None))
-        self.previousButton.setText(QCoreApplication.translate("MainWindow", u"Previous", None))
-        self.nextButton.setText(QCoreApplication.translate("MainWindow", u"Next", None))
         self.halveFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"/2", None))
         self.oneXFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"1x", None))
         self.doubleFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"* 2", None))
+        self.previousButton.setText(QCoreApplication.translate("MainWindow", u"Previous", None))
+        self.nextButton.setText(QCoreApplication.translate("MainWindow", u"Next", None))
         self.newChannelPushButton.setText(QCoreApplication.translate("MainWindow", u"New Channel", None))
         self.trialPushButton.setText(QCoreApplication.translate("MainWindow", u"Select Trial...", None))
         self.quitButton.setText(QCoreApplication.translate("MainWindow", u"Quit", None))

@@ -40,7 +40,6 @@ class NeuralFrame(QFrame):
         self.ui.annotationsView.setScene(bento.annotationsScene)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
         self.ui.annotationsView.setVScaleAndShow(bento.annotationsScene.sceneRect().height())
-        self.ui.annotationsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.ui.neuralView.hScaleChanged.connect(self.ui.annotationsView.setHScaleAndShow)
         bento.annotationsSceneHeightChanged.connect(self.ui.annotationsView.setVScaleAndShow)
         self.annotations = self.bento.annotations

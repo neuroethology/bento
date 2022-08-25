@@ -28,9 +28,15 @@ class AnnotationsView(QGraphicsView):
         #self.v_factor = self.height()
         self.scale(self.scale_v, self.scale_h)
         self.sample_rate = 30.
+        self.disablePositionUpdates = False
         self.time_x = Timecode(str(self.sample_rate), '0:0:0:1')
-        self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # NB: Unfortunately, we can't turn on scrollBar tracking, because it causes
+        # an infinite loop setting the current time -> moving the scroll bar ->
+        # updating the time, etc.
+        self.horizontalScrollBar().sliderPressed.connect(self.startHScroll)
+        self.horizontalScrollBar().sliderMoved.connect(self.updateFromScroll)
+        self.horizontalScrollBar().sliderReleased.connect(self.endHScroll)
+        self.horizontalScrollBar().setTracking(True)
         self.ticksScale = 1.
         self.setInteractive(False)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
@@ -47,6 +53,10 @@ class AnnotationsView(QGraphicsView):
 
     @Slot(Timecode)
     def updatePosition(self, t):
+        if self.disablePositionUpdates:
+            # break infinite signal loop when we're the source of the
+            # time update
+            return
         pt = QPointF(t.float, self.scene().height/2.)
         self.centerOn(pt)
         self.show()
@@ -126,14 +136,26 @@ class AnnotationsView(QGraphicsView):
         ))
         event.accept()
 
+    @Slot()
+    def startHScroll(self):
+        self.disablePositionUpdates = True
+
+    @Slot(int)
     def updateFromScroll(self):
         assert self.bento
+        viewrect = self.viewport().rect()
+        print(f"viewrect width: {viewrect.width()}")
         center = self.viewport().rect().center()
         sceneCenter = self.mapToScene(center)
-        self.bento.set_time(Timecode(
-            self.time_x.framerate,
-            start_seconds=sceneCenter.x()
-        ))
+        newTime = Timecode(
+            framerate=self.time_x.framerate,
+            start_seconds=sceneCenter.x())
+        self.bento.set_time(newTime)
+
+    @Slot()
+    def endHScroll(self):
+        self.disablePositionUpdates = False
+        self.updateFromScroll()
 
     def maybeDrawPendingBout(self, painter, rect):
         bout = self.bento.pending_bout
@@ -248,21 +270,21 @@ class AnnotationsScene(QGraphicsScene):
         self.chan_map = {}
         self.loaded = False
 
-    def addBout(self, bout, chan):
-        """
-        Add a bout to the scene according to its timecode and channel name or number.
-        """
-        if isinstance(chan, int):
-            chan_num = chan
-        elif isinstance(chan, str):
-            if chan not in self.chan_map.keys():
-                self.chan_map[chan] = len(self.chan_map.keys()) # add the new channel
-            chan_num = self.chan_map[chan]
-        else:
-            raise RuntimeError(f"addBout: expected int or str, but got {type(chan)}")
-        color = bout.color
-        self.addRect(bout.start().float, float(chan_num), bout.len().float, 1., QPen(QBrush(), 0, s=Qt.NoPen), QBrush(color()))
-        self.loaded = True
+    # def addBout(self, bout, chan):
+    #     """
+    #     Add a bout to the scene according to its timecode and channel name or number.
+    #     """
+    #     if isinstance(chan, int):
+    #         chan_num = chan
+    #     elif isinstance(chan, str):
+    #         if chan not in self.chan_map.keys():
+    #             self.chan_map[chan] = len(self.chan_map.keys()) # add the new channel
+    #         chan_num = self.chan_map[chan]
+    #     else:
+    #         raise RuntimeError(f"addBout: expected int or str, but got {type(chan)}")
+    #     color = bout.color
+    #     self.addRect(bout.start().float, float(chan_num), bout.len().float, 1., QPen(QBrush(), 0, s=Qt.NoPen), QBrush(color()))
+    #     self.loaded = True
 
     def loadAnnotations(self, annotations, activeChannels, sample_rate):
         self.setSampleRate(sample_rate)
@@ -276,10 +298,11 @@ class AnnotationsScene(QGraphicsScene):
             # self.loadBouts(annotations.channel(chan),  ix)
         self.loaded = True
 
-    def loadBouts(self, channel, chan_num):
-        print(f"Loading bouts for channel {chan_num}")
-        for bout in channel:
-            self.addBout(bout, chan_num)
+
+    # def loadBouts(self, channel, chan_num):
+    #     print(f"Loading bouts for channel {chan_num}")
+    #     for bout in channel:
+    #         self.addBout(bout, chan_num)
 
     def setSampleRate(self, sample_rate):
         self.sample_rate = sample_rate

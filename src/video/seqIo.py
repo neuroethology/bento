@@ -442,7 +442,7 @@ class seqIo_reader():
             info.numFrames=0
         if buildTable:
             print("buildTable was True, so calling buildSeekTable()")
-            self.buildSeekTable(False)
+            self.buildSeekTable(True)
 
 
     def readHeader(self):
@@ -526,7 +526,7 @@ class seqIo_reader():
             self.timestamp_length = int(self.header['trueImageSize'] \
                                         - (self.bit_depth / 8 * (self.header['height'] * self.header['width'])))
 
-    def buildSeekTable(self,memoize=False):
+    def buildSeekTable(self,memoize=True):
         """Build a seek table containing the offset and frame size for every frame in the video."""
         print("in seqIo_reader.buildSeekTable()")
         pickle_name = self.filename.strip(".seq") + ".seek"
@@ -588,7 +588,10 @@ class seqIo_reader():
         else:
             self.seek_table=seek_table
         if memoize:
-            pickle.dump(seek_table,open(pickle_name,'wb'))
+            try:
+                pickle.dump(seek_table,open(pickle_name,'wb'))
+            except OSError as e:
+                print(f"Problem writing seek table file {e.filename}, maybe no write permission?")
 
         #compute frame rate from timestamps as stored fps may be incorrect
         # if n==1: return

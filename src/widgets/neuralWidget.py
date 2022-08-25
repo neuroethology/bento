@@ -287,14 +287,18 @@ class NeuralScene(QGraphicsScene):
             warnings.simplefilter('ignore', category=UserWarning)
             mat = pmr.read_mat(ca_file)
         try:
-            data = mat['results']['C_raw']
+            # restrict data to just the range for this trial
+            data = mat['results']['C_raw'][:,start_frame:stop_frame]
         except Exception as e:
             QMessageBox.about(self, "Load Error", f"Error loading neural data from file {ca_file}: {e}")
             return
-        self.range = data.max() - data.min()
+
+        # set up some values needed inside normalize()
+        self.data_min = data.min()
+        self.data_range = data.max() - self.data_min
         # Provide for a little space between traces
-        self.minimum = data.min() + self.range * 0.05
-        self.range *= 0.9
+        self.plot_min = 0.05
+        self.plot_range = 0.9
 
         self.sample_rate = sample_rate
         self.start_frame = start_frame
@@ -311,16 +315,19 @@ class NeuralScene(QGraphicsScene):
         self.heatmapImage = self.colorMapper.mappedImage(data)
         self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
 
-        # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
-        # to the time scale
         transform = QTransform()
+        # Scale the heatmap's time axis by 1 / sample rate so that it corresponds correctly
+        # to the time scale (unit seconds)
         transform.scale(1. / self.sample_rate, 1.)
+        # Move the heatmap's origin to correspond to the time_start of this data
+        transform.translate(self.time_start.float, 0.)
         self.heatmap.setTransform(transform)
         self.heatmap.setOpacity(0.5)
         # finally, add the traces on top of everything
         self.addItem(self.traces)
         # pad some time on left and right to allow centering
-        sceneRect = padded_rectf(self.sceneRect())
+        # sceneRect = padded_rectf(self.sceneRect())
+        sceneRect = self.sceneRect()
         sceneRect.setHeight(float(self.num_chans) + 1.)
         self.setSceneRect(sceneRect)
         if isinstance(self.traces, QGraphicsItem):
@@ -335,16 +342,17 @@ class NeuralScene(QGraphicsScene):
             self.annotations.setVisible(showAnnotations)
 
     def loadChannel(self, data, chan):
+        # at this point, the data is already clipped to [start_frame : stop_frame]
         pen = QPen()
         pen.setWidth(0)
         trace = QPainterPath()
-        trace.reserve(self.stop_frame - self.start_frame + 1)
-        y = float(chan+0.5) + self.normalize(data[chan][self.start_frame])
-        trace.moveTo(self.time_start.float, y)
+        trace.reserve(data.shape[1] + 1)
+        y = float(chan) + self.normalize(data[chan][0])
         time_start_float = self.time_start.float
+        trace.moveTo(time_start_float, y)
 
-        for ix in range(self.start_frame + 1, self.stop_frame):
-            t = (ix - self.start_frame)/self.sample_rate + time_start_float
+        for ix in range(1, self.stop_frame - self.start_frame):
+            t = (ix/self.sample_rate) + time_start_float
             val = self.normalize(data[chan][ix])
             # Add a section to the trace path
             y = float(chan+0.5) + val
@@ -354,7 +362,7 @@ class NeuralScene(QGraphicsScene):
         self.traces.addToGroup(traceItem)
 
     def normalize(self, y_val):
-        return 1.0 - (y_val - self.minimum) / self.range
+        return ((1.0 - ((y_val - self.data_min) / self.data_range)) * self.plot_range) + self.plot_min
 
     def overlayAnnotations(self, annotationsScene, parentScene, annotations):
         self.annotations = QGraphicsSubSceneItem(annotationsScene, parentScene, annotations)

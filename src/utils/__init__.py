@@ -10,7 +10,7 @@ def fix_path(path):
     return abspath(path.replace('\\', sep).replace('/', sep))
 
 SCENE_PADDING = 200.
-def padded_rectf(rectf: QRectF):
+def padded_rectf(rectf: QRectF) -> QRectF:
     return rectf + QMarginsF(SCENE_PADDING, 0., SCENE_PADDING, 0.)
 
 def take_nearest(myList: list, value: float) -> float:
