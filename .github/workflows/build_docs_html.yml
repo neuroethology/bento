@@ -37,7 +37,10 @@ jobs:
       #    sudo apt-get install pandoc -y
  
       - name: Test sphinx-build
-        run: sphinx-build -W -nT -b dummy ./docs/source build/html
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          docs-folder: "docs/"
+          build-command: "sphinx-build -W -nT -b dummy ./docs/source build/html"
       
       # Runs a single command using the runners shell
       - name: Run a one-line script
