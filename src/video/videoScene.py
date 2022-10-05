@@ -11,7 +11,7 @@ from qtpy.QtWidgets import QGraphicsScene, QGraphicsItem
 from qtpy.QtMultimedia import QMediaContent, QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
 from dataExporter import DataExporter
-import h5py as h5
+from pynwb import NWBFile
 from timecode import Timecode
 import os
 from typing import List
@@ -52,9 +52,10 @@ class VideoSceneAbstractBase(QGraphicsScene, DataExporter):
         if self.showPoseData and self.pose_class:
             self.pose_class.drawPoses(painter, frame_ix)
 
-    def exportToH5File(self, openH5File: h5.File):
+    def exportToNWBFile(self, nwbFile: NWBFile):
         if self.pose_class:
-            self.pose_class.exportPosesToH5(self.id, openH5File)
+            nwbFile = self.pose_class.exportPosesToNWBFile(self.id, nwbFile)
+        return nwbFile
 
     def setStartTime(self, t: Timecode):
         self._start_time = t

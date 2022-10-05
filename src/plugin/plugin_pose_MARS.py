@@ -5,6 +5,10 @@ from qtpy.QtGui import QPainter, QPen, QPolygonF
 from qtpy.QtWidgets import QMessageBox, QWidget
 from pose.pose import PoseBase
 import h5py as h5
+import os
+import numpy as np
+from pynwb import NWBFile
+from ndx_pose import PoseEstimationSeries, PoseEstimation
 import pymatreader as pmr
 import warnings
 
@@ -24,6 +28,8 @@ class PoseMARS(PoseBase):
         self.num_mice = 0
         self.pose_colors = [Qt.blue, Qt.green]
         self.keypoints = None
+        self.confidence = None
+        self.video_path = None
 
     def drawPoses(self, painter: QPainter, frame_ix: int):
         frame_ix = min(frame_ix, self.num_frames)
@@ -61,7 +67,7 @@ class PoseMARS(PoseBase):
             return False
         return True
 
-    def loadPoses(self, parent_widget: QWidget, path: str):
+    def loadPoses(self, parent_widget: QWidget, path: str, video_path: str):
         mat = None
         with warnings.catch_warnings():
             # suppress warning coming from checking the mat file contents
@@ -69,10 +75,12 @@ class PoseMARS(PoseBase):
             mat = pmr.read_mat(path)
         try:
             self.keypoints = mat['keypoints']
+            self.confidence = mat['scores']
         except Exception as e:
             QMessageBox.about(parent_widget, "Load Error", f"Error loading pose data from file {path}: {e}")
             return None
         self.pose_polys = []
+        self.video_path = video_path
         self.num_frames = len(self.keypoints)
         for frame_ix in range(self.num_frames):
             frame_keypoints = self.keypoints[frame_ix]
@@ -96,20 +104,100 @@ class PoseMARS(PoseBase):
                 frame_polys.append(poly)
             self.pose_polys.append(frame_polys)
 
-    def exportPosesToH5(self, id: int, openH5File: h5.File):
-        if not 'pose_data' in openH5File or not f'id_{id}' in openH5File['pose_data']:
-            openH5File.create_group(f'pose_data/id_{id}')
-        pose_data_group = openH5File[f'pose_data/id_{id}']
-        pose_nodes = pose_data_group.create_dataset('pose_nodes', shape=(7,), dtype='S10')
-        pose_nodes[0] = b'nose'
-        pose_nodes[1] = b'left ear'
-        pose_nodes[2] = b'right ear'
-        pose_nodes[3] = b'neck'
-        pose_nodes[4] = b'left hip'
-        pose_nodes[5] = b'right hip'
-        pose_nodes[6] = b'tail'
+    def exportPosesToNWBFile(self, id: int, nwbFile: NWBFile):
+
+        processing_module_name = f"Pose data for video {os.path.basename(self.video_path)}"
         for mouse_ix in range(self.num_mice):
-            pose_data_group.create_dataset(f"mouse_{mouse_ix}", data=self.keypoints[:,mouse_ix,:,:])
+            pose_estimation_series = []
+            pose_estimation_series.append(
+                PoseEstimationSeries(
+                    name = 'nose',
+                    description = 'Pose keypoint placed aroud nose',
+                    data = self.keypoints[:,mouse_ix,:,0],
+                    reference_frame = '(0,0,0) corresponds to ...',
+                    timestamps = np.arange(self.num_frames, dtype=float), 
+                    confidence = self.confidence[:,mouse_ix,0]
+                )
+            )
+            pose_estimation_series.append(
+                PoseEstimationSeries(
+                    name = 'left ear',
+                    description = 'Pose keypoint placed aroud left ear',
+                    data = self.keypoints[:,mouse_ix,:,1],
+                    reference_frame = '(0,0,0) corresponds to ...',
+                    timestamps = np.arange(self.num_frames, dtype=float),
+                    confidence = self.confidence[:,mouse_ix,1]
+                )
+            )
+            pose_estimation_series.append(
+                PoseEstimationSeries(
+                    name = 'right ear',
+                    description = 'Pose keypoint placed aroud right ear',
+                    data = self.keypoints[:,mouse_ix,:,2],
+                    reference_frame = '(0,0,0) corresponds to ...',
+                    timestamps = np.arange(self.num_frames, dtype=float),
+                    confidence = self.confidence[:,mouse_ix,2]
+                )
+            )
+            pose_estimation_series.append(
+                PoseEstimationSeries(
+                    name = 'neck',
+                    description = 'Pose keypoint placed aroud neck',
+                    data = self.keypoints[:,mouse_ix,:,3],
+                    reference_frame = '(0,0,0) corresponds to ...',
+                    timestamps = np.arange(self.num_frames, dtype=float),
+                    confidence = self.confidence[:,mouse_ix,3]
+                )
+            )
+            pose_estimation_series.append(
+                PoseEstimationSeries(
+                    name = 'left hip',
+                    description = 'Pose keypoint placed aroud left hip',
+                    data = self.keypoints[:,mouse_ix,:,4],
+                    reference_frame = '(0,0,0) corresponds to ...',
+                    timestamps = np.arange(self.num_frames, dtype=float),
+                    confidence = self.confidence[:,mouse_ix,4]
+                )
+            )
+            pose_estimation_series.append(
+                PoseEstimationSeries(
+                    name = 'right hip',
+                    description = 'Pose keypoint placed aroud right hip',
+                    data = self.keypoints[:,mouse_ix,:,5],
+                    reference_frame = '(0,0,0) corresponds to ...',
+                    timestamps = np.arange(self.num_frames, dtype=float),
+                    confidence = self.confidence[:,mouse_ix,5]
+                )
+            )
+            pose_estimation_series.append(
+                PoseEstimationSeries(
+                    name = 'tail',
+                    description = 'Pose keypoint placed aroud tail',
+                    data = self.keypoints[:,mouse_ix,:,6],
+                    reference_frame = '(0,0,0) corresponds to ...',
+                    timestamps = np.arange(self.num_frames, dtype=float),
+                    confidence = self.confidence[:,mouse_ix,6]
+                )
+            )
+            pose_estimation = PoseEstimation(
+                pose_estimation_series = pose_estimation_series,
+                name = f"animal_{mouse_ix}",
+                description = f"Estimated position for animal_{mouse_ix} in video {os.path.basename(self.video_path)}",
+                nodes = ['nose', 'left ear', 'right ear', 'neck', 'left hip', 'right hip', 'tail'],
+                edges = np.array([[0,1], [1,3], [3,4], [4,6], [6,5], [5,3], [3,2], [2,0]], dtype='uint8')
+            )
+
+            if processing_module_name in nwbFile.processing:
+                nwbFile.processing[processing_module_name].add(pose_estimation)
+            else:
+                pose_pm = nwbFile.create_processing_module(
+                    name = processing_module_name,
+                    description = f"Pose Data from {self.getFileFormat().split('_')[0]}"
+                )
+                pose_pm.add(pose_estimation)
+
+        return nwbFile
+
 
 def register(registry):
     mars_pose_plugin = PoseMARS()

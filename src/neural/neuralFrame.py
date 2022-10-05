@@ -8,7 +8,7 @@ import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
 from dataExporter import DataExporter
-import h5py as h5
+from pynwb import NWBFile
 import numpy as np
 from utils import fix_path
 from os.path import isabs
@@ -144,5 +144,9 @@ class NeuralFrame(QFrame, DataExporter):
         if isinstance(self.neuralScene, NeuralScene):
             self.neuralScene.showAnnotations(state > 0)
 
-    def exportToH5File(self, openH5File: h5.File):
-        print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        print(f"Export data from {self.dataExportType} #{self.id} to NWB file")
+        if isinstance(self.neuralScene, NeuralScene):
+            nwbFile = self.neuralScene.exportToNWBFile(nwbFile)
+        
+        return nwbFile

@@ -1,4 +1,5 @@
 # annot.py
+from __future__ import annotations
 from random import sample
 import timecode as tc
 from annot.behavior import Behavior
@@ -8,7 +9,8 @@ from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QGraphicsItem
 from dataExporter import DataExporter
 from datetime import datetime
-import h5py as h5
+from pynwb import NWBFile
+from pynwb.epoch import TimeIntervals
 
 class Bout(object):
     """
@@ -71,16 +73,15 @@ class Bout(object):
     def __repr__(self):
         return f"Bout: start = {self.start()}, end = {self.end()}, behavior: {self.behavior()}"
 
-class Channel(QGraphicsItem, DataExporter):
+class Channel(QGraphicsItem):
     """
     """
 
     contentChanged = Signal()
 
-    def __init__(self, id: int, chan = None):
-        QGraphicsItem.__init__(self)
-        DataExporter.__init__(self, id)
-        self.dataExportType = "annotationChannel"
+    def __init__(self, chan = None):
+        super().__init__()
+        
         if not chan is None:
             self._bouts_by_start = chan._bouts_by_start
             self._bouts_by_end = chan._bouts_by_end
@@ -291,8 +292,23 @@ class Channel(QGraphicsItem, DataExporter):
         for item in to_delete:
             self.remove(item)
 
-    def exportToH5File(self, openH5File: h5.File):
-        print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
+    def exportToNWBFile(self, chanName: str, nwbFile: NWBFile):
+        if f"annotation_{chanName}" in nwbFile.intervals:
+            nwbFile.intervals.pop(f"annotation_{chanName}")
+        
+        annotationData = TimeIntervals(name=f"annotation_{chanName}",
+                                       description="animal behavior annotations")
+        if len(self._bouts_by_start)>0:
+            annotationData.add_column(name="behaviorName",
+                                            description="type of behavior")
+       
+        for bout in self._bouts_by_start:
+            annotationData.add_row(start_time=bout.start().float, stop_time=bout.end().float, behaviorName=bout.name())
+        
+        nwbFile.add_time_intervals(annotationData)
+
+        return nwbFile
+
 
 class Annotations(QObject, DataExporter):
     """
@@ -373,11 +389,8 @@ class Annotations(QObject, DataExporter):
                 found_version = True
             elif line.lower().startswith("start date time"):
                 items = line.split()
-                print(items)
                 if len(items)>3:
-                    print(items[-2]+' '+items[-1])
                     self._start_date_time = datetime.fromisoformat(items[-2]+' '+items[-1])
-                    print('while reading : ', self._start_date_time, type(self._start_date_time))
                 found_start_date_time = True
             elif line.lower().startswith("annotation start frame"):
                 items = line.split()
@@ -419,7 +432,7 @@ class Annotations(QObject, DataExporter):
                 for ch_name in channel_names:
                     if line.startswith(ch_name):
                         ix = len(self._channels)
-                        self._channels[ch_name] = Channel(ix)
+                        self._channels[ch_name] = Channel()
                         current_channel = ch_name
                         reading_channel = True
                         break
@@ -637,7 +650,9 @@ class Annotations(QObject, DataExporter):
     def note_annotations_changed(self):
         self.annotations_changed.emit()
 
-    def exportToH5File(self, openH5File: h5.File):
-        print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        print(f"Export data from {self.dataExportType} #{self.id} to NWBFile")
         for chanName in self._channels:
-            self._channels[chanName].exportToH5File(openH5File)
+            nwbFile = self._channels[chanName].exportToNWBFile(chanName, nwbFile)
+        
+        return nwbFile

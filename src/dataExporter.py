@@ -5,7 +5,7 @@ Classes (including widgets, etc.) should derive from it, probably along with
 another class such as a Qt base class.
 """
 
-from h5py import File
+from pynwb import NWBFile
 
 class DataExporter:
     """
@@ -19,7 +19,7 @@ class DataExporter:
         self.dataExportType = "None"  # derived class should override this
         self.id: int = id
 
-    def exportToH5File(self, openH5File: File):
+    def exportToNWBFile(self, nwbFile: NWBFile) -> NWBFile:
         raise NotImplementedError("Derived class needs to implement this")
 
     def exportToDict(self, d: dict):

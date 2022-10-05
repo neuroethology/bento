@@ -6,7 +6,7 @@ from qtpy.QtCore import QEvent, Qt, Signal, Slot
 from qtpy.QtWidgets import QFrame
 from qtpy.QtMultimedia import QMediaPlayer
 from dataExporter import DataExporter
-import h5py as h5
+from pynwb import NWBFile
 import os
 from timecode import Timecode
 
@@ -129,7 +129,8 @@ class VideoFrame(QFrame, DataExporter):
             return None
         return self.scene.getPlayer()
 
-    def exportToH5File(self, openH5File: h5.File):
-        print(f"Export data from {self.dataExportType} #{self.id} to {openH5File}")
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        print(f"Export data from {self.dataExportType} #{self.id} to NWBFile")
         if self.scene:
-            self.scene.exportToH5File(openH5File)
+            nwbFile = self.scene.exportToNWBFile(nwbFile)
+        return nwbFile
