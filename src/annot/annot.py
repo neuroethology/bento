@@ -322,7 +322,7 @@ class Annotations(QObject, DataExporter):
 
     def __init__(self, behaviors):
         QObject.__init__(self)
-        DataExporter.__init__(self, 0)  # only one annotation, so id is always 0
+        DataExporter.__init__(self)
         self.dataExportType = "annotations"
         self._channels = {}
         self._behaviors = behaviors
@@ -651,7 +651,7 @@ class Annotations(QObject, DataExporter):
         self.annotations_changed.emit()
 
     def exportToNWBFile(self, nwbFile: NWBFile):
-        print(f"Export data from {self.dataExportType} #{self.id} to NWBFile")
+        print(f"Export data from {self.dataExportType} to NWBFile")
         for chanName in self._channels:
             nwbFile = self._channels[chanName].exportToNWBFile(chanName, nwbFile)
         

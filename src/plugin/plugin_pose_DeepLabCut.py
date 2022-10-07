@@ -37,24 +37,26 @@ class PoseDLCBase(PoseBase):
         return "*.h5 *.csv"
 
     def _validateFileH5(self, parent_widget, file_path: str) -> bool:
-        h5 = h5py.File(file_path, 'r')
-        default_group = h5[list(h5.keys())[0]]
-        if 'table' not in default_group.keys():
+        df = pd.read_hdf(file_path)
+        inds = list(df.columns.names)
+        if ('scorer' in inds and 
+            'bodyparts' in inds and
+            'coords' in inds):
+            return True
+        else:
             QMessageBox.warning(parent_widget, "Add Pose ...", "No pose data found in pose file")
             return False
-        return True
 
     def _validateFileCSV(self, parent_widget, file_path: str) -> bool:
-        result = True
-        with open(file_path, 'r') as csvFile:
-            reader = csv.reader(csvFile)
-            header1 = next(reader)
-            if (not isinstance(header1[1], str) or
-                header1[1] != 'body_parts' or
-                (len(header1) - 2) % 3 != 0):   # "", "body_parts", 3 x <bodypart_name>, ...
-                result = False
-            csvFile.seek(0)
-        return result
+        df = pd.read_csv(file_path, header=[0,1,2], index_col=0)
+        inds = list(df.columns.names)
+        if ('scorer' in inds and 
+            'bodyparts' in inds and
+            'coords' in inds):
+            return True
+        else:
+            QMessageBox.warning(parent_widget, "Add Pose ...", "No pose data found in pose file")
+            return False
 
     def validateFile(self, parent_widget: QWidget, file_path: str) -> bool:
         """
@@ -152,8 +154,8 @@ class PoseDLC_generic(PoseDLCBase):
             self.frame_points.append(this_frame_points)
 
     def _loadPoses_csv(self, parent_widget, path: str, video_path: str):
-        df = pd.read_csv(path, header=[0,1], index_col=0)
-        self.body_parts = np.array(df.columns.get_level_values(0))
+        df = pd.read_csv(path, header=[0,1,2], index_col=0)
+        self.body_parts = np.array(df.columns.get_level_values(1))
         self.pose_data = np.array(df)
         self.video_path = video_path
         self.num_frames = self.pose_data.shape[0]
@@ -172,7 +174,7 @@ class PoseDLC_generic(PoseDLCBase):
                 this_frame_points.append(QPointF(this_frame_data[pt_x_ix], this_frame_data[pt_y_ix]))
             self.frame_points.append(this_frame_points)
     
-    def exportPosesToNWBFile(self, id: int, nwbFile: NWBFile):
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
         processing_module_name = f"Pose data for video {os.path.basename(self.video_path)}"
         #reshape pose data to [frames, body_parts, points]
         pose_data = self.pose_data.reshape(self.num_frames, -1, 3) # 3 because x, y, confidence
@@ -188,7 +190,7 @@ class PoseDLC_generic(PoseDLCBase):
             pose_estimation_series.append(
                 PoseEstimationSeries(
                     name = f"{body_parts[nodes_ix]}",
-                    description = f"Pose keypoint placed aroud {body_parts[nodes_ix]}",
+                    description = f"Pose keypoint placed around {body_parts[nodes_ix]}",
                     data = pose_data[:,nodes_ix,:2],
                     reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                     timestamps = np.arange(self.num_frames, dtype=float), 
@@ -351,7 +353,7 @@ class PoseDLC_mouse(PoseDLCBase):
                 frame_polys.append(poly)
             self.pose_polys.append(frame_polys)
     
-    def exportPosesToNWBFile(self, id: int, nwbFile: NWBFile):
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
         processing_module_name = f"Pose data for video {os.path.basename(self.video_path)}"
         #reshape pose data to [frames, numOfMice, body_parts, points]
         pose_data = self.pose_data.reshape(self.num_frames, self.num_mice, -1, 3) # 3 because x, y, confidence
@@ -367,7 +369,7 @@ class PoseDLC_mouse(PoseDLCBase):
                 pose_estimation_series.append(
                     PoseEstimationSeries(
                         name = f"{body_parts[mouse_ix, nodes_ix]}",
-                        description = f"Pose keypoint placed aroud {body_parts[mouse_ix, nodes_ix]}",
+                        description = f"Pose keypoint placed around {body_parts[mouse_ix, nodes_ix]}",
                         data = pose_data[:,mouse_ix,nodes_ix,:2],
                         reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                         timestamps = np.arange(self.num_frames, dtype=float), 

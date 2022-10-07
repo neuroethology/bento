@@ -60,7 +60,7 @@ class PoseBase():
         raise NotImplementedError("PoseBase: abstract base class.  ",
             "Please implement this in your derived class")
 
-    def exportPosesToNWBFile(self, id: int, nwbFile: NWBFile):
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
         """
         Base class template for exporting pose data to NWB file object
         """

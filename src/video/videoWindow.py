@@ -15,9 +15,9 @@ class VideoFrame(QFrame, DataExporter):
     openReader = Signal(str)
     quitting = Signal()
 
-    def __init__(self, bento, id):
+    def __init__(self, bento):
         QFrame.__init__(self)
-        DataExporter.__init__(self, id)
+        DataExporter.__init__(self)
         self.dataExportType = "video"
         self.bento = bento
         self.sizePolicy().setHeightForWidth(True)
@@ -53,17 +53,17 @@ class VideoFrame(QFrame, DataExporter):
 
     def supported_by_native_player(self, fn: str) -> bool:
         ext = os.path.basename(fn).rsplit('.',1)[-1].lower()
-        if ext in VideoSceneNative(self.bento, self.id, self.bento.current_time()).supportedFormats():
+        if ext in VideoSceneNative(self.bento, self.bento.current_time()).supportedFormats():
             return True
-        if not ext in VideoScenePixmap(self.bento, self.id, self.bento.current_time()).supportedFormats():
+        if not ext in VideoScenePixmap(self.bento, self.bento.current_time()).supportedFormats():
             raise Exception(f"video format {ext} not supported.")
         return False
 
     def load_video(self, fn: str, start_time: Timecode, forcePixmapMode: bool):
         if not forcePixmapMode and self.supported_by_native_player(fn):
-            self.scene = VideoSceneNative(self.bento, self.id, start_time)
+            self.scene = VideoSceneNative(self.bento, start_time)
         else:
-            self.scene = VideoScenePixmap(self.bento, self.id, start_time)
+            self.scene = VideoScenePixmap(self.bento, start_time)
         self.scene.setVideoPath(fn)
         self.ui.videoView.setScene(self.scene)
         self.ui.showPoseCheckBox.stateChanged.connect(self.showPoseDataChanged)
@@ -130,7 +130,7 @@ class VideoFrame(QFrame, DataExporter):
         return self.scene.getPlayer()
 
     def exportToNWBFile(self, nwbFile: NWBFile):
-        print(f"Export data from {self.dataExportType} #{self.id} to NWBFile")
+        print(f"Export data from {self.dataExportType} to NWB file")
         if self.scene:
             nwbFile = self.scene.exportToNWBFile(nwbFile)
         return nwbFile

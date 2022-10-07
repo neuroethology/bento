@@ -12,12 +12,8 @@ class DataExporter:
     Data export base class
     """
 
-    def __init__(self, id: int):
-        """
-        The combination (self.dataExportType, self.id) should be unique.
-        """
+    def __init__(self):
         self.dataExportType = "None"  # derived class should override this
-        self.id: int = id
 
     def exportToNWBFile(self, nwbFile: NWBFile) -> NWBFile:
         raise NotImplementedError("Derived class needs to implement this")

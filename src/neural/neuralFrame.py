@@ -20,9 +20,9 @@ class NeuralFrame(QFrame, DataExporter):
     neuralSceneUpdated = Signal()
     active_channel_changed = Signal(str)
 
-    def __init__(self, bento, id):
+    def __init__(self, bento):
         QFrame.__init__(self)
-        DataExporter.__init__(self, id)
+        DataExporter.__init__(self)
         self.dataExportType = "neural"
         self.bento = bento
         # self.ui = Ui_NeuralDockWidget()
@@ -145,7 +145,7 @@ class NeuralFrame(QFrame, DataExporter):
             self.neuralScene.showAnnotations(state > 0)
 
     def exportToNWBFile(self, nwbFile: NWBFile):
-        print(f"Export data from {self.dataExportType} #{self.id} to NWB file")
+        print(f"Export data from {self.dataExportType} to NWB file")
         if isinstance(self.neuralScene, NeuralScene):
             nwbFile = self.neuralScene.exportToNWBFile(nwbFile)
         

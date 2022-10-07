@@ -94,7 +94,7 @@ class Bento(QObject, DataExporter):
     """
     def __init__(self):
         QObject.__init__(self)
-        DataExporter.__init__(self, 0)
+        DataExporter.__init__(self)
         self.dataExportType = "bento"
         self.config = BentoConfig()
         goodConfig = self.config.read()
@@ -576,14 +576,14 @@ class Bento(QObject, DataExporter):
             time.sleep(3./30.)  # wait for threads to shut down
             QApplication.instance().quit()
 
-    def newVideoWidget(self, video_path: str, id: int, start_time: Timecode, forcePixmapMode: bool) -> VideoFrame:
-        video = VideoFrame(self, id)
+    def newVideoWidget(self, video_path: str, start_time: Timecode, forcePixmapMode: bool) -> VideoFrame:
+        video = VideoFrame(self)
         video.load_video(video_path, start_time, forcePixmapMode)
         self.currentAnnotsChanged.connect(video.updateAnnots)
         return video
 
-    def newNeuralWidget(self, neuralData, id: int, base_dir: str) -> NeuralFrame:
-        neuralWidget = NeuralFrame(self, id)
+    def newNeuralWidget(self, neuralData, base_dir: str) -> NeuralFrame:
+        neuralWidget = NeuralFrame(self)
         neuralWidget.load(neuralData, base_dir)
         self.timeChanged.connect(neuralWidget.updateTime)
         self.active_channel_changed.connect(neuralWidget.setActiveChannel)
@@ -592,7 +592,7 @@ class Bento(QObject, DataExporter):
     def timeToTimecode(self, time_start_end, video_info, sample_rate=30.):
         times = list()
         for ix, item in enumerate(video_info):
-            if VideoFrame(self, 0).supported_by_native_player(item[1].file_path):
+            if VideoFrame(self).supported_by_native_player(item[1].file_path):
                 times.extend(time_start_end['video'][ix])
             else:
                 continue
@@ -710,7 +710,7 @@ class Bento(QObject, DataExporter):
             # We give native videos priority by artificially pushing their start times 6 hours earlier
             pairs = [[video_data.start_time, video_data] for video_data in videos]
             for item in pairs:
-                if VideoFrame(self, 0).supported_by_native_player(item[1].file_path):
+                if VideoFrame(self).supported_by_native_player(item[1].file_path):
                     item[0] -= 6 * 60 * 60
             ordered_pairs = sorted(pairs, key=lambda tuple: tuple[0])
             for ix, item in enumerate(ordered_pairs):
@@ -722,7 +722,7 @@ class Bento(QObject, DataExporter):
                 else:
                     path = video_data.file_path
                 # force pixmap mode if we already are using a native player as a time source
-                widget = self.newVideoWidget(fix_path(path), ix, video_data.start_time, bool(timeSource))
+                widget = self.newVideoWidget(fix_path(path), video_data.start_time, bool(timeSource))
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
                     if len(video.pose_data) > 0:
@@ -800,7 +800,7 @@ class Bento(QObject, DataExporter):
                     if trial.neural_data:
                         progress.setLabelText("Loading neural data...")
                         progress.setValue(progressCompleted)
-                        neuralWidget = self.newNeuralWidget(trial.neural_data[0], 0, base_dir)
+                        neuralWidget = self.newNeuralWidget(trial.neural_data[0], base_dir)
                         self.widgets.append(neuralWidget)
                         if self.annotationsScene:
                             neuralWidget.overlayAnnotations(self.annotationsScene)
@@ -854,7 +854,7 @@ class Bento(QObject, DataExporter):
             self.annotations.truncate_or_remove_bouts(beh, self.time_start, self.time_end, chan)
 
     def exportToNWBFile(self):
-        print(f"Export data from {self.dataExportType} #{self.id} to NWB file")
+        print(f"Export data from {self.dataExportType} to NWB file")
         # export session and trial metadata here
         investigatorInfo, animalInfo, trialInfo = dict(), dict(), dict()
         with self.db_sessionMaker() as db_sess:
@@ -906,6 +906,7 @@ class Bento(QObject, DataExporter):
             self.nwbFile = widget.exportToNWBFile(self.nwbFile)
         # export annotations data
         self.nwbFile = self.annotations.exportToNWBFile(self.nwbFile)
+        print(self.nwbFile)
         
 
    # Signals

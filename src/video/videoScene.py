@@ -26,9 +26,9 @@ class VideoSceneAbstractBase(QGraphicsScene, DataExporter):
     def supportedFormats() -> List:
         raise NotImplementedError("Derived class needs to override this method")
 
-    def __init__(self, bento: QObject, id: int, start_time: Timecode, parent: QObject=None):
+    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
         QGraphicsScene.__init__(self, parent)
-        DataExporter.__init__(self, id)
+        DataExporter.__init__(self)
         self.bento = bento
         self.annots = None
         self.pose_class = None
@@ -54,7 +54,7 @@ class VideoSceneAbstractBase(QGraphicsScene, DataExporter):
 
     def exportToNWBFile(self, nwbFile: NWBFile):
         if self.pose_class:
-            nwbFile = self.pose_class.exportPosesToNWBFile(self.id, nwbFile)
+            nwbFile = self.pose_class.exportPosesToNWBFile(nwbFile)
         return nwbFile
 
     def setStartTime(self, t: Timecode):
@@ -130,8 +130,8 @@ class VideoSceneNative(VideoSceneAbstractBase):
     # update current time every 1/10 second
     time_update_msec: int = round(1000 / 10)
 
-    def __init__(self, bento: QObject, id: int, start_time: Timecode, parent: QObject=None):
-        super().__init__(bento, id, start_time, parent)
+    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
+        super().__init__(bento, start_time, parent)
         self.player = QMediaPlayer()
         self.playerItem = QGraphicsVideoItem()
         self.player.setVideoOutput(self.playerItem)
@@ -246,8 +246,8 @@ class VideoScenePixmap(VideoSceneAbstractBase):
     def supportedFormats() -> List:
         return ['seq', 'mp4', 'avi']
 
-    def __init__(self, bento: QObject, id: int, start_time: Timecode, parent: QObject=None):
-        super().__init__(bento, id, start_time, parent)
+    def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
+        super().__init__(bento, start_time, parent)
         self.reader = None
         self.frame_ix: int = 0
         self.pixmap = QPixmap()
@@ -257,6 +257,7 @@ class VideoScenePixmap(VideoSceneAbstractBase):
     def setVideoPath(self, videoPath: str):
         _, ext = os.path.splitext(videoPath)
         ext = ext.lower()
+        print(videoPath)
         if ext == '.seq':
             self.reader = seqIo.seqIo_reader(videoPath)
         elif ext in ['.avi', '.mp4']:

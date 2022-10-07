@@ -35,7 +35,10 @@ class PoseSLEAP(PoseBase):
         self.num_nodes: int = 0
         self.num_instances: int = 0
         self.has_edges: bool = False
+        self.has_scores: bool = False
         self.pose_data: np.ndarray = np.array([])
+        self.confidence: np.ndarray = np.array([])
+        self.edge_inds: np.ndarray = np.array([])
         self.node_names: List = []
 
     def _drawPoses_noEdges(self, painter: QPainter, frame_ix: int):
@@ -151,6 +154,8 @@ class PoseSLEAP(PoseBase):
         with h5py.File(file_path, "r") as f:
             self.pose_data = f["tracks"][:].T
             self.node_names = [n.decode() for n in f["node_names"][:]]
+            if self.has_scores:
+                self.confidence = f["point_scores"][:].T
 
         self.pose_polys: List[List[QPolygonF]] = []
         self.num_frames, self.num_nodes, _, self.num_instances = self.pose_data.shape
@@ -193,9 +198,12 @@ class PoseSLEAP(PoseBase):
 
         with h5py.File(file_path, "r") as f:
             self.pose_data = f["tracks"][:].T
+            if self.has_scores:
+                self.confidence = f["point_scores"][:].T
             if self.has_edges:
                 self.node_names = [n.decode() for n in f["node_names"][:]]
                 edge_names = [(s.decode(), d.decode()) for (s, d) in f["edge_names"][:]]
+                self.edge_inds = f["edge_inds"][:].T
 
         self.pose_polys: List[Tuple[List[QPolygonF], List[QLineF]]] = []
         self.num_frames, self.num_nodes, _, self.num_instances = self.pose_data.shape
@@ -239,6 +247,8 @@ class PoseSLEAP(PoseBase):
             dset_names = list(f.keys())
         if "edge_names" in dset_names:
             self.has_edges = True
+        if "point_scores" in dset_names:
+            self.has_scores = True
 
         if self.has_edges:
             # Load poses with edge data available.
@@ -247,7 +257,7 @@ class PoseSLEAP(PoseBase):
             # Load poses without edge data available.
             self._loadPoses_noEdges_h5(parent_widget, file_path, video_path)
     
-    def exportPosesToNWBFile(self, id: int, nwbFile: NWBFile):
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
         processing_module_name = f"Pose data for video {os.path.basename(self.video_path)}"
 
         for instance_ix in range(self.num_instances):
@@ -256,11 +266,12 @@ class PoseSLEAP(PoseBase):
                 pose_estimation_series.append(
                     PoseEstimationSeries(
                         name = f"{self.node_names[nodes_ix]}",
-                        description = f"Pose keypoint placed aroud {self.node_names[nodes_ix]}",
+                        description = f"Pose keypoint placed around {self.node_names[nodes_ix]}",
                         data =self.pose_data[:,nodes_ix,:,instance_ix],
                         reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                         timestamps = np.arange(self.num_frames, dtype=float), 
-                        confidence = np.arange(self.num_frames, dtype=float) # dummy confidence - needs to change
+                        confidence = self.confidence[:,nodes_ix,instance_ix] if self.has_scores 
+                                     else np.full(self.pose_data.shape[0], -1, dtype='float64')
                     )
                 )
             pose_estimation = PoseEstimation(
@@ -268,7 +279,7 @@ class PoseSLEAP(PoseBase):
                 name = f"animal_{instance_ix}",
                 description = f"Estimated position for animal_{instance_ix} in video {os.path.basename(self.video_path)}",
                 nodes = self.node_names,
-                # edges need to be added
+                edges = self.edge_inds.astype('uint64') if self.has_edges else None,
             )
             if processing_module_name in nwbFile.processing:
                 nwbFile.processing[processing_module_name].add(pose_estimation)

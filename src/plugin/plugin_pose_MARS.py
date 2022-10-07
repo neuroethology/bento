@@ -6,6 +6,8 @@ from qtpy.QtWidgets import QMessageBox, QWidget
 from pose.pose import PoseBase
 import h5py as h5
 import os
+import json
+from os.path import splitext
 import numpy as np
 from pynwb import NWBFile
 from ndx_pose import PoseEstimationSeries, PoseEstimation
@@ -48,34 +50,62 @@ class PoseMARS(PoseBase):
         return "MARS pose files"
 
     def getFileSearchPattern(self) -> str:
-        return "*.mat"
+        return "*.mat *.json"
 
     def getFileFormat(self) -> str:
         return "MARS"
 
+    def _validateFileJSON(self, parent_widget: QWidget, file_path: str) -> bool:
+        with open(file_path, 'r') as f:
+            keys = list(json.load(f).keys())
+        if 'keypoints' not in keys:
+            QMessageBox.warning(parent_widget, "Add Pose ...", "No keypoints found in pose file")
+            return False
+        return True
+    
+    def _validateFileMAT(self, parent_widget: QWidget, file_path: str) -> bool:
+        with warnings.catch_warnings():
+            # suppress warning coming from checking the mat file contents
+            warnings.simplefilter('ignore', category=UserWarning)
+            keys = list(pmr.read_mat(file_path).keys())
+        if 'keypoints' not in keys:
+            QMessageBox.warning(parent_widget, "Add Pose ...", "No keypoints found in pose file")
+            return False
+        return True
+     
     def validateFile(self, parent_widget: QWidget, file_path: str) -> bool:
         """
         Default implementation does no checking,
         but we can do better than that
         """
-        with warnings.catch_warnings():
-            # suppress warning coming from checking the mat file contents
-            warnings.simplefilter('ignore', category=UserWarning)
-            poseMat = pmr.read_mat(file_path)
-        if 'keypoints' not in poseMat.keys():
-            QMessageBox.warning(parent_widget, "Add Pose ...", "No keypoints found in pose file")
-            return False
-        return True
+        _, ext = splitext(file_path)
+        ext = ext.lower()
+        if ext == '.mat':
+            return self._validateFileMAT(parent_widget, file_path)
+        elif ext == '.json':
+            return self._validateFileJSON(parent_widget, file_path)
+        else:
+            QMessageBox.warning(parent_widget, "Extension not supported",
+                f"The file extension {ext} is not supported.")
 
     def loadPoses(self, parent_widget: QWidget, path: str, video_path: str):
-        mat = None
-        with warnings.catch_warnings():
-            # suppress warning coming from checking the mat file contents
-            warnings.simplefilter('ignore', category=UserWarning)
-            mat = pmr.read_mat(path)
+        data = None
+        _, ext = splitext(path)
+        ext = ext.lower()
+        if ext == '.mat':
+            with warnings.catch_warnings():
+                # suppress warning coming from checking the mat file contents
+                warnings.simplefilter('ignore', category=UserWarning)
+                data = pmr.read_mat(path)
+        elif ext == '.json':
+            with open(path, 'r') as f:
+                data = json.load(f)
+        else:
+            QMessageBox.warning(parent_widget, "Extension not supported",
+                f"The file extension {self.file_extension} is not supported.")
         try:
-            self.keypoints = mat['keypoints']
-            self.confidence = mat['scores']
+            self.keypoints = np.array(data['keypoints'])
+            self.confidence = np.array(data['scores'])
         except Exception as e:
             QMessageBox.about(parent_widget, "Load Error", f"Error loading pose data from file {path}: {e}")
             return None
@@ -104,7 +134,7 @@ class PoseMARS(PoseBase):
                 frame_polys.append(poly)
             self.pose_polys.append(frame_polys)
 
-    def exportPosesToNWBFile(self, id: int, nwbFile: NWBFile):
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
 
         processing_module_name = f"Pose data for video {os.path.basename(self.video_path)}"
         for mouse_ix in range(self.num_mice):
@@ -112,9 +142,9 @@ class PoseMARS(PoseBase):
             pose_estimation_series.append(
                 PoseEstimationSeries(
                     name = 'nose',
-                    description = 'Pose keypoint placed aroud nose',
+                    description = 'Pose keypoint placed around nose',
                     data = self.keypoints[:,mouse_ix,:,0],
-                    reference_frame = '(0,0,0) corresponds to ...',
+                    reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                     timestamps = np.arange(self.num_frames, dtype=float), 
                     confidence = self.confidence[:,mouse_ix,0]
                 )
@@ -122,9 +152,9 @@ class PoseMARS(PoseBase):
             pose_estimation_series.append(
                 PoseEstimationSeries(
                     name = 'left ear',
-                    description = 'Pose keypoint placed aroud left ear',
+                    description = 'Pose keypoint placed around left ear',
                     data = self.keypoints[:,mouse_ix,:,1],
-                    reference_frame = '(0,0,0) corresponds to ...',
+                    reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                     timestamps = np.arange(self.num_frames, dtype=float),
                     confidence = self.confidence[:,mouse_ix,1]
                 )
@@ -132,9 +162,9 @@ class PoseMARS(PoseBase):
             pose_estimation_series.append(
                 PoseEstimationSeries(
                     name = 'right ear',
-                    description = 'Pose keypoint placed aroud right ear',
+                    description = 'Pose keypoint placed around right ear',
                     data = self.keypoints[:,mouse_ix,:,2],
-                    reference_frame = '(0,0,0) corresponds to ...',
+                    reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                     timestamps = np.arange(self.num_frames, dtype=float),
                     confidence = self.confidence[:,mouse_ix,2]
                 )
@@ -142,9 +172,9 @@ class PoseMARS(PoseBase):
             pose_estimation_series.append(
                 PoseEstimationSeries(
                     name = 'neck',
-                    description = 'Pose keypoint placed aroud neck',
+                    description = 'Pose keypoint placed around neck',
                     data = self.keypoints[:,mouse_ix,:,3],
-                    reference_frame = '(0,0,0) corresponds to ...',
+                    reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                     timestamps = np.arange(self.num_frames, dtype=float),
                     confidence = self.confidence[:,mouse_ix,3]
                 )
@@ -152,9 +182,9 @@ class PoseMARS(PoseBase):
             pose_estimation_series.append(
                 PoseEstimationSeries(
                     name = 'left hip',
-                    description = 'Pose keypoint placed aroud left hip',
+                    description = 'Pose keypoint placed around left hip',
                     data = self.keypoints[:,mouse_ix,:,4],
-                    reference_frame = '(0,0,0) corresponds to ...',
+                    reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                     timestamps = np.arange(self.num_frames, dtype=float),
                     confidence = self.confidence[:,mouse_ix,4]
                 )
@@ -162,9 +192,9 @@ class PoseMARS(PoseBase):
             pose_estimation_series.append(
                 PoseEstimationSeries(
                     name = 'right hip',
-                    description = 'Pose keypoint placed aroud right hip',
+                    description = 'Pose keypoint placed around right hip',
                     data = self.keypoints[:,mouse_ix,:,5],
-                    reference_frame = '(0,0,0) corresponds to ...',
+                    reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                     timestamps = np.arange(self.num_frames, dtype=float),
                     confidence = self.confidence[:,mouse_ix,5]
                 )
@@ -172,9 +202,9 @@ class PoseMARS(PoseBase):
             pose_estimation_series.append(
                 PoseEstimationSeries(
                     name = 'tail',
-                    description = 'Pose keypoint placed aroud tail',
+                    description = 'Pose keypoint placed around tail',
                     data = self.keypoints[:,mouse_ix,:,6],
-                    reference_frame = '(0,0,0) corresponds to ...',
+                    reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
                     timestamps = np.arange(self.num_frames, dtype=float),
                     confidence = self.confidence[:,mouse_ix,6]
                 )
