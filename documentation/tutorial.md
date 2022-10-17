@@ -97,7 +97,7 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 #### Adding a Pose file
 1. Click on a **Video file** and click on **Add Pose...** button
 2. Select the appropriate format for the file in the file selection window. Bento supports MARS, SLEAP and DeepLabCut files.
-3. YOu can add one pose file to each video file present in a trial.
+3. You can add one pose file to each video file present in a trial.
 
 ![alt-text](_gifs/adding_trials.gif)
 
