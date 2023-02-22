@@ -906,7 +906,6 @@ class Bento(QObject, DataExporter):
             self.nwbFile = widget.exportToNWBFile(self.nwbFile)
         # export annotations data
         self.nwbFile = self.annotations.exportToNWBFile(self.nwbFile)
-        print(self.nwbFile)
         
 
    # Signals

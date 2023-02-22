@@ -1,9 +1,10 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
+from plugin.eventTriggeredAverage_ui import Ui_Frame
 from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtGui import QPixmap
-from qtpy.QtWidgets import QFrame
+from qtpy.QtWidgets import QFrame, QMenu
 import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
@@ -12,6 +13,15 @@ from pynwb import NWBFile
 import numpy as np
 from utils import fix_path
 from os.path import isabs
+
+class eventTriggeredFrame(QFrame, DataExporter):
+
+    def __init__(self):
+        QFrame.__init__(self)
+        DataExporter.__init__(self)
+        self.ui = Ui_Frame()
+        self.ui.setupUi(self)
+
 
 class NeuralFrame(QFrame, DataExporter):
 
@@ -32,6 +42,11 @@ class NeuralFrame(QFrame, DataExporter):
         self.quitting.connect(self.bento.quit)
         self.neuralScene = NeuralScene()
         self.active_channel_changed.connect(self.neuralScene.setActiveChannel)
+        self.neuralPluginsMenu = QMenu("neural plugins")
+        self.ui.launchPlugin.setMenu(self.neuralPluginsMenu)
+        self.ui.launchPlugin.setToolTip("click to see neural plugin options")
+        self.eventTriggeredAvg = self.neuralPluginsMenu.addAction("Event Triggered Average")
+        self.eventTriggeredAvg.triggered.connect(self.launchEventTriggeredAvg)
         self.ui.neuralView.setScene(self.neuralScene)
         self.ui.neuralView.set_bento(bento)
         self.ui.neuralView.scale(10., self.ui.neuralView.height())
@@ -143,6 +158,12 @@ class NeuralFrame(QFrame, DataExporter):
     def showNeuralAnnotations(self, state):
         if isinstance(self.neuralScene, NeuralScene):
             self.neuralScene.showAnnotations(state > 0)
+    @Slot()
+    def launchEventTriggeredAvg(self):
+        print('event triggered window launched')
+        self.eventTriggeredWidget = eventTriggeredFrame()
+        self.eventTriggeredWidget.show()
+        
 
     def exportToNWBFile(self, nwbFile: NWBFile):
         print(f"Export data from {self.dataExportType} to NWB file")
