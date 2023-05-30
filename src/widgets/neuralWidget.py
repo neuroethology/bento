@@ -391,7 +391,7 @@ class NeuralScene(QGraphicsScene):
     
     def exportToNWBFile(self, nwbFile: NWBFile):
         neuralData = TimeSeries(name=f"neural_data",
-                                data = self.data,
+                                data = self.data[:,self.start_frame+1:self.stop_frame],
                                 rate=self.sample_rate,
                                 starting_time = self.time_start.float,
                                 unit = "None",

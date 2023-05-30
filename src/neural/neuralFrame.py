@@ -1,7 +1,7 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
-from plugin.eventTriggeredAverage_ui import Ui_Frame
+from plugin.plugin_neural_behaviorTriggeredAverage import behaviorTriggeredAverage
 from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtGui import QPixmap
 from qtpy.QtWidgets import QFrame, QMenu
@@ -14,13 +14,13 @@ import numpy as np
 from utils import fix_path
 from os.path import isabs
 
-class eventTriggeredFrame(QFrame, DataExporter):
+""" class eventTriggeredFrame(QFrame, DataExporter):
 
     def __init__(self):
         QFrame.__init__(self)
         DataExporter.__init__(self)
-        self.ui = Ui_Frame()
-        self.ui.setupUi(self)
+        self.ui = Ui_BTAFrame()
+        self.ui.setupUi(self) """
 
 
 class NeuralFrame(QFrame, DataExporter):
@@ -158,16 +158,16 @@ class NeuralFrame(QFrame, DataExporter):
     def showNeuralAnnotations(self, state):
         if isinstance(self.neuralScene, NeuralScene):
             self.neuralScene.showAnnotations(state > 0)
-    @Slot()
+
     def launchEventTriggeredAvg(self):
         print('event triggered window launched')
-        self.eventTriggeredWidget = eventTriggeredFrame()
-        self.eventTriggeredWidget.show()
+        self.behaviorTriggeredWidget = behaviorTriggeredAverage(self.nwbFile, self.bento)
+        self.behaviorTriggeredWidget.invokeUI()
         
 
     def exportToNWBFile(self, nwbFile: NWBFile):
         print(f"Export data from {self.dataExportType} to NWB file")
         if isinstance(self.neuralScene, NeuralScene):
-            nwbFile = self.neuralScene.exportToNWBFile(nwbFile)
+            self.nwbFile = self.neuralScene.exportToNWBFile(nwbFile)
         
-        return nwbFile
+        return self.nwbFile
