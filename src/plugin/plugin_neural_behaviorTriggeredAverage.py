@@ -353,13 +353,17 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
         errPosValues = self.avgTrials + self.errTrials
         errNegValues = self.avgTrials - self.errTrials
         if np.count_nonzero(self.errTrials)!=0:
+            notZeroIndices = np.where(~(self.errTrials==0))[0]
+            # handing a case when there are two trials and one has few NaN values
+            errPosValues = self.avgTrials[notZeroIndices] + self.errTrials[notZeroIndices]
+            errNegValues = self.avgTrials[notZeroIndices] - self.errTrials[notZeroIndices]
             self.errPosLine = visuals.Line(
-                np.column_stack((self.trialsTs, errPosValues)),
+                np.column_stack((self.trialsTs[notZeroIndices], errPosValues)),
                 parent=self.view_top.scene,
                 color='white'
             )
             self.errNegLine = visuals.Line(
-                np.column_stack((self.trialsTs, errNegValues)),
+                np.column_stack((self.trialsTs[notZeroIndices], errNegValues)),
                 parent=self.view_top.scene,
                 color='white'
             )
@@ -368,8 +372,6 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
                 color=(0.85, 0.85, 0.85, 1),
                 parent=self.view_top.scene
             )
-            print(self.errPosLine.pos)
-            print(self.errNegLine.pos[::-1])
         self.centerLineTop = visuals.InfiniteLine(0, 
                                                color=[0,0,0,1], 
                                                vertical=True,
