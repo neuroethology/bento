@@ -1,7 +1,7 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
-from plugin.plugin_neural_behaviorTriggeredAverage import behaviorTriggeredAverage
+from processing.processing import ProcessingRegistry
 from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtGui import QPixmap
 from qtpy.QtWidgets import QFrame, QMenu
@@ -13,14 +13,6 @@ from pynwb import NWBFile
 import numpy as np
 from utils import fix_path
 from os.path import isabs
-
-""" class eventTriggeredFrame(QFrame, DataExporter):
-
-    def __init__(self):
-        QFrame.__init__(self)
-        DataExporter.__init__(self)
-        self.ui = Ui_BTAFrame()
-        self.ui.setupUi(self) """
 
 
 class NeuralFrame(QFrame, DataExporter):
@@ -160,9 +152,10 @@ class NeuralFrame(QFrame, DataExporter):
             self.neuralScene.showAnnotations(state > 0)
 
     def launchEventTriggeredAvg(self):
-        print('event triggered window launched')
-        self.behaviorTriggeredWidget = behaviorTriggeredAverage(self.nwbFile, self.bento)
-        self.behaviorTriggeredWidget.invokeUI()
+        self.processing_registry = ProcessingRegistry(self.nwbFile, self.bento)
+        self.processing_registry.load_plugins()
+        self.processing_class = self.processing_registry('BTA')
+        self.processing_class.show()
         
 
     def exportToNWBFile(self, nwbFile: NWBFile):

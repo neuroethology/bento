@@ -7,16 +7,16 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 import math
-from processing.postProcessing import postProcessingBase
+from processing.processing import ProcessingBase
 from vispy.scene import SceneCanvas, visuals, AxisWidget
 from vispy.visuals.transforms import STTransform
 from PIL import Image
 
 
-class behaviorTriggeredAverage(QFrame, postProcessingBase):
+class behaviorTriggeredAverage(QFrame, ProcessingBase):
     def __init__(self, nwbFile, bento):
         QFrame.__init__(self)
-        postProcessingBase.__init__(self, nwbFile, bento)
+        ProcessingBase.__init__(self, nwbFile, bento)
         self.bento = bento
         self.checkData()
         if not self.annotationsExists or not self.neuralExists:
@@ -36,6 +36,7 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
         self.getBehaviors()
         self.offset = self.neuralStartTime - \
                       self.bento.time_start_end_timecode['annotations'][0][0].float
+        self.invokeUI()
         
     def invokeUI(self):
         self.ui = Ui_BTAFrame()
@@ -48,7 +49,6 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
         self.populateAnalyzeCombo()
         self.bento.nwbFileUpdated.connect(self.populateBehaviorCombo)
         self.bento.nwbFileUpdated.connect(self.populateChannelsCombo)
-        #self.bento.nwbFileUpdated.connect(self.getBehaviorTriggeredTrials)
         self.saveMenu = QMenu("Save Options")
         self.ui.saveButton.setMenu(self.saveMenu)
         self.ui.saveButton.setToolTip("click to see save options")
@@ -57,7 +57,6 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
         self.saveh5.triggered.connect(self.saveBTAtoh5)
         self.saveFigure.triggered.connect(self.savePlots)
         self.ui.binSizeBox.setMinimum(float(1/self.neuralSampleRate))
-        #self.ui.behaviorComboBox.currentTextChanged.connect(self.populateChannelsCombo)
         self.ui.mergeBoutsBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.discardBoutsBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.channelComboBox.currentTextChanged.connect(self.getBehaviorTriggeredTrials)
@@ -71,33 +70,24 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
         self.ui.zscoreCheckBox.stateChanged.connect(self.getBehaviorTriggeredTrials)
         self.populateBehaviorSelection()
         self.getBehaviorTriggeredTrials()
-        self.show()
+        #self.show()
 
     @Slot()
     def populateBehaviorCombo(self):
-        #self.ui.behaviorComboBox.clear()
-        #self.combineBehaviorNames = []
         for channel in list(self.behaviorNames.keys()):
             for item in self.behaviorNames[channel]:
                 if item in self.combineBehaviorNames:
                     continue
                 else:
-                    print(item)
                     self.ui.behaviorComboBox.addItem(item)
                     self.combineBehaviorNames.append(item)
-                    #self.combineBehaviorNames.extend(self.behaviorNames[channel])
-        #self.combineBehaviorNames = list(set(self.combineBehaviorNames))
-        #self.ui.behaviorComboBox.addItems(self.combineBehaviorNames)
     
     @Slot()
     def populateChannelsCombo(self):
-        #self.ui.channelComboBox.clear()
         for channel in list(self.behaviorNames.keys()):
-            #if self.ui.behaviorComboBox.currentText() in self.behaviorNames[channel]:
             if channel in self.combineChannels:
                 continue
-            else:
-                print(channel)   
+            else: 
                 self.ui.channelComboBox.addItem(channel)
                 self.combineChannels.append(channel)
     
@@ -235,12 +225,8 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
     
     @Slot()
     def getBehaviorTriggeredTrials(self):
-        print(self.bev, self.ui.behaviorComboBox.currentText())
-        print(self.ch, self.ui.channelComboBox.currentText())
-        
         self.bev = self.ui.behaviorComboBox.currentText()
         self.ch = self.ui.channelComboBox.currentText()
-        print(self.bev)
         binSize = float(self.ui.binSizeBox.value())
         if binSize==0:
             self.sampleRate = self.neuralSampleRate
@@ -254,7 +240,6 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
                             int(round(self.window[1]*self.sampleRate))]
         self.trialsTotalTs = self.windowNumTs[0] + self.windowNumTs[1]
         self.trialsTs = np.linspace(-self.window[0], self.window[1], self.trialsTotalTs+1)
-        print(self.trialsTs.shape, self.trialsTs[0], self.trialsTs[-1])
         if self.checkChannelAndData(self.bev, self.ch):
             self.data = self.annotationsData[self.ch].loc[self.annotationsData[self.ch]['behaviorName'] == self.bev]
             if self.ui.alignAtStartButton.isChecked():
@@ -292,6 +277,8 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
                     if not self.checkboxState[bev].isChecked():
                         copy_df.drop(copy_df[copy_df['behaviorName']==bev].index, inplace=True)
                 self.backgroundAnnotations[str(ix)] = copy_df
+            
+            # handling a case when there is only one trial
             if self.trials.shape[0]==1:
                 self.avgTrials = self.trials[0]
                 self.errTrials = np.zeros(self.trialsTs.shape[0])
@@ -314,7 +301,6 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
             self.ui.plotLayout.itemAt(i).widget().deleteLater()
     
     def plotBTA(self):
-        print('plot')
         self.clearPlotLayout()
         self.createAnnotationsImgArray()
         self.canvas_top = SceneCanvas(size=(self.width,200))
@@ -489,7 +475,9 @@ class behaviorTriggeredAverage(QFrame, postProcessingBase):
         
 
 
-        
+def register(registry, nwbFile=None, bento=None):
+    bta_processing_plugin = behaviorTriggeredAverage(nwbFile, bento)
+    registry.register('BTA', bta_processing_plugin)
         
 
 

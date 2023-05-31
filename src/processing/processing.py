@@ -11,7 +11,7 @@ import sys
 
 
 
-class postProcessingBase():
+class ProcessingBase():
     """
     Abstract class from which to derive post processing plug-ins
     """
@@ -106,27 +106,29 @@ class postProcessingBase():
         """
 
 
-class PostProcessingRegistry():
+class ProcessingRegistry():
     """
-    Class that loads and manages neural plug-ins
+    Class that loads and manages processing plug-ins
     """
 
-    def __init__(self):
-        self.neural_modules = {}
+    def __init__(self, nwbFile=None, bento=None):
+        self.processing_modules = {}
         self.plugin_dir = None
+        self.nwbFile = nwbFile
+        self.bento = bento
 
-    def __call__(self, format: str):
-        if not format in self.neural_modules:
+    def __call__(self, type: str):
+        if not type in self.processing_modules:
             return None
-        return self.neural_modules[format]
+        return self.processing_modules[type]
 
-    def register(self, format: str, module):
-        self.neural_modules[format] = module
+    def register(self, type: str, module):
+        self.processing_modules[type] = module
 
     def load_plugins(self):
         """
         Search the plugin directory for python files of
-        the form "plugin_neural_*.py"
+        the form "plugin_processing_*.py"
         Import any that are found, and call their "register" function if there is one
         If no "register" function exists, the plugin will not be available for use.
         """
@@ -139,16 +141,15 @@ class PostProcessingRegistry():
             return
         self.plugin_dir = abspath(plugin_dir)
         sys.path.append(self.plugin_dir)
-
         paths = listdir(self.plugin_dir)
         for path in paths:
-            if not path.lower().startswith('plugin_neural_'):
+            if not path.lower().startswith('plugin_processing_'):
                 continue
             stem, _ = splitext(path)
             m = import_module(stem)
             if 'register' not in dir(m):
                 continue
-            m.register(self)
+            m.register(self, self.nwbFile, self.bento)
 
     def getPluginDir(self) -> str:
         return self.plugin_dir
