@@ -61,7 +61,6 @@ class ProcessingBase():
         self.neuralData = self.nwbFile.acquisition['neural_data'].data[:]
         self.neuralSampleRate = self.nwbFile.acquisition['neural_data'].rate
         self.neuralStartTime = self.nwbFile.acquisition['neural_data'].starting_time
-        print('neural start time : ', self.neuralStartTime)
     
 
     def getPoseData(self):

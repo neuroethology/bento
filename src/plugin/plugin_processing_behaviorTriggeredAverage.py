@@ -70,7 +70,6 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.ui.zscoreCheckBox.stateChanged.connect(self.getBehaviorTriggeredTrials)
         self.populateBehaviorSelection()
         self.getBehaviorTriggeredTrials()
-        #self.show()
 
     @Slot()
     def populateBehaviorCombo(self):
@@ -254,16 +253,16 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
             self.alignTime = self.alignTime[np.where(self.alignTime > 0)[0]]
             self.trials = np.full((self.alignTime.shape[0], self.trialsTs.shape[0]), np.nan)
             self.backgroundAnnotations = dict()
-            data = signal.resample(self.checkAnalyzeComboAndGetData(),
-                                   num=num, t=self.neuralDataTs)[0]
+            resampledData = signal.resample(self.checkAnalyzeComboAndGetData(),
+                                            num=num, t=self.neuralDataTs)[0]
             for ix in range(self.alignTime.shape[0]):
                 idx = int(round((self.alignTime[ix])*self.sampleRate))
                 if self.ui.zscoreCheckBox.isChecked():
-                    self.trials[ix, :] = self.zscore(self.createTrial(data, 
+                    self.trials[ix, :] = self.zscore(self.createTrial(resampledData, 
                                                         idx, 
                                                         self.windowNumTs))
                 else:
-                    self.trials[ix, :] = self.createTrial(data, 
+                    self.trials[ix, :] = self.createTrial(resampledData, 
                                                         idx, 
                                                         self.windowNumTs)
                 start_time = np.array(self.annotationsData[self.ch]['start_time']) - self.alignTime[ix]
@@ -422,13 +421,10 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
     def createAnnotationsImgArray(self):
         self.trialHeight = 10
         self.height, self.width, channels = self.trials.shape[0]*self.trialHeight, self.trials.shape[1]+1, 3
-        #self.width = int(round(self.width/(self.window[0]+self.window[1]))) * (self.window[0]+self.window[1])
         secondLength = int(self.width/(self.window[0]+self.window[1]))
         self.imgArray = np.ones((self.height, self.width, channels), dtype=np.float32)
         height = 0
         for t in range(self.trials.shape[0]):
-            #if i>0:
-            #    break
             annotations = np.array(self.backgroundAnnotations[str(t)])
             annotations[:,0], annotations[:,1] = annotations[:,0] + self.window[0], annotations[:,1] + self.window[0]
             for j in range(annotations.shape[0]):
