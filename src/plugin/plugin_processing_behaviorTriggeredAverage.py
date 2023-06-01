@@ -22,8 +22,8 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         if not self.annotationsExists or not self.neuralExists:
             msgBox = QMessageBox(QMessageBox.Warning, 
                                  "Required Data not found", 
-                                 "Either Neural data or Annotation data \
-                                 does not exist for this plugin to work.")
+                                 "Both neural data and annotation data \
+                                  must exist for this plugin to work")
             msgBox.exec()
             raise RuntimeError("Either Neural data or Annotation data does not exist for this plugin to work.")
         self.bento.nwbFileUpdated.connect(self.getAnnotationsData)
@@ -39,16 +39,24 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.invokeUI()
         
     def invokeUI(self):
+        #setting up UI
         self.ui = Ui_BTAFrame()
         self.ui.setupUi(self)
+        # initialize few variables
         self.checkboxState = {}
         self.bev, self.ch = None, None
         self.combineBehaviorNames, self.combineChannels = [], []
+
+        # populating combo boxes
         self.populateBehaviorCombo()
         self.populateChannelsCombo()
         self.populateAnalyzeCombo()
+
+        # connect nwb file update signal to populate functions
         self.bento.nwbFileUpdated.connect(self.populateBehaviorCombo)
         self.bento.nwbFileUpdated.connect(self.populateChannelsCombo)
+
+        # creating save menu and connect them to saving functions
         self.saveMenu = QMenu("Save Options")
         self.ui.saveButton.setMenu(self.saveMenu)
         self.ui.saveButton.setToolTip("click to see save options")
@@ -56,7 +64,11 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.saveFigure = self.saveMenu.addAction("Save Figure")
         self.saveh5.triggered.connect(self.saveBTAtoh5)
         self.saveFigure.triggered.connect(self.savePlots)
+
+        # setting minimum value for bin size
         self.ui.binSizeBox.setMinimum(float(1/self.neuralSampleRate))
+
+        # connecting different user options getBehaviorTriggeredTrials function
         self.ui.mergeBoutsBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.discardBoutsBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.channelComboBox.currentTextChanged.connect(self.getBehaviorTriggeredTrials)
@@ -68,7 +80,10 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.ui.windowBox_2.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.binSizeBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.zscoreCheckBox.stateChanged.connect(self.getBehaviorTriggeredTrials)
+
+        # populating behavior selection checkboxes
         self.populateBehaviorSelection()
+        
         self.getBehaviorTriggeredTrials()
 
     @Slot()
@@ -224,8 +239,12 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
     
     @Slot()
     def getBehaviorTriggeredTrials(self):
+        # getting behavior name and channel
         self.bev = self.ui.behaviorComboBox.currentText()
         self.ch = self.ui.channelComboBox.currentText()
+
+        # getting bin size and calculate sampling rate
+        # and number of data points for resampling
         binSize = float(self.ui.binSizeBox.value())
         if binSize==0:
             self.sampleRate = self.neuralSampleRate
@@ -233,6 +252,8 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
             self.sampleRate = 1/binSize
         self.neuralDataTs = np.arange(self.neuralData.shape[1])/self.neuralSampleRate
         num = int(round(self.neuralDataTs[-1])*self.sampleRate)
+
+        # getting window values and calculate total window length
         self.window = [float(self.ui.windowBox_1.value()), 
                        float(self.ui.windowBox_2.value())]
         self.windowNumTs = [int(round(self.window[0]*self.sampleRate)), 
@@ -240,7 +261,10 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.trialsTotalTs = self.windowNumTs[0] + self.windowNumTs[1]
         self.trialsTs = np.linspace(-self.window[0], self.window[1], self.trialsTotalTs+1)
         if self.checkChannelAndData(self.bev, self.ch):
+            # getting anntations data for a particular behavior 
             self.data = self.annotationsData[self.ch].loc[self.annotationsData[self.ch]['behaviorName'] == self.bev]
+
+            # compute align time based on align at start or align at end
             if self.ui.alignAtStartButton.isChecked():
                 self.data = self.data[self.data['start_time']<self.neuralDataTs[-1]]
                 keptIndicesStart, _ = self.mergeAndDiscardBouts(self.data['start_time'], self.data['stop_time'])
@@ -249,12 +273,16 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
                 self.data = self.data[self.data['stop_time']<self.neuralDataTs[-1]]
                 _, keptIndicesStop = self.mergeAndDiscardBouts(self.data['start_time'], self.data['stop_time'])
                 self.alignTime = np.array(self.data['stop_time'])[keptIndicesStop]
+            
+            # considering offset and resampling neural data
             self.alignTime = self.alignTime - self.offset
             self.alignTime = self.alignTime[np.where(self.alignTime > 0)[0]]
             self.trials = np.full((self.alignTime.shape[0], self.trialsTs.shape[0]), np.nan)
             self.backgroundAnnotations = dict()
             resampledData = signal.resample(self.checkAnalyzeComboAndGetData(),
                                             num=num, t=self.neuralDataTs)[0]
+
+            # getting all the trials along with background annotations for each trial
             for ix in range(self.alignTime.shape[0]):
                 idx = int(round((self.alignTime[ix])*self.sampleRate))
                 if self.ui.zscoreCheckBox.isChecked():
@@ -284,6 +312,8 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
             else:
                 self.avgTrials = np.nanmean(self.trials, axis=0)
                 self.errTrials = np.nanstd(self.trials, axis=0)/math.sqrt(self.trials.shape[0])
+            
+            # plotting trials along with annotations in the background
             self.plotBTA()
         else:
             self.clearPlotLayout()
