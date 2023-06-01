@@ -420,16 +420,16 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
     
     def createAnnotationsImgArray(self):
         self.trialHeight = 10
-        self.height, self.width, channels = self.trials.shape[0]*self.trialHeight, self.trials.shape[1]+1, 3
+        self.height, self.width, channels = self.trials.shape[0]*self.trialHeight, int((self.trials.shape[1])*(self.window[0]+self.window[1])), 3
         secondLength = int(self.width/(self.window[0]+self.window[1]))
         self.imgArray = np.ones((self.height, self.width, channels), dtype=np.float32)
         height = 0
         for t in range(self.trials.shape[0]):
             annotations = np.array(self.backgroundAnnotations[str(t)])
-            annotations[:,0], annotations[:,1] = annotations[:,0] + self.window[0], annotations[:,1] + self.window[0]
+            annotations[:,0], annotations[:,1] = annotations[:,0] - self.offset + self.window[0], annotations[:,1] - self.offset + self.window[0]
             for j in range(annotations.shape[0]):
                 start = int(round((annotations[j,0]) * secondLength))
-                end = int(round((annotations[j,1] * secondLength)))
+                end = int(round((annotations[j,1]) * secondLength))
                 bev = self.behaviors[annotations[j,2]]
                 self.imgArray[height:int(height+self.trialHeight),start:end,0] = bev[0]
                 self.imgArray[height:int(height+self.trialHeight),start:end,1] = bev[1]
