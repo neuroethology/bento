@@ -4,10 +4,11 @@
 
 from os import X_OK
 from qtpy.QtCore import Qt, QPointF, QRectF, Signal, Slot
-from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
+from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem, QGraphicsPixmapItem,
     QGraphicsScene, QGraphicsView, QMessageBox)
 from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
-    QPixmap, QTransform, QWheelEvent)
+    QPixmap, QTransform, QWheelEvent, QPolygonF)
+from qtpy.QtCharts import QtCharts
 import numpy as np
 import pymatreader as pmr
 from qimage2ndarray import gray2qimage
@@ -15,6 +16,8 @@ from timecode import Timecode
 from utils import get_colormap, padded_rectf, quantizeTicksScale
 from pynwb import NWBFile, TimeSeries
 import warnings
+import shiboken2 as shiboken
+import ctypes
 
 class QGraphicsSubSceneItem(QGraphicsItem):
     """
@@ -267,6 +270,8 @@ class NeuralScene(QGraphicsScene):
         self.heatmap = None
         self.annotations = None
         self.activeChannel = None
+        self.tracesCache = dict()
+        self.tracesOrder = None
 
     """
     .mat files can be either old-style (MatLab 7.2 and earlier), in which case we need to use
@@ -305,25 +310,25 @@ class NeuralScene(QGraphicsScene):
         self.data_max = self.data.max()
         self.colorMapper = NeuralColorMapper(self.data_min, self.data_max, "parula")
         # for chan in range(self.num_chans):
-        for chan in range(self.num_chans):
-            self.loadChannel(self.data, chan)
-
-        # Image has a pixel for each frame for each channel
-        self.heatmapImage = self.colorMapper.mappedImage(self.data)
-        self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
-
-        # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
-        # to the time scale
-        transform = QTransform()
-        transform.scale(1. / self.sample_rate, 1.)
-        self.heatmap.setTransform(transform)
-        self.heatmap.setOpacity(0.5)
+        t_values = ((np.arange(self.data.shape[1]) - self.start_frame)/self.sample_rate) + self.time_start.float
+        y_values = np.arange(self.num_chans).reshape(-1,1) + 0.5 + self.normalize(self.data)
+        self.tracesOrder = y_values[:, self.start_frame]
+        self.drawTraces(t_values[self.start_frame:self.stop_frame], 
+                        y_values[:,self.start_frame:self.stop_frame])
+        #for chan in range(self.num_chans):
+        #    self.loadChannel(self.data, chan)
+        self.addTraces()
+        # create heatmap
+        self.createHeatmap(np.arange(self.num_chans))
         # finally, add the traces on top of everything
         self.addItem(self.traces)
         # pad some time on left and right to allow centering
         sceneRect = padded_rectf(self.sceneRect())
         sceneRect.setHeight(float(self.num_chans) + 1.)
         self.setSceneRect(sceneRect)
+        self.setVisibility(showTraces, showHeatmap, showAnnotations)
+
+    def setVisibility(self, showTraces, showHeatmap, showAnnotations):
         if isinstance(self.traces, QGraphicsItem):
             self.traces.setVisible(showTraces)
         if isinstance(self.heatmap, QGraphicsItem):
@@ -334,26 +339,65 @@ class NeuralScene(QGraphicsScene):
             self.heatmap.setVisible(showHeatmap)
         if isinstance(self.annotations, QGraphicsItem):
             self.annotations.setVisible(showAnnotations)
+    
+    def createHeatmap(self, order):
+        self.heatmapImage, self.heatmap = None, None
+        # Image has a pixel for each frame for each channel
+        self.heatmapImage = self.colorMapper.mappedImage(self.data[order,self.start_frame:self.stop_frame])
+        self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
 
-    def loadChannel(self, data, chan):
+        # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
+        # to the time scale
+        transform = QTransform()
+        transform.scale(1. / self.sample_rate, 1.)
+        self.heatmap.setTransform(transform)
+        self.heatmap.setOpacity(0.5)
+    
+    def drawTraces(self, t_values, y_values):
+        for chan in range(self.num_chans):
+            trace = QPainterPath()
+            trace.reserve(self.stop_frame - self.start_frame)
+            trace.addPolygon(self.createPoly(t_values, y_values[chan, :]))
+            self.tracesCache[str(chan)] = trace
+
+    def createPoly(self, x_values, y_values):
+        if not (x_values.size == y_values.size == x_values.shape[0] == y_values.shape[0]):
+            raise ValueError("Arguments must be 1D NumPy arrays with same size")
+        size = x_values.size
+        poly = QPolygonF(size)
+        address = shiboken.getCppPointer(poly.data())[0]
+        buffer = (ctypes.c_double * 2 * size).from_address(address)
+        memory = np.frombuffer(buffer, np.float64)
+        memory[: (size - 1) * 2 + 1 : 2] = np.array(x_values, dtype=np.float64, copy=False)
+        memory[1 : (size - 1) * 2 + 2 : 2] = np.array(y_values, dtype=np.float64, copy=False)
+        
+        return poly
+
+    def addTraces(self):
+        self.traces = QGraphicsItemGroup()
         pen = QPen()
         pen.setWidth(0)
-        trace = QPainterPath()
-        trace.reserve(self.stop_frame - self.start_frame + 1)
-        y = float(chan+0.5) + self.normalize(data[chan][self.start_frame])
-        trace.moveTo(self.time_start.float, y)
-        time_start_float = self.time_start.float
+        for k in list(self.tracesCache.keys()):
+            traceItem = QGraphicsPathItem(self.tracesCache[k])
+            traceItem.setPen(pen)
+            self.traces.addToGroup(traceItem)
 
-        for ix in range(self.start_frame + 1, self.stop_frame):
-            t = (ix - self.start_frame)/self.sample_rate + time_start_float
-            val = self.normalize(data[chan][ix])
-            # Add a section to the trace path
-            y = float(chan+0.5) + val
-            trace.lineTo(t, y)
-        traceItem = QGraphicsPathItem(trace)
-        traceItem.setPen(pen)
-        self.traces.addToGroup(traceItem)
-
+    def reorderTracesAndHeatmap(self, showTraces, showHeatmap, showAnnotations):
+        for item in self.items():
+            if isinstance(item, QGraphicsItemGroup):
+                self.removeItem(item)
+            elif isinstance(item, QGraphicsPixmapItem):
+                self.removeItem(item)
+        newOrder = np.array([4,3,2,1,0])
+        self.createHeatmap(newOrder)
+        offset = (self.tracesOrder[newOrder] - self.tracesOrder)
+        self.tracesOrder = self.tracesOrder + offset
+        for chan in list(self.tracesCache.keys()):
+            self.tracesCache[chan] = self.tracesCache[chan].translated(0., offset[int(chan)])
+        self.addTraces()
+        self.addItem(self.traces)
+        self.setVisibility(showTraces, showHeatmap, showAnnotations)
+    
     def normalize(self, y_val):
         return 1.0 - (y_val - self.minimum) / self.range
 
