@@ -118,6 +118,7 @@ class Bento(QObject, DataExporter):
         self.nwbFile = None
         self.session_id = None
         self.trial_id = None
+        self.trial_start_time = None
         self.player = Player(self)
         self.annotationsScene = AnnotationsScene()
         self.newAnnotations = False
@@ -303,7 +304,8 @@ class Bento(QObject, DataExporter):
                         newAnnot.file_path = relpath(fileName, base_directory)
                         newAnnot.sample_rate = self.annotations.sample_rate()
                         newAnnot.format = self.annotations.format()
-                        newAnnot.start_time = datetime.timestamp(datetime.fromisoformat(self.annotations.start_date_time()))
+                        newAnnot.offset_time = datetime.timestamp(datetime.fromisoformat(self.annotations.start_date_time())) - \
+                                               self.trial_start_time
                         newAnnot.start_frame = self.time_start.frame_number
                         newAnnot.stop_frame = self.time_end.frame_number
                         newAnnot.annotator_name = investigator.user_name
@@ -652,14 +654,15 @@ class Bento(QObject, DataExporter):
         sample_rate_set = False
 
         for video in videos:
-            self.time_start_end['video'].append([video.start_time, 
-                                                 video.start_time+float(24*60*60)])
+            video_start_time = self.trial_start_time + video.offset_time
+            self.time_start_end['video'].append([video_start_time, 
+                                                 video_start_time + float(24*60*60)])
             if not sample_rate_set:
                 sample_rate = video.sample_rate
                 sample_rate_set = True
         if annotation:
             sample_rate = annotation.sample_rate
-            start_time = annotation.start_time
+            start_time = self.trial_start_time + annotation.offset_time
             end_time = start_time + Timecode(sample_rate, frames=annotation.stop_frame).float
             self.time_start_end['annotations'].append([start_time, 
                                                        end_time])
@@ -669,8 +672,9 @@ class Bento(QObject, DataExporter):
                 if trial.neural_data:
                     running_time = Timecode(str(trial.neural_data[0].sample_rate),
                                             frames=trial.neural_data[0].stop_frame-trial.neural_data[0].start_frame).float
-                    self.time_start_end['neural'].append([trial.neural_data[0].start_time, 
-                                                          trial.neural_data[0].start_time+running_time])
+                    neural_start_time = self.trial_start_time + trial.neural_data[0].offset_time
+                    self.time_start_end['neural'].append([neural_start_time, 
+                                                          neural_start_time + running_time])
         if loadAudio:
             # not supported yet
             pass
@@ -713,7 +717,7 @@ class Bento(QObject, DataExporter):
             # Start a native player for that, and then force pixmap players for any
             # other videos.
             # We give native videos priority by artificially pushing their start times 6 hours earlier
-            pairs = [[video_data.start_time, video_data] for video_data in videos]
+            pairs = [[self.trial_start_time + video_data.offset_time, video_data] for video_data in videos]
             for item in pairs:
                 if VideoFrame(self).supported_by_native_player(item[1].file_path):
                     item[0] -= 6 * 60 * 60
@@ -727,7 +731,9 @@ class Bento(QObject, DataExporter):
                 else:
                     path = video_data.file_path
                 # force pixmap mode if we already are using a native player as a time source
-                widget = self.newVideoWidget(fix_path(path), video_data.start_time, bool(timeSource))
+                widget = self.newVideoWidget(fix_path(path), 
+                                             self.trial_start_time + video_data.offset_time, 
+                                             bool(timeSource))
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
                     if len(video.pose_data) > 0:
@@ -778,7 +784,7 @@ class Bento(QObject, DataExporter):
                 else:
                     annot_path = annotation.file_path
                 annot_path = fix_path(annot_path)
-                annot_start_time = annotation.start_time
+                annot_start_time = self.trial_start_time + annotation.offset_time
             else:
                 annot_path = None
                 annot_start_time = None

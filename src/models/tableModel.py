@@ -32,7 +32,7 @@ class TableModel(QAbstractTableModel):
         else:
             raise RuntimeError(f"Can't handle indexing with data of type {type(row)}")
         if (index.column() in self.toolTipColumns) and (role == Qt.ToolTipRole):
-            return 'YYYY:MM:DD hh:mm:ss.ms'
+            return 'ss.ms'
         elif (index.column() in self.colorRoleColumns) and (role == Qt.BackgroundRole or role == Qt.EditRole):
             return QColor(datum)
         elif (index.column() not in self.colorRoleColumns) and (role in (Qt.DisplayRole, Qt.EditRole)):
@@ -44,7 +44,7 @@ class TableModel(QAbstractTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.header[col]
         if col in self.toolTipColumns and role == Qt.ToolTipRole:
-            return 'YYYY:MM:DD hh:mm:ss.ms'
+            return 'ss.ms'
         return None
 
     def sort(self, col, order):
@@ -79,8 +79,8 @@ class TableModel(QAbstractTableModel):
         return TableModelIterator(self.mylist)
 
     def setToolTipColumn(self):
-        if 'Start Time' in self.header:
-            self.toolTipColumns.add(self.header.index('Start Time'))
+        if 'Offset Time' in self.header:
+            self.toolTipColumns.add(self.header.index('Offset Time'))
 
     def setColorRoleColumn(self, column):
         self.colorRoleColumns.add(column)
