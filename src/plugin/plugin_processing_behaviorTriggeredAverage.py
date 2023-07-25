@@ -34,8 +34,6 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.getAnnotationsData()
         self.getNeuralData()
         self.getBehaviors()
-        self.offset = self.neuralStartTime - \
-                      self.bento.time_start_end_timecode['annotations'][0][0].float
         self.invokeUI()
         
     def invokeUI(self):
@@ -274,8 +272,7 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
                 _, keptIndicesStop = self.mergeAndDiscardBouts(self.data['start_time'], self.data['stop_time'])
                 self.alignTime = np.array(self.data['stop_time'])[keptIndicesStop]
             
-            # considering offset and resampling neural data
-            self.alignTime = self.alignTime - self.offset
+            # resampling neural data
             self.alignTime = self.alignTime[np.where(self.alignTime > 0)[0]]
             self.trials = np.full((self.alignTime.shape[0], self.trialsTs.shape[0]), np.nan)
             self.backgroundAnnotations = dict()
@@ -456,7 +453,7 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         height = 0
         for t in range(self.trials.shape[0]):
             annotations = np.array(self.backgroundAnnotations[str(t)])
-            annotations[:,0], annotations[:,1] = annotations[:,0] - self.offset + self.window[0], annotations[:,1] - self.offset + self.window[0]
+            annotations[:,0], annotations[:,1] = annotations[:,0] + self.window[0], annotations[:,1] + self.window[0]
             for j in range(annotations.shape[0]):
                 start = int(round((annotations[j,0]) * secondLength))
                 end = int(round((annotations[j,1]) * secondLength))
