@@ -147,7 +147,6 @@ class NeuralFrame(QFrame, DataExporter):
                 self.ui.showAnnotationsCheckBox.setEnabled(False)
                 self.ui.showAnnotationsCheckBox.setChecked(False)
                 self.neuralScene.showAnnotations(False)
-            print(self.ui.showAnnotationsCheckBox.checkState())
 
     @Slot(int)
     def showNeuralAnnotations(self, state):
