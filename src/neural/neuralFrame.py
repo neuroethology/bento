@@ -7,11 +7,13 @@ from qtpy.QtWidgets import QFrame
 import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
+from dataExporter import DataExporter
+from pynwb import NWBFile
 import numpy as np
 from utils import fix_path
 from os.path import isabs
 
-class NeuralFrame(QFrame):
+class NeuralFrame(QFrame, DataExporter):
 
     openReader = Signal(str)
     quitting = Signal()
@@ -19,8 +21,9 @@ class NeuralFrame(QFrame):
     active_channel_changed = Signal(str)
 
     def __init__(self, bento):
-        # super(NeuralDockWidget, self).__init__()
-        super(NeuralFrame, self).__init__()
+        QFrame.__init__(self)
+        DataExporter.__init__(self)
+        self.dataExportType = "neural"
         self.bento = bento
         # self.ui = Ui_NeuralDockWidget()
         self.ui = Ui_neuralFrame()
@@ -141,3 +144,9 @@ class NeuralFrame(QFrame):
         if isinstance(self.neuralScene, NeuralScene):
             self.neuralScene.showAnnotations(state > 0)
 
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        print(f"Export data from {self.dataExportType} to NWB file")
+        if isinstance(self.neuralScene, NeuralScene):
+            nwbFile = self.neuralScene.exportToNWBFile(nwbFile)
+        
+        return nwbFile

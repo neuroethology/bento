@@ -4,6 +4,9 @@ from qtpy.QtGui import QColor, QPolygonF, QPainter, QPen
 from qtpy.QtWidgets import QMessageBox, QWidget
 from pose.pose import PoseBase, PoseRegistry
 from os.path import splitext
+from pynwb import NWBFile
+from ndx_pose import PoseEstimationSeries, PoseEstimation
+import os
 import numpy as np
 import h5py
 
@@ -32,6 +35,11 @@ class PoseSLEAP(PoseBase):
         self.num_nodes: int = 0
         self.num_instances: int = 0
         self.has_edges: bool = False
+        self.has_scores: bool = False
+        self.pose_data: np.ndarray = np.array([])
+        self.confidence: np.ndarray = np.array([])
+        self.edge_inds: np.ndarray = np.array([])
+        self.node_names: List = []
 
     def _drawPoses_noEdges(self, painter: QPainter, frame_ix: int):
         """
@@ -103,7 +111,7 @@ class PoseSLEAP(PoseBase):
             dset_names = list(f.keys())
 
         try:
-            assert "tracks" in dset_names
+            assert "tracks" and "node_names" in dset_names
         except AssertionError:
             QMessageBox.warning(
                 parent_widget,
@@ -129,7 +137,7 @@ class PoseSLEAP(PoseBase):
             )
             return False
 
-    def _loadPoses_noEdges_h5(self, parent_widget: QWidget, file_path: str):
+    def _loadPoses_noEdges_h5(self, parent_widget: QWidget, file_path: str, video_path: str):
         """
         Method for parsing and importing pose data when no edge data is available.
         Save all pose information in self.pose_polys, self.num_frames, self.num_nodes,
@@ -144,14 +152,18 @@ class PoseSLEAP(PoseBase):
                 body.append(QPointF(appendage[0], appendage[1]))
 
         with h5py.File(file_path, "r") as f:
-            locations = f["tracks"][:].T
+            self.pose_data = f["tracks"][:].T
+            self.node_names = [n.decode() for n in f["node_names"][:]]
+            if self.has_scores:
+                self.confidence = f["point_scores"][:].T
 
         self.pose_polys: List[List[QPolygonF]] = []
-        self.num_frames, self.num_nodes, _, self.num_instances = locations.shape
+        self.num_frames, self.num_nodes, _, self.num_instances = self.pose_data.shape
+        self.video_path = video_path
 
         for frame_ix in range(self.num_frames):
-            # Get all keypoints in current frame using locations[frame, node, coor, tracks]
-            frame_keypoints = locations[frame_ix, :, :, :]
+            # Get all keypoints in current frame using self.pose_data[frame, node, coor, tracks]
+            frame_keypoints = self.pose_data[frame_ix, :, :, :]
             frame_polys: List[QPolygonF] = []
             for instance_ix in range(self.num_instances):
                 # Get all points for selected instance
@@ -166,7 +178,7 @@ class PoseSLEAP(PoseBase):
                 frame_polys.append(poly)  # Add instance poly to current frame polys
             self.pose_polys.append(frame_polys)  # Add frame polys to all pose polys
 
-    def _loadPoses_hasEdges_h5(self, parent_widget: QWidget, file_path: str):
+    def _loadPoses_hasEdges_h5(self, parent_widget: QWidget, file_path: str, video_path: str):
         """
         Method for parsing and importing pose data when edge data is available.
         Save all pose information in self.pose_polys, self.num_frames, self.num_nodes,
@@ -185,17 +197,21 @@ class PoseSLEAP(PoseBase):
                 node_lookup[node_name] = point
 
         with h5py.File(file_path, "r") as f:
-            locations = f["tracks"][:].T
+            self.pose_data = f["tracks"][:].T
+            if self.has_scores:
+                self.confidence = f["point_scores"][:].T
             if self.has_edges:
-                node_names = [n.decode() for n in f["node_names"][:]]
+                self.node_names = [n.decode() for n in f["node_names"][:]]
                 edge_names = [(s.decode(), d.decode()) for (s, d) in f["edge_names"][:]]
+                self.edge_inds = f["edge_inds"][:].T
 
         self.pose_polys: List[Tuple[List[QPolygonF], List[QLineF]]] = []
-        self.num_frames, self.num_nodes, _, self.num_instances = locations.shape
+        self.num_frames, self.num_nodes, _, self.num_instances = self.pose_data.shape
+        self.video_path = video_path
 
         for frame_ix in range(self.num_frames):
-            # Get all keypoints in current frame using locations[frame,node,coor,tracks]
-            frame_keypoints = locations[frame_ix, :, :, :]
+            # Get all keypoints in current frame using self.pose_data[frame,node,coor,tracks]
+            frame_keypoints = self.pose_data[frame_ix, :, :, :]
             frame_polys: List[QPolygonF] = []
             frame_edges: List[QLineF] = []
             for instance_ix in range(self.num_instances):
@@ -204,7 +220,7 @@ class PoseSLEAP(PoseBase):
                 node_dict = {}  # Temporary dict to help build edges
                 instance_edges = []  # All edges in an instance
                 poly = QPolygonF()  # Polygon for nodes in instance
-                for node_ix, node_nombre in enumerate(node_names):
+                for node_ix, node_nombre in enumerate(self.node_names):
                     # Get points for specific node
                     node_keypoints = instance_keypoints[node_ix, :]
                     append_keypoints(poly, node_keypoints, node_dict, node_nombre)
@@ -220,7 +236,7 @@ class PoseSLEAP(PoseBase):
                 (frame_polys, frame_edges)
             )  # Add frame polys to all pose polys
 
-    def loadPoses(self, parent_widget: QWidget, file_path: str):
+    def loadPoses(self, parent_widget: QWidget, file_path: str, video_path: str):
         """
         Method for parsing and importing all the pose data. Determines whether edge
         data is present and calls respective method for loading poses.
@@ -231,13 +247,50 @@ class PoseSLEAP(PoseBase):
             dset_names = list(f.keys())
         if "edge_names" in dset_names:
             self.has_edges = True
+        if "point_scores" in dset_names:
+            self.has_scores = True
 
         if self.has_edges:
             # Load poses with edge data available.
-            self._loadPoses_hasEdges_h5(parent_widget, file_path)
+            self._loadPoses_hasEdges_h5(parent_widget, file_path, video_path)
         else:
             # Load poses without edge data available.
-            self._loadPoses_noEdges_h5(parent_widget, file_path)
+            self._loadPoses_noEdges_h5(parent_widget, file_path, video_path)
+    
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
+        processing_module_name = f"Pose data for video {os.path.basename(self.video_path)}"
+
+        for instance_ix in range(self.num_instances):
+            pose_estimation_series = []
+            for nodes_ix in range(self.num_nodes):
+                pose_estimation_series.append(
+                    PoseEstimationSeries(
+                        name = f"{self.node_names[nodes_ix]}",
+                        description = f"Pose keypoint placed around {self.node_names[nodes_ix]}",
+                        data =self.pose_data[:,nodes_ix,:,instance_ix],
+                        reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
+                        timestamps = np.arange(self.num_frames, dtype=float), 
+                        confidence = self.confidence[:,nodes_ix,instance_ix] if self.has_scores 
+                                     else np.full(self.pose_data.shape[0], -1, dtype='float64')
+                    )
+                )
+            pose_estimation = PoseEstimation(
+                pose_estimation_series = pose_estimation_series,
+                name = f"animal_{instance_ix}",
+                description = f"Estimated position for animal_{instance_ix} in video {os.path.basename(self.video_path)}",
+                nodes = self.node_names,
+                edges = self.edge_inds.astype('uint64') if self.has_edges else None,
+            )
+            if processing_module_name in nwbFile.processing:
+                nwbFile.processing[processing_module_name].add(pose_estimation)
+            else:
+                pose_pm = nwbFile.create_processing_module(
+                    name = processing_module_name,
+                    description = f"Pose Data from {self.getFileFormat().split('_')[0]}"
+                )
+                pose_pm.add(pose_estimation)
+        
+        return nwbFile
 
 
 def register(registry: PoseRegistry):

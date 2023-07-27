@@ -4,10 +4,15 @@ from qtpy.QtCore import Qt, QPointF
 from qtpy.QtGui import QColor, QPainter, QPen, QPolygonF
 from qtpy.QtWidgets import QMessageBox, QWidget
 from pose.pose import PoseBase
+from collections import OrderedDict
 from utils import get_colormap
 import csv
+import os
 import numpy as np
+import pandas as pd
 import h5py
+from pynwb import NWBFile
+from ndx_pose import PoseEstimationSeries, PoseEstimation
 from os.path import splitext
 
 
@@ -32,24 +37,26 @@ class PoseDLCBase(PoseBase):
         return "*.h5 *.csv"
 
     def _validateFileH5(self, parent_widget, file_path: str) -> bool:
-        h5 = h5py.File(file_path, 'r')
-        default_group = h5[list(h5.keys())[0]]
-        if 'table' not in default_group.keys():
+        df = pd.read_hdf(file_path)
+        inds = list(df.columns.names)
+        if ('scorer' in inds and 
+            'bodyparts' in inds and
+            'coords' in inds):
+            return True
+        else:
             QMessageBox.warning(parent_widget, "Add Pose ...", "No pose data found in pose file")
             return False
-        return True
 
     def _validateFileCSV(self, parent_widget, file_path: str) -> bool:
-        result = True
-        with open(file_path, 'r') as csvFile:
-            reader = csv.reader(csvFile)
-            header1 = next(reader)
-            if (not isinstance(header1[1], str) or
-                header1[1] != 'bodyparts' or
-                (len(header1) - 2) % 3 != 0):   # "", "bodyparts", 3 x <bodypart_name>, ...
-                result = False
-            csvFile.seek(0)
-        return result
+        df = pd.read_csv(file_path, header=[0,1,2], index_col=0)
+        inds = list(df.columns.names)
+        if ('scorer' in inds and 
+            'bodyparts' in inds and
+            'coords' in inds):
+            return True
+        else:
+            QMessageBox.warning(parent_widget, "Add Pose ...", "No pose data found in pose file")
+            return False
 
     def validateFile(self, parent_widget: QWidget, file_path: str) -> bool:
         """
@@ -66,19 +73,19 @@ class PoseDLCBase(PoseBase):
             QMessageBox.warning(parent_widget, "Extension not supported",
                 f"The file extension {ext} is not supported.")
 
-    def _loadPoses_h5(self, parent_widget: QWidget, path: str):
+    def _loadPoses_h5(self, parent_widget: QWidget, path: str, video_path: str):
         raise NotImplementedError("Please implement this in your derived class")
 
-    def _loadPoses_csv(self, parent_widget: QWidget, path: str):
+    def _loadPoses_csv(self, parent_widget: QWidget, path: str, video_path: str):
         raise NotImplementedError("Please implement this in your derived class")
 
-    def loadPoses(self, parent_widget: QWidget, path: str):
+    def loadPoses(self, parent_widget: QWidget, path: str, video_path: str):
         _, self.file_extension = splitext(path)
         self.file_extension = self.file_extension.lower()
         if self.file_extension == '.h5':
-            self._loadPoses_h5(parent_widget, path)
+            self._loadPoses_h5(parent_widget, path, video_path)
         elif self.file_extension == '.csv':
-            self._loadPoses_csv(parent_widget, path)
+            self._loadPoses_csv(parent_widget, path, video_path)
         else:
             QMessageBox.warning(parent_widget, "Extension not supported",
                 f"The file extension {self.file_extension} is not supported.")
@@ -89,6 +96,9 @@ class PoseDLC_generic(PoseDLCBase):
         super().__init__()
         self.file_extension = None
         self.frame_points = []
+        self.pose_data = np.array([])
+        self.body_parts = np.array([])
+        self.video_path = None    
         self.num_frames = 0
         # Construct colors based on the number of body parts and the color map
         self.colormap_data = get_colormap('turbo')
@@ -118,18 +128,18 @@ class PoseDLC_generic(PoseDLCBase):
     def getFileFormat(self) -> str:
         return "DeepLabCut_generic"
 
-    def _loadPoses_h5(self, parent_widget, path: str):
+    def _loadPoses_h5(self, parent_widget, path: str, video_path: str):
         # TODO: need to change this from the mouse form to a more generic
         # version that just stores the points.
-        h5 = h5py.File(path, 'r')
-        default_group = h5[list(h5.keys())[0]]
-        table = default_group['table']
-        self.num_frames = len(table)
+        df = pd.read_hdf(path)
+        self.body_parts = np.array(df.columns.get_level_values(1))
+        self.pose_data = np.array(df)
+        self.video_path = video_path
+        self.num_frames = self.pose_data.shape[0]
         isColorsGenerated = False
         for frame_ix in range(self.num_frames):
-            # DLC stores each frame as (frame_idx, (pose_array))
-            # we don't care about the frame_idx
-            this_frame_data = table[frame_ix][1]
+            # DLC stores each frame as row of a table
+            this_frame_data = self.pose_data[frame_ix]
             this_frame_points = []
             vals_per_pt = 3
             num_points = int(len(this_frame_data) / vals_per_pt)
@@ -143,33 +153,77 @@ class PoseDLC_generic(PoseDLCBase):
                 this_frame_points.append(QPointF(this_frame_data[pt_x_ix], this_frame_data[pt_y_ix]))
             self.frame_points.append(this_frame_points)
 
-    def _loadPoses_csv(self, parent_widget, path: str):
-        with open(path, 'r') as csvFile:
-            vals_per_pt = 3 # x, y, confidence.  We don't care about confidence.
-            reader = csv.reader(csvFile)
-            header1 = next(reader)
-            num_pts = int((len(header1) - 2) / vals_per_pt)
-            self.generatePoseColors(num_pts)
-            _ = next(reader)    # skip over second row of header
-            while True:
-                try:
-                    row = next(reader)
-                except StopIteration:
-                    break
-                this_frame_points = []
-                for point_ix in range(num_pts):
-                    pt_x_ix = (vals_per_pt * point_ix) + 2
-                    pt_y_ix = (vals_per_pt * point_ix) + 3
-                    this_frame_points.append(QPointF(float(row[pt_x_ix]), float(row[pt_y_ix])))
-                self.frame_points.append(this_frame_points)
-            self.num_frames = len(self.frame_points)
-
+    def _loadPoses_csv(self, parent_widget, path: str, video_path: str):
+        df = pd.read_csv(path, header=[0,1,2], index_col=0)
+        self.body_parts = np.array(df.columns.get_level_values(1))
+        self.pose_data = np.array(df)
+        self.video_path = video_path
+        self.num_frames = self.pose_data.shape[0]
+        for frame_ix in range(self.num_frames):
+            # DLC stores each frame as row of a table
+            this_frame_data = self.pose_data[frame_ix]
+            this_frame_points = []
+            vals_per_pt = 3
+            num_points = int(len(this_frame_data) / vals_per_pt)
+            self.generatePoseColors(num_points)
+            for point_ix in range(num_points):
+                # each pose point has x, y and confidence
+                # we don't care about confidence
+                pt_x_ix = (vals_per_pt * point_ix) + 0
+                pt_y_ix = (vals_per_pt * point_ix) + 1
+                this_frame_points.append(QPointF(this_frame_data[pt_x_ix], this_frame_data[pt_y_ix]))
+            self.frame_points.append(this_frame_points)
+    
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
+        processing_module_name = f"Pose data for video {os.path.basename(self.video_path)}"
+        #reshape pose data to [frames, body_parts, points]
+        pose_data = self.pose_data.reshape(self.num_frames, -1, 3) # 3 because x, y, confidence
+        # maintain bodyparts order
+        order_dict = OrderedDict()
+        for node in self.body_parts:
+            order_dict[node] = 1
+        body_parts = np.array(list(order_dict.keys()))
+        
+        
+        pose_estimation_series = []
+        for nodes_ix in range(body_parts.shape[0]):
+            pose_estimation_series.append(
+                PoseEstimationSeries(
+                    name = f"{body_parts[nodes_ix]}",
+                    description = f"Pose keypoint placed around {body_parts[nodes_ix]}",
+                    data = pose_data[:,nodes_ix,:2],
+                    reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
+                    timestamps = np.arange(self.num_frames, dtype=float), 
+                    confidence = pose_data[:,nodes_ix,2]
+                )
+            )
+        pose_estimation = PoseEstimation(
+            pose_estimation_series = pose_estimation_series,
+            name = f"animal_0",
+            description = f"Estimated position for animal_0 in video {os.path.basename(self.video_path)}",
+            nodes = body_parts,
+        )
+        if processing_module_name in nwbFile.processing:
+            nwbFile.processing[processing_module_name].add(pose_estimation)
+        else:
+            pose_pm = nwbFile.create_processing_module(
+                name = processing_module_name,
+                description = f"Pose Data from {self.getFileFormat().split('_')[0]}"
+            )
+            pose_pm.add(pose_estimation)
+        
+        return nwbFile
+    
 class PoseDLC_mouse(PoseDLCBase):
 
     def __init__(self):
         super().__init__()
         self.pose_polys = []
+        self.body_parts = np.array([])
+        self.pose_data = np.array([])
         self.num_frames = 0
+        self.num_mice = 0
+        self.video_path = None
         self.pose_colors = [Qt.blue, Qt.green]
 
     def drawPoses(self, painter: QPainter, frame_ix: int):
@@ -191,22 +245,27 @@ class PoseDLC_mouse(PoseDLCBase):
     def getFileFormat(self) -> str:
         return "DeepLabCut_mouse"
 
-    def _loadPoses_h5(self, parent_widget: QWidget, path: str):
-        h5 = h5py.File(path, 'r')
-        default_group = h5[list(h5.keys())[0]]
-        table = default_group['table']
+    def _loadPoses_h5(self, parent_widget: QWidget, path: str, video_path: str):
+        df = pd.read_hdf(path)
+        self.body_parts = np.array(df.columns.get_level_values(1))
+        self.pose_data = np.array(df)
         self.pose_polys = []
-        self.num_frames = len(table)
+        self.video_path = video_path
+        self.num_frames = self.pose_data.shape[0]
         for frame_ix in range(self.num_frames):
-            # DLC stores each frame as (frame_idx, (pose_array))
-            # we don't care about the frame_idx
-            this_frame_data = table[frame_ix][1]
+            # DLC stores each frame as row of a table
+            this_frame_data = self.pose_data[frame_ix]
             frame_polys = []
             vals_per_pt = 3
             pts_per_mouse = 7
-            vals_per_mouse = vals_per_pt * pts_per_mouse
-            num_mice = int(len(this_frame_data) / vals_per_mouse)
-            for mouse_ix in range(num_mice):
+            vals_per_mouse = vals_per_pt * pts_per_mouse   #21
+            self.num_mice = int(len(this_frame_data) / vals_per_mouse)  
+            num_pts = int(self.pose_data.shape[1]/vals_per_pt)
+            if num_pts % pts_per_mouse != 0:
+                QMessageBox.warning(parent_widget, "Improper number of points for mice",
+                    f"Expected a multiple of 7 points, got {num_pts}")
+                break
+            for mouse_ix in range(self.num_mice):
                 # each pose point has x, y and confidence
                 # we don't care about confidence
                 poly = QPolygonF()
@@ -239,58 +298,101 @@ class PoseDLC_mouse(PoseDLCBase):
                 frame_polys.append(poly)
             self.pose_polys.append(frame_polys)
 
-    def _loadPoses_csv(self, parent_widget: QWidget, path: str):
-        with open(path, 'r') as csvFile:
-            vals_per_pt = 3 # x, y, confidence.  We don't care about confidence.
-            vals_per_mouse = 7
-            reader = csv.reader(csvFile)
-            header1 = next(reader)
-            num_pts = int((len(header1) - 2) / vals_per_pt)
-            if num_pts % vals_per_mouse != 0:
+    def _loadPoses_csv(self, parent_widget: QWidget, path: str, video_path: str):
+        # reading multi-index csv file with first three rows
+        # as header and first column as row index
+        df = pd.read_csv(path, header=[0,1,2], index_col=0)
+        self.body_parts = np.array(df.columns.get_level_values(1))
+        self.pose_data = np.array(df)
+        self.pose_polys = []
+        self.video_path = video_path
+        self.num_frames = self.pose_data.shape[0]
+        for frame_ix in range(self.num_frames):
+            # DLC stores each frame as row of a table
+            this_frame_data = self.pose_data[frame_ix]
+            frame_polys = []
+            vals_per_pt = 3
+            pts_per_mouse = 7
+            vals_per_mouse = vals_per_pt * pts_per_mouse
+            self.num_mice = int(len(this_frame_data) / vals_per_mouse)
+            num_pts = int(self.pose_data.shape[1]/vals_per_pt)
+            if num_pts % pts_per_mouse != 0:
                 QMessageBox.warning(parent_widget, "Improper number of points for mice",
                     f"Expected a multiple of 7 points, got {num_pts}")
-                return
-            _ = next(reader)    # skip over second row of header
-            while True:
-                try:
-                    row = next(reader)
-                except StopIteration:
-                    break
-                num_mice = int(num_pts / vals_per_mouse)
-                frame_polys = []
-                for mouse_ix in range(num_mice):
-                    # each pose point has x, y and confidence
-                    # we don't care about confidence
-                    poly = QPolygonF()
-                    pt_x_ix = (vals_per_mouse * mouse_ix) + 2
-                    pt_y_ix = (vals_per_mouse * mouse_ix) + 3
-                    nose = QPointF(row[pt_x_ix], row[pt_y_ix])
-                    poly.append(nose)
-                    poly.append(QPointF(
-                        row[pt_x_ix + (1 * vals_per_pt)],
-                        row[pt_y_ix + (1 * vals_per_pt)]))
-                    poly.append(QPointF(
-                        row[pt_x_ix + (3 * vals_per_pt)],
-                        row[pt_y_ix + (3 * vals_per_pt)]))
-                    poly.append(QPointF(
-                        row[pt_x_ix + (4 * vals_per_pt)],
-                        row[pt_y_ix + (4 * vals_per_pt)]))
-                    poly.append(QPointF(
-                        row[pt_x_ix + (6 * vals_per_pt)],
-                        row[pt_y_ix + (6 * vals_per_pt)]))
-                    poly.append(QPointF(
-                        row[pt_x_ix + (5 * vals_per_pt)],
-                        row[pt_y_ix + (5 * vals_per_pt)]))
-                    poly.append(QPointF(
-                        row[pt_x_ix + (3 * vals_per_pt)],
-                        row[pt_y_ix + (3 * vals_per_pt)]))
-                    poly.append(QPointF(
-                        row[pt_x_ix + (2 * vals_per_pt)],
-                        row[pt_y_ix + (2 * vals_per_pt)]))
-                    poly.append(nose)
-                    frame_polys.append(poly)
-                self.pose_polys.append(frame_polys)
-            self.num_frames = len(self.frame_points)
+                break
+            for mouse_ix in range(self.num_mice):
+                # each pose point has x, y and confidence
+                # we don't care about confidence
+                poly = QPolygonF()
+                pt_x_ix = (vals_per_mouse * mouse_ix) + 0
+                pt_y_ix = (vals_per_mouse * mouse_ix) + 1
+                nose = QPointF(this_frame_data[pt_x_ix], this_frame_data[pt_y_ix])
+                poly.append(nose)
+                poly.append(QPointF(
+                    this_frame_data[pt_x_ix + (1 * vals_per_pt)],
+                    this_frame_data[pt_y_ix + (1 * vals_per_pt)]))
+                poly.append(QPointF(
+                    this_frame_data[pt_x_ix + (3 * vals_per_pt)],
+                    this_frame_data[pt_y_ix + (3 * vals_per_pt)]))
+                poly.append(QPointF(
+                    this_frame_data[pt_x_ix + (4 * vals_per_pt)],
+                    this_frame_data[pt_y_ix + (4 * vals_per_pt)]))
+                poly.append(QPointF(
+                    this_frame_data[pt_x_ix + (6 * vals_per_pt)],
+                    this_frame_data[pt_y_ix + (6 * vals_per_pt)]))
+                poly.append(QPointF(
+                    this_frame_data[pt_x_ix + (5 * vals_per_pt)],
+                    this_frame_data[pt_y_ix + (5 * vals_per_pt)]))
+                poly.append(QPointF(
+                    this_frame_data[pt_x_ix + (3 * vals_per_pt)],
+                    this_frame_data[pt_y_ix + (3 * vals_per_pt)]))
+                poly.append(QPointF(
+                    this_frame_data[pt_x_ix + (2 * vals_per_pt)],
+                    this_frame_data[pt_y_ix + (2 * vals_per_pt)]))
+                poly.append(nose)
+                frame_polys.append(poly)
+            self.pose_polys.append(frame_polys)
+    
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
+        processing_module_name = f"Pose data for video {os.path.basename(self.video_path)}"
+        #reshape pose data to [frames, numOfMice, body_parts, points]
+        pose_data = self.pose_data.reshape(self.num_frames, self.num_mice, -1, 3) # 3 because x, y, confidence
+        # maintain bodyparts order
+        order_dict = OrderedDict()
+        for node in self.body_parts:
+            order_dict[node] = 1
+        body_parts = np.array(list(order_dict.keys())).reshape(-1, pose_data.shape[2])
+
+        for mouse_ix in range(self.num_mice):
+            pose_estimation_series = []
+            for nodes_ix in range(body_parts.shape[1]):
+                pose_estimation_series.append(
+                    PoseEstimationSeries(
+                        name = f"{body_parts[mouse_ix, nodes_ix]}",
+                        description = f"Pose keypoint placed around {body_parts[mouse_ix, nodes_ix]}",
+                        data = pose_data[:,mouse_ix,nodes_ix,:2],
+                        reference_frame = "The coordinates are in (x, y) relative to the top-left of the image",
+                        timestamps = np.arange(self.num_frames, dtype=float), 
+                        confidence = pose_data[:,mouse_ix,nodes_ix,2]
+                    )
+                )
+            pose_estimation = PoseEstimation(
+                pose_estimation_series = pose_estimation_series,
+                name = f"animal_{mouse_ix}",
+                description = f"Estimated position for animal_{mouse_ix} in video {os.path.basename(self.video_path)}",
+                nodes = body_parts[mouse_ix,:],
+                edges = np.array([[0,1], [1,3], [3,4], [4,6], [6,5], [5,3], [3,2], [2,0]], dtype='uint8')
+            )
+            if processing_module_name in nwbFile.processing:
+                nwbFile.processing[processing_module_name].add(pose_estimation)
+            else:
+                pose_pm = nwbFile.create_processing_module(
+                    name = processing_module_name,
+                    description = f"Pose Data from {self.getFileFormat().split('_')[0]}"
+                )
+                pose_pm.add(pose_estimation)
+        
+        return nwbFile
 
 def register(registry):
     # construct and register the generic plugin

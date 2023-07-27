@@ -5,6 +5,7 @@ from qtpy.QtWidgets import QFileDialog, QMessageBox, QWidget
 from os import curdir, listdir
 from os.path import abspath, sep, splitext
 from importlib import import_module
+from pynwb import NWBFile
 import sys
 
 class PoseBase():
@@ -50,11 +51,18 @@ class PoseBase():
         """
         return True
 
-    def loadPoses(self, parent_widget: QWidget, file_path: str):
+    def loadPoses(self, parent_widget: QWidget, file_path: str, video_path: str):
         """
         Base class template for parsing and importing all the
         pose data.  Real implementations should save away everything
         needed in class variables in order to be able to drawPoses().
+        """
+        raise NotImplementedError("PoseBase: abstract base class.  ",
+            "Please implement this in your derived class")
+
+    def exportPosesToNWBFile(self, nwbFile: NWBFile):
+        """
+        Base class template for exporting pose data to NWB file object
         """
         raise NotImplementedError("PoseBase: abstract base class.  ",
             "Please implement this in your derived class")

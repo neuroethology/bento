@@ -5,16 +5,20 @@ from video.videoScene import VideoSceneAbstractBase, VideoSceneNative, VideoScen
 from qtpy.QtCore import QEvent, Qt, Signal, Slot
 from qtpy.QtWidgets import QFrame
 from qtpy.QtMultimedia import QMediaPlayer
+from dataExporter import DataExporter
+from pynwb import NWBFile
 import os
 from timecode import Timecode
 
-class VideoFrame(QFrame):
+class VideoFrame(QFrame, DataExporter):
 
     openReader = Signal(str)
     quitting = Signal()
 
     def __init__(self, bento):
-        super().__init__()
+        QFrame.__init__(self)
+        DataExporter.__init__(self)
+        self.dataExportType = "video"
         self.bento = bento
         self.sizePolicy().setHeightForWidth(True)
         self.ui = Ui_videoFrame()
@@ -124,3 +128,9 @@ class VideoFrame(QFrame):
         if not self.scene:
             return None
         return self.scene.getPlayer()
+
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        print(f"Export data from {self.dataExportType} to NWB file")
+        if self.scene:
+            nwbFile = self.scene.exportToNWBFile(nwbFile)
+        return nwbFile

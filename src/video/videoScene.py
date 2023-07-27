@@ -10,11 +10,13 @@ from qtpy.QtGui import QBrush, QFontMetrics, QPainter, QPixmap
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsItem
 from qtpy.QtMultimedia import QMediaContent, QMediaPlayer, QVideoSurfaceFormat
 from qtpy.QtMultimediaWidgets import QGraphicsVideoItem
+from dataExporter import DataExporter
+from pynwb import NWBFile
 from timecode import Timecode
 import os
 from typing import List
 
-class VideoSceneAbstractBase(QGraphicsScene):
+class VideoSceneAbstractBase(QGraphicsScene, DataExporter):
     """
     An abstract scene that knows how to draw annotations text and pose data
     into its foreground
@@ -25,7 +27,8 @@ class VideoSceneAbstractBase(QGraphicsScene):
         raise NotImplementedError("Derived class needs to override this method")
 
     def __init__(self, bento: QObject, start_time: Timecode, parent: QObject=None):
-        super().__init__(parent)
+        QGraphicsScene.__init__(self, parent)
+        DataExporter.__init__(self)
         self.bento = bento
         self.annots = None
         self.pose_class = None
@@ -49,8 +52,13 @@ class VideoSceneAbstractBase(QGraphicsScene):
         if self.showPoseData and self.pose_class:
             self.pose_class.drawPoses(painter, frame_ix)
 
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        if self.pose_class:
+            nwbFile = self.pose_class.exportPosesToNWBFile(nwbFile)
+        return nwbFile
+
     def setStartTime(self, t: Timecode):
-        self._start_time = t 
+        self._start_time = t
 
     def drawForeground(self, painter: QPainter, rect: QRectF):
         # add poses
@@ -249,6 +257,7 @@ class VideoScenePixmap(VideoSceneAbstractBase):
     def setVideoPath(self, videoPath: str):
         _, ext = os.path.splitext(videoPath)
         ext = ext.lower()
+        print(videoPath)
         if ext == '.seq':
             self.reader = seqIo.seqIo_reader(videoPath)
         elif ext in ['.avi', '.mp4']:

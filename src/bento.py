@@ -1,8 +1,9 @@
 # bento.py
 import faulthandler
+
 faulthandler.enable()
 from timecode import Timecode
-from qtpy.QtCore import QMarginsF, QObject, QRectF, QTimer, Qt, Signal, Slot
+from qtpy.QtCore import QMarginsF, QObject, QRectF, Qt, Signal, Slot
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QApplication, QFileDialog, QMessageBox, QProgressDialog
 from annot.annot import Annotations, Bout
@@ -11,7 +12,7 @@ from mainWindow import MainWindow
 from timeSource import TimeSourceAbstractBase, TimeSourceQMediaPlayer, TimeSourceQTimer
 from video.videoWindow import VideoFrame
 from widgets.annotationsWidget import AnnotationsScene
-from db.schema_sqlalchemy import (AnnotationsData, Investigator, Session, Trial,
+from db.schema_sqlalchemy import (Animal, AnnotationsData, Investigator, Session, Trial,
     VideoData, new_session, create_tables)
 from db.investigatorDialog import InvestigatorDialog
 from db.animalDialog import AnimalDialog
@@ -26,9 +27,13 @@ from neural.neuralFrame import NeuralFrame
 from pose.pose import PoseRegistry
 from channelDialog import ChannelDialog
 from os.path import expanduser, isabs, sep, relpath, splitext
+from dataExporter import DataExporter
+from pynwb import NWBFile, NWBHDF5IO
+from pynwb.file import Subject
 from utils import fix_path, padded_rectf
 import sys, traceback, time, itertools
 from datetime import datetime
+from dateutil.tz import tzlocal
 import numpy as np
 
 class Player(QObject):
@@ -83,12 +88,14 @@ class Player(QObject):
         if self._timeSource:
             self._timeSource.setCurrentTime(t)
 
-class Bento(QObject):
+class Bento(QObject, DataExporter):
     """
     Bento - class representing core machinery (no UI)
     """
     def __init__(self):
-        super().__init__()
+        QObject.__init__(self)
+        DataExporter.__init__(self)
+        self.dataExportType = "bento"
         self.config = BentoConfig()
         goodConfig = self.config.read()
         self.time_start = Timecode('30.0', '0:0:0:1')
@@ -108,16 +115,17 @@ class Bento(QObject):
         self.loadBehaviors()
         self.behaviorsDialog = BehaviorsDialog(self)
         self.behaviorsDialog.show()
-
+        self.nwbFile = None
         self.session_id = None
         self.trial_id = None
         self.player = Player(self)
         self.annotationsScene = AnnotationsScene()
         self.newAnnotations = False
-        self.video_widgets = []
-        self.neural_widgets = []
+        self.widgets = []
         self.annotations = Annotations(self.behaviors)
         self.annotations.annotations_changed.connect(self.noteAnnotationsChanged)
+        self.annotations.annotations_changed.connect(self.updateNWBFile)
+        self.newChannelAdded.connect(self.updateNWBFile)
         self.pose_registry = PoseRegistry()
         self.pose_registry.load_plugins()
         self.mainWindow = MainWindow(self)
@@ -172,7 +180,6 @@ class Bento(QObject):
                 self.annotations.read(fn)
                 if self.annotations.channel_names():
                     self.mainWindow.addChannelToCombo(self.annotations.channel_names())
-                    print(f"channel_names: {self.annotations.channel_names()}")
                     self.setActiveChannel(self.annotations.channel_names()[0])
                 self.annotationsScene.loadAnnotations(self.annotations, self.annotations.channel_names(), sample_rate)
                 height = len(self.annotations.channel_names()) - self.annotationsScene.sceneRect().height()
@@ -215,6 +222,7 @@ class Bento(QObject):
             self.annotationsScene.height = self.annotationsScene.sceneRect().height()
             self.annotationsSceneHeightChanged.emit(float(self.annotationsScene.sceneRect().height()))
             self.setActiveChannel(chanName)
+            self.newChannelAdded.emit()
 
     @Slot()
     def setActiveChannel(self, chanName):
@@ -243,6 +251,8 @@ class Bento(QObject):
         except Exception as e:
             print(f"Caught Exception {e}")
             QMessageBox.about(self.mainWindow, "Error", f"Saving behaviors to {fn} failed.  {e}")
+
+    # File menu actions
 
     @Slot()
     def save_annotations(self):
@@ -304,7 +314,26 @@ class Bento(QObject):
                         db_sess.commit()
                         self.newAnnotations = False
 
-    # File menu actions
+    @Slot()
+    def export_data(self):
+        if self.session_id == None or self.trial_id == None:
+            msgBox = QMessageBox(QMessageBox.Warning, "Please select session and trial before trying to export data")
+            return
+        with self.db_sessionMaker() as db_sess:
+            base_directory = db_sess.query(Session).filter(Session.id == self.session_id).one().base_directory
+        fileName, selectedFilter = QFileDialog.getSaveFileName(
+            self.mainWindow,
+            caption="Data Export File Name",
+            # filter="HDF5 file (*.h5);;Neurodata Without Borders file (*.nwb)",
+            filter="NWB file (*.nwb)",
+            selectedFilter="NWB file (*.nwb)",
+            dir=base_directory)
+        if selectedFilter == "NWB file (*.nwb)":
+            #write to nwb file
+            with NWBHDF5IO(fileName, 'w') as io:
+                io.write(self.nwbFile)
+        else:
+            raise NotImplementedError(f"Data export format {selectedFilter} not supported")
 
     @Slot()
     def set_investigator(self):
@@ -404,6 +433,11 @@ class Bento(QObject):
             bout.name(),
             bout.color())
             for (c, bout) in self.current_annotations])
+
+    @Slot()
+    def updateNWBFile(self):
+        if isinstance(self.nwbFile, NWBFile):
+            self.nwbFile = self.annotations.exportToNWBFile(self.nwbFile)
 
     def current_time(self) -> Timecode:
         return self.player.currentTime()
@@ -559,12 +593,12 @@ class Bento(QObject):
         times = list()
         for ix, item in enumerate(video_info):
             if VideoFrame(self).supported_by_native_player(item[1].file_path):
-                times = times + time_start_end['video'][ix]
+                times.extend(time_start_end['video'][ix])
             else:
                 continue
         if len(times)==0:
             for key in time_start_end:
-                times = times + list(itertools.chain(*time_start_end[key]))
+                times.extend(list(itertools.chain(*time_start_end[key])))
         min_time, max_time = min(times), max(times)
         self.min_max_times = [min_time, max_time]
 
@@ -583,7 +617,7 @@ class Bento(QObject):
 
         timecodes = []
         for key in self.time_start_end_timecode:
-            timecodes = timecodes + list(itertools.chain(*self.time_start_end_timecode[key]))
+            timecodes.extend(itertools.chain(*self.time_start_end_timecode[key]))
 
         if min(timecodes).float<0:
             self.time_start = self.time_start
@@ -591,8 +625,15 @@ class Bento(QObject):
             self.time_start = min(timecodes)
         self.time_end = max(timecodes)
 
-        for ix, start_end in enumerate(self.time_start_end_timecode['video']):
-            self.video_widgets[ix].set_start_time(start_end[0])    # pull the start time out of the list pair
+        # set the start time for each video widget, pulling it out of the list pair
+        ix = 0
+        start_end_list = self.time_start_end_timecode['video']
+        for widget in self.widgets:
+            if widget.dataExportType.lower() != 'video':
+                continue
+            assert(ix < len(start_end_list))
+            widget.set_start_time(start_end_list[ix][0])
+            ix += 1
 
         self.set_time(self.time_start)
 
@@ -636,12 +677,13 @@ class Bento(QObject):
         if self.player.timeSource():
             self.player.timeSource().disconnectSignals(self)
             self.player.setTimeSource(None)
-        for widget in self.video_widgets:
+        for widget in self.widgets:
+            if widget.dataExportType.lower() != 'video':
+                continue
             widget.reset()
             widget.hide()
             widget.deleteLater()
-        self.video_widgets.clear()
-        self.neural_widgets.clear()
+        self.widgets.clear()
         sample_rate = self.getTimes(videos, annotation, loadNeural, loadAudio)
         progressTotal = (
             len(videos) +
@@ -681,7 +723,6 @@ class Bento(QObject):
                     path = video_data.file_path
                 # force pixmap mode if we already are using a native player as a time source
                 widget = self.newVideoWidget(fix_path(path), video_data.start_time, bool(timeSource))
-                self.video_widgets.append(widget)
                 if loadPose:
                     video = db_sess.query(VideoData).filter(VideoData.id == video_data.id).one()
                     if len(video.pose_data) > 0:
@@ -691,12 +732,15 @@ class Bento(QObject):
                         pose_path = video.pose_data[0].file_path
                         if not isabs(pose_path):
                             pose_path = base_dir + pose_path
-                        pose_class = self.pose_registry(video.pose_data[0].format)
+                        pose_registry = PoseRegistry()
+                        pose_registry.load_plugins()
+                        pose_class = pose_registry(video.pose_data[0].format)
+                        pose_class.loadPoses(self.mainWindow, pose_path, path)
                         widget.set_pose_class(pose_class)
-                        pose_class.loadPoses(self.mainWindow, pose_path)
                     else:
                         print("No pose data in trial to load.")
                     progressCompleted += 1
+                self.widgets.append(widget)
                 # if this widget can be a time source, use it as such
                 if not timeSource and widget.getPlayer():
                     timeSource = TimeSourceQMediaPlayer(self.timeChanged, widget.scene)
@@ -741,9 +785,10 @@ class Bento(QObject):
             # except Exception as e:
             #     QMessageBox.about(self.selectTrialWindow, "Error", f"Attempt to load annotations from {annot_path} "
             #         f"failed with error {str(e)}")
-            #     for widget in self.video_widgets:
-            #         widget.close()
-            #     self.video_widgets.clear()
+            #     for widget in self.widgets:
+            #         if widget.dataExportType.lower() == 'video':
+            #             widget.close()
+            #     self.widgets.clear()
             #     return False
             progressCompleted += 1
             self.noteAnnotationsChanged(self.time_start, self.time_end)
@@ -756,7 +801,7 @@ class Bento(QObject):
                         progress.setLabelText("Loading neural data...")
                         progress.setValue(progressCompleted)
                         neuralWidget = self.newNeuralWidget(trial.neural_data[0], base_dir)
-                        self.neural_widgets.append(neuralWidget)
+                        self.widgets.append(neuralWidget)
                         if self.annotationsScene:
                             neuralWidget.overlayAnnotations(self.annotationsScene)
                         neuralWidget.show()
@@ -776,6 +821,7 @@ class Bento(QObject):
         progress.setLabelText("Done")
         progress.setValue(progressCompleted)
         self.set_time(self.time_start)
+        self.exportToNWBFile()
         return True
 
     @Slot()
@@ -807,12 +853,69 @@ class Bento(QObject):
         for chan in self.annotations.channel_names():
             self.annotations.truncate_or_remove_bouts(beh, self.time_start, self.time_end, chan)
 
+    def exportToNWBFile(self):
+        print(f"Export data from {self.dataExportType} to NWB file")
+        # export session and trial metadata here
+        investigatorInfo, animalInfo, trialInfo = dict(), dict(), dict()
+        with self.db_sessionMaker() as db_sess:
+            # get session from DB
+            session = db_sess.query(Session).filter(Session.id == self.session_id).scalar()
+            assert session != None
+
+            # get investigator data from DB
+            investigator = db_sess.query(Investigator).filter(Investigator.id == session.investigator_id).scalar()
+            assert investigator != None
+            investigatorInfo['user_name'] = investigator.user_name         
+            investigatorInfo['first_name'] = investigator.first_name 
+            investigatorInfo['last_name'] = investigator.last_name         
+            investigatorInfo['institution'] = investigator.institution  #institution
+            investigatorInfo['e_mail'] = investigator.e_mail
+
+            # get animal data from DB
+            animal = db_sess.query(Animal).filter(Animal.id == session.animal_id).scalar()
+            assert animal != None
+            animalInfo['animal_services_id'] = animal.animal_services_id
+            animalInfo['nickname'] = animal.nickname
+            animalInfo['genotype'] = animal.genotype
+            animalInfo['date_of_birth'] = (datetime.fromisoformat(animal.dob.isoformat())).replace(tzinfo=tzlocal())
+            animalInfo['sex'] = animal.sex.name
+
+            # get trial data from DB
+            trial = db_sess.query(Trial).filter(Trial.session_id == self.session_id, Trial.id == self.trial_id).scalar()
+            assert trial != None
+            trialInfo['trial_num'] = trial.trial_num
+            trialInfo['stimulus'] = trial.stimulus
+            #TODO: add date of trial
+
+        self.nwbFile = NWBFile(session_description=f"investigator : {investigatorInfo['user_name']}, animal : {animalInfo['nickname']}, date : {animalInfo['date_of_birth'].date().isoformat()}",
+                          identifier=f"{animalInfo['nickname']}_{datetime.fromtimestamp(self.min_max_times[0], tz=tzlocal()).date().isoformat()}",
+                          session_start_time=datetime.fromtimestamp(self.min_max_times[0], tz=tzlocal()),
+                          session_id=f"session_{self.session_id}",
+                          institution=investigatorInfo['institution'],
+                          experimenter=f"{investigatorInfo['first_name']} {investigatorInfo['last_name']} (Email : {investigatorInfo['e_mail']})",
+                          notes=f"Stimulus : {trialInfo['stimulus']}",
+                          file_create_date=datetime.now(tz=tzlocal()))
+        self.nwbFile.subject = Subject(description=animalInfo['nickname'],
+                                  genotype=animalInfo['genotype'],
+                                  sex=animalInfo['sex'],
+                                  subject_id=str(animalInfo['animal_services_id']),
+                                  date_of_birth=animalInfo['date_of_birth'])
+        
+        #ask each widget to export its data
+        for widget in self.widgets:
+            self.nwbFile = widget.exportToNWBFile(self.nwbFile)
+        # export annotations data
+        self.nwbFile = self.annotations.exportToNWBFile(self.nwbFile)
+        print(self.nwbFile)
+        
+
    # Signals
     quitting = Signal()
     timeChanged = Signal(Timecode)
     currentAnnotsChanged = Signal(list)
     active_channel_changed = Signal(str)
     annotationsSceneHeightChanged = Signal(float)
+    newChannelAdded = Signal()
 
 if __name__ == "__main__":
     # Create the Qt Application

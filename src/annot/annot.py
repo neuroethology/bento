@@ -1,4 +1,5 @@
 # annot.py
+from __future__ import annotations
 from random import sample
 import timecode as tc
 from annot.behavior import Behavior
@@ -6,7 +7,10 @@ from sortedcontainers import SortedKeyList
 from qtpy.QtCore import QObject, QRectF, Signal, Slot
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QGraphicsItem
+from dataExporter import DataExporter
 from datetime import datetime
+from pynwb import NWBFile
+from pynwb.epoch import TimeIntervals
 
 class Bout(object):
     """
@@ -77,6 +81,7 @@ class Channel(QGraphicsItem):
 
     def __init__(self, chan = None):
         super().__init__()
+        
         if not chan is None:
             self._bouts_by_start = chan._bouts_by_start
             self._bouts_by_end = chan._bouts_by_end
@@ -287,7 +292,25 @@ class Channel(QGraphicsItem):
         for item in to_delete:
             self.remove(item)
 
-class Annotations(QObject):
+    def exportToNWBFile(self, chanName: str, nwbFile: NWBFile):
+        if f"annotation_{chanName}" in nwbFile.intervals:
+            nwbFile.intervals.pop(f"annotation_{chanName}")
+        
+        annotationData = TimeIntervals(name=f"annotation_{chanName}",
+                                       description="animal behavior annotations")
+        if len(self._bouts_by_start)>0:
+            annotationData.add_column(name="behaviorName",
+                                            description="type of behavior")
+       
+        for bout in self._bouts_by_start:
+            annotationData.add_row(start_time=bout.start().float, stop_time=bout.end().float, behaviorName=bout.name())
+        
+        nwbFile.add_time_intervals(annotationData)
+
+        return nwbFile
+
+
+class Annotations(QObject, DataExporter):
     """
     """
     # backward-compatible change, so only update minor version number
@@ -298,7 +321,9 @@ class Annotations(QObject):
     active_annotations_changed = Signal()
 
     def __init__(self, behaviors):
-        super().__init__()
+        QObject.__init__(self)
+        DataExporter.__init__(self)
+        self.dataExportType = "annotations"
         self._channels = {}
         self._behaviors = behaviors
         self._version = self._current_annotation_version_
@@ -364,11 +389,8 @@ class Annotations(QObject):
                 found_version = True
             elif line.lower().startswith("start date time"):
                 items = line.split()
-                print(items)
                 if len(items)>3:
-                    print(items[-2]+' '+items[-1])
                     self._start_date_time = datetime.fromisoformat(items[-2]+' '+items[-1])
-                    print('while reading : ', self._start_date_time, type(self._start_date_time))
                 found_start_date_time = True
             elif line.lower().startswith("annotation start frame"):
                 items = line.split()
@@ -409,6 +431,7 @@ class Annotations(QObject):
             elif line.strip().lower().endswith("---"):
                 for ch_name in channel_names:
                     if line.startswith(ch_name):
+                        ix = len(self._channels)
                         self._channels[ch_name] = Channel()
                         current_channel = ch_name
                         reading_channel = True
@@ -626,3 +649,10 @@ class Annotations(QObject):
     @Slot()
     def note_annotations_changed(self):
         self.annotations_changed.emit()
+
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        print(f"Export data from {self.dataExportType} to NWBFile")
+        for chanName in self._channels:
+            nwbFile = self._channels[chanName].exportToNWBFile(chanName, nwbFile)
+        
+        return nwbFile

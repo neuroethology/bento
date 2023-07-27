@@ -13,6 +13,7 @@ import pymatreader as pmr
 from qimage2ndarray import gray2qimage
 from timecode import Timecode
 from utils import get_colormap, padded_rectf, quantizeTicksScale
+from pynwb import NWBFile, TimeSeries
 import warnings
 
 class QGraphicsSubSceneItem(QGraphicsItem):
@@ -287,28 +288,28 @@ class NeuralScene(QGraphicsScene):
             warnings.simplefilter('ignore', category=UserWarning)
             mat = pmr.read_mat(ca_file)
         try:
-            data = mat['results']['C_raw']
+            self.data = mat['results']['C_raw']
         except Exception as e:
             QMessageBox.about(self, "Load Error", f"Error loading neural data from file {ca_file}: {e}")
             return
-        self.range = data.max() - data.min()
+        self.range = self.data.max() - self.data.min()
         # Provide for a little space between traces
-        self.minimum = data.min() + self.range * 0.05
+        self.minimum = self.data.min() + self.range * 0.05
         self.range *= 0.9
 
         self.sample_rate = sample_rate
         self.start_frame = start_frame
         self.stop_frame = stop_frame
-        self.num_chans = data.shape[0]
-        self.data_min = data.min()
-        self.data_max = data.max()
+        self.num_chans = self.data.shape[0]
+        self.data_min = self.data.min()
+        self.data_max = self.data.max()
         self.colorMapper = NeuralColorMapper(self.data_min, self.data_max, "parula")
         # for chan in range(self.num_chans):
         for chan in range(self.num_chans):
-            self.loadChannel(data, chan)
+            self.loadChannel(self.data, chan)
 
         # Image has a pixel for each frame for each channel
-        self.heatmapImage = self.colorMapper.mappedImage(data)
+        self.heatmapImage = self.colorMapper.mappedImage(self.data)
         self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
 
         # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
@@ -387,3 +388,14 @@ class NeuralScene(QGraphicsScene):
             self.annotations.setVisible(enabled)
         if isinstance(self.heatmap, QGraphicsItem):
             self.heatmap.setOpacity(0.5 if enabled else 1.)
+    
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        neuralData = TimeSeries(name=f"neural_data",
+                                data = self.data,
+                                rate=self.sample_rate,
+                                starting_time = self.time_start.float,
+                                unit = "None",
+                                )
+        nwbFile.add_acquisition(neuralData)
+
+        return nwbFile
