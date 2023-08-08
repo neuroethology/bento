@@ -67,11 +67,11 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.saveh5.triggered.connect(self.saveBTAtoh5)
         self.saveFigure.triggered.connect(self.savePlots)
 
-        # setting minimum and default value for bin size
-        self.ui.binSizeBox.setMinimum(float(1/self.neuralSampleRate))
+        # setting default value for bin size
         self.ui.binSizeBox.setValue(float(1/self.neuralSampleRate))
 
         # connecting different user options getBehaviorTriggeredTrials function
+        self.ui.binSizeBox.valueChanged.connect(self.setBinSizeBoxValueToMin)
         self.ui.mergeBoutsBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.discardBoutsBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.channelComboBox.currentTextChanged.connect(self.getBehaviorTriggeredTrials)
@@ -81,7 +81,7 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.ui.alignAtEndButton.toggled.connect(self.getBehaviorTriggeredTrials)
         self.ui.windowBox_1.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.windowBox_2.textChanged.connect(self.getBehaviorTriggeredTrials)
-        self.ui.binSizeBox.textChanged.connect(self.getBehaviorTriggeredTrials)
+        self.ui.binSizeBox.valueChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.zscoreCheckBox.stateChanged.connect(self.getBehaviorTriggeredTrials)
 
         # populating behavior selection checkboxes
@@ -89,6 +89,13 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         
         self.getBehaviorTriggeredTrials()
 
+    @Slot()
+    def setBinSizeBoxValueToMin(self):
+        if self.ui.binSizeBox.value()<float(1/self.neuralSampleRate):
+            self.ui.binSizeBox.setValue(float(1/self.neuralSampleRate))
+        else:
+            self.ui.binSizeBox.setValue(self.ui.binSizeBox.value())
+    
     @Slot()
     def populateBehaviorCombo(self):
         for channel in list(self.behaviorNames.keys()):
