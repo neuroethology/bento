@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 import math
+import os
+import timecode as tc
 from processing.processing import ProcessingBase
 from vispy.scene import SceneCanvas, visuals, AxisWidget
 from vispy.visuals.transforms import STTransform
@@ -65,10 +67,11 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.saveh5.triggered.connect(self.saveBTAtoh5)
         self.saveFigure.triggered.connect(self.savePlots)
 
-        # setting minimum value for bin size
-        self.ui.binSizeBox.setMinimum(float(1/self.neuralSampleRate))
+        # setting default value for bin size
+        self.ui.binSizeBox.setValue(float(1/self.neuralSampleRate))
 
         # connecting different user options getBehaviorTriggeredTrials function
+        self.ui.binSizeBox.valueChanged.connect(self.setBinSizeBoxValueToMin)
         self.ui.mergeBoutsBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.discardBoutsBox.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.channelComboBox.currentTextChanged.connect(self.getBehaviorTriggeredTrials)
@@ -78,7 +81,7 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         self.ui.alignAtEndButton.toggled.connect(self.getBehaviorTriggeredTrials)
         self.ui.windowBox_1.textChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.windowBox_2.textChanged.connect(self.getBehaviorTriggeredTrials)
-        self.ui.binSizeBox.textChanged.connect(self.getBehaviorTriggeredTrials)
+        self.ui.binSizeBox.valueChanged.connect(self.getBehaviorTriggeredTrials)
         self.ui.zscoreCheckBox.stateChanged.connect(self.getBehaviorTriggeredTrials)
 
         # populating behavior selection checkboxes
@@ -86,6 +89,13 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         
         self.getBehaviorTriggeredTrials()
 
+    @Slot()
+    def setBinSizeBoxValueToMin(self):
+        if self.ui.binSizeBox.value()<float(1/self.neuralSampleRate):
+            self.ui.binSizeBox.setValue(float(1/self.neuralSampleRate))
+        else:
+            self.ui.binSizeBox.setValue(self.ui.binSizeBox.value())
+    
     @Slot()
     def populateBehaviorCombo(self):
         for channel in list(self.behaviorNames.keys()):
@@ -305,25 +315,29 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
                         copy_df.drop(copy_df[copy_df['behaviorName']==bev].index, inplace=True)
                 self.backgroundAnnotations[str(ix)] = copy_df
             
-            # handling a case when there is only one trial
-            if self.trials.shape[0]==1:
+            # handling a case when there is only one trial or no trials at all
+            if self.trials.shape[0]==0:
+                self.clearPlotLayout()
+                self.addWarningForNoData()
+            elif self.trials.shape[0]==1:
                 self.avgTrials = self.trials[0]
                 self.errTrials = np.zeros(self.trialsTs.shape[0])
+                # plotting trials along with annotations in the background
+                self.plotBTA()
             else:
                 self.avgTrials = np.nanmean(self.trials, axis=0)
                 self.errTrials = np.nanstd(self.trials, axis=0)/math.sqrt(self.trials.shape[0])
-            
-            # plotting trials along with annotations in the background
-            self.plotBTA()
+                # plotting trials along with annotations in the background
+                self.plotBTA() 
         else:
             self.clearPlotLayout()
-            self.label_top = QLabel("Data corresponding to this behavior/channel does not exist")
-            self.label_bot = QLabel("Data corresponding to this behavior/channel does not exist")
-            self.ui.plotLayout.addWidget(self.label_top, stretch=1)
-            self.ui.plotLayout.addWidget(self.label_bot, stretch=2)
+            self.addWarningForNoData()
 
-        
-        
+    def addWarningForNoData(self):
+        self.label_top = QLabel("Data corresponding to this behavior/channel does not exist")
+        self.label_bot = QLabel("Data corresponding to this behavior/channel does not exist")
+        self.ui.plotLayout.addWidget(self.label_top, stretch=1)
+        self.ui.plotLayout.addWidget(self.label_bot, stretch=2)
     
     def clearPlotLayout(self):
         for i in reversed(range(self.ui.plotLayout.count())): 
@@ -393,11 +407,12 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
                                                line_width=2,
                                                parent=self.view_top.scene)
         self.view_top.camera = "panzoom"
-        self.view_top.camera.set_range(x=(self.trialsTs[0], self.trialsTs[-1]), 
-                                       y=(np.amin(errNegValues), np.amax(errPosValues)))
+        self.view_top.interactive = False
+        self.view_top.camera.set_range(x=(self.trialsTs[0], self.trialsTs[-1]),
+                                       y=(np.nanmin(errNegValues), np.nanmax(errPosValues)))
         self.xaxis_top.link_view(self.view_top)
         self.yaxis_top.link_view(self.view_top)
-        
+
         self.rememberPos = []
         height = 0
         for t in range(self.trials.shape[0]):
@@ -441,6 +456,7 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
                                                line_width=2,
                                                parent=self.view_bot.scene)
         self.view_bot.camera = "panzoom"
+        self.view_bot.camera.interactive = False
         self.view_bot.camera.set_range(x=(-self.window[0], self.window[1]), 
                                        y=(0, self.height))
         self.xaxis_bot.link_view(self.view_bot)
@@ -459,7 +475,8 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
             annotations[:,0], annotations[:,1] = annotations[:,0] - self.offset + self.window[0], annotations[:,1] - self.offset + self.window[0]
             for j in range(annotations.shape[0]):
                 start = int(round((annotations[j,0]) * secondLength))
-                end = int(round((annotations[j,1]) * secondLength))
+                end = int(round((annotations[j,1] +
+                                 tc.Timecode(self.bento.annotationsScene.sample_rate, frames=1).float) * secondLength))
                 bev = self.behaviors[annotations[j,2]]
                 self.imgArray[height:int(height+self.trialHeight),start:end,0] = bev[0]
                 self.imgArray[height:int(height+self.trialHeight),start:end,1] = bev[1]
@@ -485,15 +502,17 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         fileName, selectedFilter = QFileDialog.getSaveFileName(
             self,
             caption="Save Behavior Triggered Average Plots",
-            filter="pdf file (*.pdf)",
-            selectedFilter="pdf file (*.pdf)",
+            filter="eps file (*.eps)",
+            selectedFilter="eps file (*.eps)",
             dir=expanduser('~'))
-        if selectedFilter == "pdf file (*.pdf)":
+        if selectedFilter == "eps file (*.eps)":
+            dirname = os.path.dirname(fileName)
+            files = [os.path.join(dirname, os.path.basename(fileName).split('.')[0]+'_top.eps'), 
+                     os.path.join(dirname, os.path.basename(fileName).split('.')[0]+'_bottom.eps')]
             self.imageArr = [self.canvas_top.render(alpha=False), self.canvas_bot.render(alpha=False)]
-            pilImages = []
-            for arr in self.imageArr:
-                pilImages.append(Image.fromarray(arr))
-            pilImages[0].save(fileName, format='pdf', resolution=100., save_all=True, append_images=pilImages[1:])
+            for i in range(len(self.imageArr)):
+                img = Image.fromarray(self.imageArr[i])
+                img.save(files[i], format='eps', resolution=100.)
             print("BTA plots saved.")
         else:
             raise NotImplementedError(f"File format {selectedFilter} not supported")

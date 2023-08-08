@@ -168,7 +168,7 @@ class Behaviors(QAbstractTableModel):
             if h == '':
                 h = '_'
             color = beh.get_color()
-            f.write(f"{h} {beh.get_name()} {color.redF()} {color.greenF()} {color.blueF()}" + os.linesep)
+            f.write(f"{h} {beh.get_name()} {color.redF()} {color.greenF()} {color.blueF()}" + "\n")
 
     def get(self, name):
         if name not in self._by_name.keys():
