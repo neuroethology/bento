@@ -315,25 +315,29 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
                         copy_df.drop(copy_df[copy_df['behaviorName']==bev].index, inplace=True)
                 self.backgroundAnnotations[str(ix)] = copy_df
             
-            # handling a case when there is only one trial
-            if self.trials.shape[0]==1:
+            # handling a case when there is only one trial or no trials at all
+            if self.trials.shape[0]==0:
+                self.clearPlotLayout()
+                self.addWarningForNoData()
+            elif self.trials.shape[0]==1:
                 self.avgTrials = self.trials[0]
                 self.errTrials = np.zeros(self.trialsTs.shape[0])
+                # plotting trials along with annotations in the background
+                self.plotBTA()
             else:
                 self.avgTrials = np.nanmean(self.trials, axis=0)
                 self.errTrials = np.nanstd(self.trials, axis=0)/math.sqrt(self.trials.shape[0])
-
-            # plotting trials along with annotations in the background
-            self.plotBTA()
+                # plotting trials along with annotations in the background
+                self.plotBTA() 
         else:
             self.clearPlotLayout()
-            self.label_top = QLabel("Data corresponding to this behavior/channel does not exist")
-            self.label_bot = QLabel("Data corresponding to this behavior/channel does not exist")
-            self.ui.plotLayout.addWidget(self.label_top, stretch=1)
-            self.ui.plotLayout.addWidget(self.label_bot, stretch=2)
+            self.addWarningForNoData()
 
-        
-        
+    def addWarningForNoData(self):
+        self.label_top = QLabel("Data corresponding to this behavior/channel does not exist")
+        self.label_bot = QLabel("Data corresponding to this behavior/channel does not exist")
+        self.ui.plotLayout.addWidget(self.label_top, stretch=1)
+        self.ui.plotLayout.addWidget(self.label_bot, stretch=2)
     
     def clearPlotLayout(self):
         for i in reversed(range(self.ui.plotLayout.count())): 
