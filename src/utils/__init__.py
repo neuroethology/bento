@@ -833,7 +833,7 @@ def get_colormap(colormap_name: str) -> list:
         cm_data = cm_data_parula
     elif colormap_name.lower() == "turbo":
         cm_data = cm_data_turbo
-    elif colormap_name.lower == "viridis":
+    elif colormap_name.lower() == "viridis":
         cm_data = cm_data_viridis
     else:
         raise Exception(f"get_colormap: colormap name {colormap_name} not supported")

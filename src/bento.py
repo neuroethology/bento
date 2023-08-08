@@ -251,6 +251,7 @@ class Bento(QObject, DataExporter):
         except Exception as e:
             print(f"Caught Exception {e}")
             QMessageBox.about(self.mainWindow, "Error", f"Saving behaviors to {fn} failed.  {e}")
+        self.behaviorsChanged.emit()
 
     # File menu actions
 
@@ -438,6 +439,7 @@ class Bento(QObject, DataExporter):
     def updateNWBFile(self):
         if isinstance(self.nwbFile, NWBFile):
             self.nwbFile = self.annotations.exportToNWBFile(self.nwbFile)
+            self.nwbFileUpdated.emit()
 
     def current_time(self) -> Timecode:
         return self.player.currentTime()
@@ -650,7 +652,8 @@ class Bento(QObject, DataExporter):
         sample_rate_set = False
 
         for video in videos:
-            self.time_start_end['video'].append([video.start_time, video.start_time+float(24*60*60)])
+            self.time_start_end['video'].append([video.start_time, 
+                                                 video.start_time+float(24*60*60)])
             if not sample_rate_set:
                 sample_rate = video.sample_rate
                 sample_rate_set = True
@@ -658,14 +661,16 @@ class Bento(QObject, DataExporter):
             sample_rate = annotation.sample_rate
             start_time = annotation.start_time
             end_time = start_time + Timecode(sample_rate, frames=annotation.stop_frame).float
-            self.time_start_end['annotations'].append([start_time, end_time])
+            self.time_start_end['annotations'].append([start_time, 
+                                                       end_time])
         if loadNeural:
             with self.db_sessionMaker() as db_sess:
                 trial = db_sess.query(Trial).filter(Trial.id == self.trial_id).one()
                 if trial.neural_data:
                     running_time = Timecode(str(trial.neural_data[0].sample_rate),
                                             frames=trial.neural_data[0].stop_frame-trial.neural_data[0].start_frame).float
-                    self.time_start_end['neural'].append([trial.neural_data[0].start_time, trial.neural_data[0].start_time+running_time])
+                    self.time_start_end['neural'].append([trial.neural_data[0].start_time, 
+                                                          trial.neural_data[0].start_time+running_time])
         if loadAudio:
             # not supported yet
             pass
@@ -906,7 +911,6 @@ class Bento(QObject, DataExporter):
             self.nwbFile = widget.exportToNWBFile(self.nwbFile)
         # export annotations data
         self.nwbFile = self.annotations.exportToNWBFile(self.nwbFile)
-        print(self.nwbFile)
         
 
    # Signals
@@ -916,6 +920,8 @@ class Bento(QObject, DataExporter):
     active_channel_changed = Signal(str)
     annotationsSceneHeightChanged = Signal(float)
     newChannelAdded = Signal()
+    behaviorsChanged = Signal()
+    nwbFileUpdated = Signal()
 
 if __name__ == "__main__":
     # Create the Qt Application

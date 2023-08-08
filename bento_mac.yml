@@ -109,6 +109,7 @@ dependencies:
   - tk=8.6.11
   - tornado=6.1
   - tzdata=2021e
+  - vispy=0.9.4
   - wheel=0.37.0
   - x264=1!161.3030
   - x265=3.5
@@ -122,11 +123,11 @@ dependencies:
     - future==0.18.2
     - h5py==3.5.0
     - imageio==2.10.3
-    - ndx-pose=0.1.1
+    - ndx-pose==0.1.1
     - opencv-contrib-python-headless==4.5.5.62
     - pillow==9.0.1
     - pymatreader==0.0.25
-    - pynwb=2.1.0
+    - pynwb==2.1.0
     - pyside2==5.15.1
     - qimage2ndarray==1.9.0
     - shiboken2==5.15.1

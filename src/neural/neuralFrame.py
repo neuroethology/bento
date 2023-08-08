@@ -1,9 +1,10 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
+from processing.processing import ProcessingRegistry
 from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtGui import QPixmap
-from qtpy.QtWidgets import QFrame
+from qtpy.QtWidgets import QFrame, QMenu
 import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
@@ -12,6 +13,7 @@ from pynwb import NWBFile
 import numpy as np
 from utils import fix_path
 from os.path import isabs
+
 
 class NeuralFrame(QFrame, DataExporter):
 
@@ -32,6 +34,11 @@ class NeuralFrame(QFrame, DataExporter):
         self.quitting.connect(self.bento.quit)
         self.neuralScene = NeuralScene()
         self.active_channel_changed.connect(self.neuralScene.setActiveChannel)
+        self.neuralPluginsMenu = QMenu("neural plugins")
+        self.ui.launchPlugin.setMenu(self.neuralPluginsMenu)
+        self.ui.launchPlugin.setToolTip("click to see neural plugin options")
+        self.eventTriggeredAvg = self.neuralPluginsMenu.addAction("Event Triggered Average")
+        self.eventTriggeredAvg.triggered.connect(self.launchEventTriggeredAvg)
         self.ui.neuralView.setScene(self.neuralScene)
         self.ui.neuralView.set_bento(bento)
         self.ui.neuralView.scale(10., self.ui.neuralView.height())
@@ -144,9 +151,16 @@ class NeuralFrame(QFrame, DataExporter):
         if isinstance(self.neuralScene, NeuralScene):
             self.neuralScene.showAnnotations(state > 0)
 
+    def launchEventTriggeredAvg(self):
+        self.processing_registry = ProcessingRegistry(self.nwbFile, self.bento)
+        self.processing_registry.load_plugins()
+        self.processing_class = self.processing_registry('BTA')
+        self.processing_class.show()
+        
+
     def exportToNWBFile(self, nwbFile: NWBFile):
         print(f"Export data from {self.dataExportType} to NWB file")
         if isinstance(self.neuralScene, NeuralScene):
-            nwbFile = self.neuralScene.exportToNWBFile(nwbFile)
+            self.nwbFile = self.neuralScene.exportToNWBFile(nwbFile)
         
-        return nwbFile
+        return self.nwbFile
