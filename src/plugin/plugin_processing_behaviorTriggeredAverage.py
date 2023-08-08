@@ -315,7 +315,7 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
             else:
                 self.avgTrials = np.nanmean(self.trials, axis=0)
                 self.errTrials = np.nanstd(self.trials, axis=0)/math.sqrt(self.trials.shape[0])
-            
+
             # plotting trials along with annotations in the background
             self.plotBTA()
         else:
@@ -498,10 +498,8 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
             dirname = os.path.dirname(fileName)
             files = [os.path.join(dirname, os.path.basename(fileName).split('.')[0]+'_top.eps'), 
                      os.path.join(dirname, os.path.basename(fileName).split('.')[0]+'_bottom.eps')]
-            print(files)
             self.imageArr = [self.canvas_top.render(alpha=False), self.canvas_bot.render(alpha=False)]
             for i in range(len(self.imageArr)):
-                print(i)
                 img = Image.fromarray(self.imageArr[i])
                 img.save(files[i], format='eps', resolution=100.)
             print("BTA plots saved.")
