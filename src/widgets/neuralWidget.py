@@ -93,6 +93,7 @@ class NeuralView(QGraphicsView):
         # give the sceneRect some additional padding
         # so that the start and end can be centered in the view
         super().setScene(scene)
+        scene.setParent(self)
         self.time_x = Timecode(str(scene.sample_rate), '0:0:0:1')
         self.center_y = float(scene.num_chans) / 2.
 
@@ -382,8 +383,14 @@ class NeuralScene(QGraphicsScene):
             traceItem.setPen(pen)
             self.traces.addToGroup(traceItem)
 
-    def reorderTracesAndHeatmap(self, newOrder, showTraces, showHeatmap, showAnnotations):
-        _, counts = np.unique(newOrder, return_counts=True)
+    def reorderTracesAndHeatmap(self, newOrder):
+        showTraces = self.parent().parent().ui.showTraceRadioButton.isChecked()
+        showHeatMap = self.parent().parent().ui.showHeatMapRadioButton.isChecked()
+        showAnnotations = self.parent().parent().ui.showAnnotationsCheckBox.isChecked()
+        if isinstance(newOrder, np.ndarray):
+            _, counts = np.unique(newOrder, return_counts=True)
+        else:
+            raise ValueError(f"newOrder array {newOrder} should be a Numpy array")
         if np.any(counts > 1):
             raise ValueError(f"Unique integer values should be there in newOrder array {newOrder}")
         if newOrder.size != self.tracesOrder.size:
@@ -400,7 +407,7 @@ class NeuralScene(QGraphicsScene):
             self.tracesCache[chan] = self.tracesCache[chan].translated(0., offset[int(chan)])
         self.putTracesIntoAGroup()
         self.addItem(self.traces)
-        self.setVisibility(showTraces, showHeatmap, showAnnotations)
+        self.setVisibility(showTraces, showHeatMap, showAnnotations)
     
     def normalize(self, y_val):
         return 1.0 - (y_val - self.minimum) / self.range
