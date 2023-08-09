@@ -93,6 +93,7 @@ class NeuralView(QGraphicsView):
         # give the sceneRect some additional padding
         # so that the start and end can be centered in the view
         super().setScene(scene)
+        scene.setParent(self)
         self.time_x = Timecode(str(scene.sample_rate), '0:0:0:1')
         self.center_y = float(scene.num_chans) / 2.
 
@@ -317,7 +318,7 @@ class NeuralScene(QGraphicsScene):
                         y_values[:,self.start_frame:self.stop_frame])
         #for chan in range(self.num_chans):
         #    self.loadChannel(self.data, chan)
-        self.addTraces()
+        self.putTracesIntoAGroup()
         # create heatmap
         self.createHeatmap(np.arange(self.num_chans))
         # finally, add the traces on top of everything
@@ -373,7 +374,7 @@ class NeuralScene(QGraphicsScene):
         
         return poly
 
-    def addTraces(self):
+    def putTracesIntoAGroup(self):
         self.traces = QGraphicsItemGroup()
         pen = QPen()
         pen.setWidth(0)
@@ -382,21 +383,31 @@ class NeuralScene(QGraphicsScene):
             traceItem.setPen(pen)
             self.traces.addToGroup(traceItem)
 
-    def reorderTracesAndHeatmap(self, showTraces, showHeatmap, showAnnotations):
+    def reorderTracesAndHeatmap(self, newOrder):
+        showTraces = self.parent().parent().ui.showTraceRadioButton.isChecked()
+        showHeatMap = self.parent().parent().ui.showHeatMapRadioButton.isChecked()
+        showAnnotations = self.parent().parent().ui.showAnnotationsCheckBox.isChecked()
+        if isinstance(newOrder, np.ndarray):
+            _, counts = np.unique(newOrder, return_counts=True)
+        else:
+            raise ValueError(f"newOrder array {newOrder} should be a Numpy array")
+        if np.any(counts > 1):
+            raise ValueError(f"Unique integer values should be there in newOrder array {newOrder}")
+        if newOrder.size != self.tracesOrder.size:
+            raise RuntimeError(f"Size of newOrder array and traces order should be the same.")
         for item in self.items():
             if isinstance(item, QGraphicsItemGroup):
                 self.removeItem(item)
             elif isinstance(item, QGraphicsPixmapItem):
                 self.removeItem(item)
-        newOrder = np.array([4,3,2,1,0])
         self.createHeatmap(newOrder)
         offset = (self.tracesOrder[newOrder] - self.tracesOrder)
         self.tracesOrder = self.tracesOrder + offset
         for chan in list(self.tracesCache.keys()):
             self.tracesCache[chan] = self.tracesCache[chan].translated(0., offset[int(chan)])
-        self.addTraces()
+        self.putTracesIntoAGroup()
         self.addItem(self.traces)
-        self.setVisibility(showTraces, showHeatmap, showAnnotations)
+        self.setVisibility(showTraces, showHeatMap, showAnnotations)
     
     def normalize(self, y_val):
         return 1.0 - (y_val - self.minimum) / self.range

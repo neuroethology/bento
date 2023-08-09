@@ -71,7 +71,7 @@ class NeuralFrame(QFrame, DataExporter):
             self.bento.time_start_end_timecode['neural'][0][0],
             self.ui.showTraceRadioButton.isChecked(),
             self.ui.showHeatMapRadioButton.isChecked(),
-            self.ui.showAnnotationsCheckBox.checkState()
+            self.ui.showAnnotationsCheckBox.isChecked()
             )
         self.ui.dataMinLabel.setText(f"{self.neuralScene.data_min:.3f}")
         self.ui.dataMaxLabel.setText(f"{self.neuralScene.data_max:.3f}")
@@ -147,7 +147,6 @@ class NeuralFrame(QFrame, DataExporter):
                 self.ui.showAnnotationsCheckBox.setEnabled(False)
                 self.ui.showAnnotationsCheckBox.setChecked(False)
                 self.neuralScene.showAnnotations(False)
-            print(self.ui.showAnnotationsCheckBox.checkState())
 
     @Slot(int)
     def showNeuralAnnotations(self, state):
@@ -155,10 +154,6 @@ class NeuralFrame(QFrame, DataExporter):
             self.neuralScene.showAnnotations(state > 0)
 
     def launchEventTriggeredAvg(self):
-        """ self.neuralScene.reorderTracesAndHeatmap(
-            self.ui.showTraceRadioButton.isChecked(),
-            self.ui.showHeatMapRadioButton.isChecked(),
-            self.ui.showAnnotationsCheckBox.checkState()) """
         self.processing_registry = ProcessingRegistry(self.nwbFile, self.bento)
         self.processing_registry.load_plugins()
         self.processing_class = self.processing_registry('BTA')
