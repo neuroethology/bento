@@ -84,6 +84,9 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         
         self.getBehaviorTriggeredTrials()
 
+    def getType(self):
+        return "BTA"
+    
     @Slot()
     def populateBehaviorCombo(self):
         for channel in list(self.behaviorNames.keys()):
@@ -499,8 +502,8 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
 
 
 def register(registry, nwbFile=None, bento=None):
-    bta_processing_plugin = behaviorTriggeredAverage(nwbFile, bento)
-    registry.register('BTA', bta_processing_plugin)
+    btaProcessingPlugin = behaviorTriggeredAverage(nwbFile, bento)
+    registry.register(btaProcessingPlugin.getType(), btaProcessingPlugin)
         
 
 
