@@ -6,11 +6,15 @@ from annot.behavior import Behavior
 from sortedcontainers import SortedKeyList
 from qtpy.QtCore import QObject, QRectF, Signal, Slot
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QGraphicsItem
+from qtpy.QtWidgets import QGraphicsItem, QMessageBox
 from dataExporter import DataExporter
 from datetime import datetime
 from pynwb import NWBFile
 from pynwb.epoch import TimeIntervals
+import csv 
+import numpy as np
+import pandas as pd
+import math
 
 class Bout(object):
     """
@@ -336,20 +340,49 @@ class Annotations(QObject, DataExporter):
         self.annotation_names = []
         behaviors.behaviors_changed.connect(self.note_annotations_changed)
 
+
     def read(self, fn):
+        if self._validate_bento(fn):
+            self._format = "Bento"
+            self._read_bento(fn)
+        elif self._validate_caltech(fn):
+            self._format = 'Caltech'
+            self._read_caltech(fn)
+        elif self._validate_boris(fn):
+            self._format = 'Boris'
+            self._read_boris(fn)
+        elif self._validate_simba(fn):
+            self._format = 'SimBA'
+            self._read_simba(fn)
+        else:
+            QMessageBox.about(self, "File Read Error", f"Unsupported annotation file format")
+            return
+
+    def _validate_bento(self, fn):
         with open(fn, "r") as f:
             line = f.readline()
             line = line.strip().lower()
-            if line.startswith("bento annotation file"):
-                self._format = 'Caltech'
-                self._read_caltech(f)
-            elif line.startswith("scorevideo log"):
-                self._format = 'Ethovision'
-                self._read_ethovision(f)
-            else:
-                print("Unsupported annotation file format")
+        return line.startswith('bento annotation file')
+    
+    def _validate_boris(self, fn):
+        with open(fn) as csv_file:
+            reader = csv.reader(csv_file)
+            row = next(reader)
+        return row[0].lower() == 'observation id'
 
-    def _read_caltech(self, f):
+    def _validate_simba(self, fn):
+        with open(fn) as csv_file:
+            reader = csv.reader(csv_file)
+            row = next(reader)
+        return '_x' in row[1] and '_y' in row[2] and '_p' in row[3]
+    
+    def _validate_caltech(self, fn):
+        header = 'Caltech Behavior Annotator - Annotation File'
+        with open(fn, "r") as f:
+            lines = f.read().splitlines()
+        return lines[0].rstrip().lower() == header.lower()
+    
+    def _read_bento(self, fn):
         found_timecode = False
         found_channel_names = False
         found_version = False
@@ -364,113 +397,283 @@ class Annotations(QObject, DataExporter):
         current_channel = None
         current_bout = None
 
-        self._format = 'Caltech'
+        with open(fn, "r") as f:
+            line = f.readline()
+            while line:
+                if found_annotation_names and not new_behaviors_activated:
+                    self.ensure_and_activate_behaviors(to_activate)
+                    new_behaviors_activated = True
 
-        line = f.readline()
-        while line:
-            if found_annotation_names and not new_behaviors_activated:
-                self.ensure_and_activate_behaviors(to_activate)
-                new_behaviors_activated = True
+                line.strip()
 
-            line.strip()
-
-            if not line:
-                if reading_channel:
-                    reading_channel = False
-                    current_channel = None
-                    current_bout = None
-            elif line.lower().startswith("bento annotation file v"):
-                items = line.split()
-                if len(items)>3:
-                    version = str(items[3])
-                    if version[0] == "v":
-                        version = version[1:]
-                    self._version = version
-                found_version = True
-            elif line.lower().startswith("start date time"):
-                items = line.split()
-                if len(items)>3:
-                    self._start_date_time = datetime.fromisoformat(items[-2]+' '+items[-1])
-                found_start_date_time = True
-            elif line.lower().startswith("annotation start frame"):
-                items = line.split()
-                if len(items) > 3:
-                    self._start_frame = int(items[3])
-                    if self._end_frame and self._sample_rate:
-                        found_timecode = True
-            elif line.lower().startswith("annotation stop frame"):
-                items = line.split()
-                if len(items) > 3:
-                    self._end_frame = int(items[3])
-                    if self._start_frame and self._sample_rate:
-                        found_timecode = True
-            elif line.lower().startswith("annotation framerate"):
-                items = line.split()
-                if len(items) > 2:
-                    self._sample_rate = float(items[2])
-                    if self._start_frame and self._end_frame:
-                        found_timecode = True
-            elif line.lower().startswith("list of channels"):
-                line = f.readline()
-                while line:
-                    line = line.strip()
-                    if not line:
-                        break # blank line -- end of section
-                    channel_names.append(line)
-                    line = f.readline()
-                found_channel_names = True
-            elif line.lower().startswith("list of annotations"):
-                line = f.readline()
-                while line:
-                    line = line.strip()
-                    if not line:
-                        break # blank line -- end of section
-                    to_activate.append(line)
-                    line = f.readline().strip()
-                found_annotation_names = True
-            elif line.strip().lower().endswith("---"):
-                for ch_name in channel_names:
-                    if line.startswith(ch_name):
-                        ix = len(self._channels)
-                        self._channels[ch_name] = Channel()
-                        current_channel = ch_name
-                        reading_channel = True
-                        break
-                if reading_channel:
-                    reading_annot = False
+                if not line:
+                    if reading_channel:
+                        reading_channel = False
+                        current_channel = None
+                        current_bout = None
+                elif line.lower().startswith("bento annotation file v"):
+                    items = line.split()
+                    if len(items)>3:
+                        version = str(items[3])
+                        if version[0] == "v":
+                            version = version[1:]
+                        self._version = version
+                    found_version = True
+                elif line.lower().startswith("start date time"):
+                    items = line.split()
+                    if len(items)>3:
+                        self._start_date_time = datetime.fromisoformat(items[-2]+' '+items[-1])
+                    found_start_date_time = True
+                elif line.lower().startswith("annotation start frame"):
+                    items = line.split()
+                    if len(items) > 3:
+                        self._start_frame = int(items[3])
+                        if self._end_frame and self._sample_rate:
+                            found_timecode = True
+                elif line.lower().startswith("annotation stop frame"):
+                    items = line.split()
+                    if len(items) > 3:
+                        self._end_frame = int(items[3])
+                        if self._start_frame and self._sample_rate:
+                            found_timecode = True
+                elif line.lower().startswith("annotation framerate"):
+                    items = line.split()
+                    if len(items) > 2:
+                        self._sample_rate = float(items[2])
+                        if self._start_frame and self._end_frame:
+                            found_timecode = True
+                elif line.lower().startswith("list of channels"):
                     line = f.readline()
                     while line:
                         line = line.strip()
-                        if not line: # blank line
-                            if reading_annot:
-                                reading_annot = False
-                                current_bout = None
-                            else:
-                                # second blank line, so done with channel
-                                reading_channel = False
-                                current_channel = None
-                                break
-                        elif line.startswith(">"):
-                            current_bout = line[1:]
-                            reading_annot = True
-                        elif line.lower().startswith("start"):
-                            pass # skip a header line
-                        else:
-                            items = line.split()
-                            is_float = '.' in items[0] or '.' in items[1] or '.' in items[2]
-                            self.add_bout(
-                                Bout(
-                                    tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(items[0])) if is_float
-                                        else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(items[0])),
-                                    tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(items[1])) if is_float
-                                        else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(items[1])),
-                                    self._behaviors.get(current_bout)),
-                                current_channel)
+                        if not line:
+                            break # blank line -- end of section
+                        channel_names.append(line)
                         line = f.readline()
-            line = f.readline()
-        print(f"Done reading Caltech annotation file {f.name}")
+                    found_channel_names = True
+                elif line.lower().startswith("list of annotations"):
+                    line = f.readline()
+                    while line:
+                        line = line.strip()
+                        if not line:
+                            break # blank line -- end of section
+                        to_activate.append(line)
+                        line = f.readline().strip()
+                    found_annotation_names = True
+                elif line.strip().lower().endswith("---"):
+                    for ch_name in channel_names:
+                        if line.startswith(ch_name):
+                            ix = len(self._channels)
+                            self._channels[ch_name] = Channel()
+                            current_channel = ch_name
+                            reading_channel = True
+                            break
+                    if reading_channel:
+                        reading_annot = False
+                        line = f.readline()
+                        while line:
+                            line = line.strip()
+                            if not line: # blank line
+                                if reading_annot:
+                                    reading_annot = False
+                                    current_bout = None
+                                else:
+                                    # second blank line, so done with channel
+                                    reading_channel = False
+                                    current_channel = None
+                                    break
+                            elif line.startswith(">"):
+                                current_bout = line[1:]
+                                reading_annot = True
+                            elif line.lower().startswith("start"):
+                                pass # skip a header line
+                            else:
+                                items = line.split()
+                                is_float = '.' in items[0] or '.' in items[1] or '.' in items[2]
+                                self.add_bout(
+                                    Bout(
+                                        tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(items[0])) if is_float
+                                            else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(items[0])),
+                                        tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(items[1])) if is_float
+                                            else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(items[1])),
+                                        self._behaviors.get(current_bout)),
+                                    current_channel)
+                            line = f.readline()
+                line = f.readline()
+        print(f"Done reading Bento annotation file {f.name}")
         self.note_annotations_changed()
 
+    def _read_caltech(self, f):
+        header = 'Caltech Behavior Annotator - Annotation File'
+        conf = 'Configuration file:'
+        fid = open(f)
+        lines = fid.read().splitlines()
+        fid.close()
+        NFrames = []
+        # check the header
+        assert lines[0].rstrip() == header
+        assert lines[1].rstrip() == ''
+        assert lines[2].rstrip() == conf
+        # parse action list
+        line = 3
+        behavior_names = [None] * 1000
+        behaviors = []
+        k = -1
+
+        #get config keys and names
+        while True:
+            lines[line] = lines[line].rstrip()
+            if not isinstance(lines[line], str) or not lines[line]:
+                line+=1
+                break
+            values = lines[line].split()
+            k += 1
+            behavior_names[k] = values[0].lower()
+            line += 1
+        behavior_names = behavior_names[:k+1]
+
+        #read in each stream in turn until end of file
+        bnds0 = [None]*10000
+        actions0 = [None]*10000
+        nStrm1 = 0
+        while True:
+            lines[line] = lines[line].rstrip()
+            nStrm1 += 1
+            t = lines[line].split(":")
+            line += 1
+            lines[line] = lines[line].rstrip()
+            assert int(t[0][1]) == nStrm1
+            assert lines[line] == '-----------------------------'
+            current_channel = f'Ch{int(nStrm1)}'
+            self._channels[current_channel] = Channel()
+            line += 1
+            bnds1 = np.ones((10000, 2),dtype=int)
+            k = 0
+            # start the annotations
+            while True:
+                lines[line] = lines[line].rstrip()
+                t = lines[line]
+                if not isinstance(t, str) or not t:
+                    line += 1
+                    break
+                t = lines[line].split()
+                bhvr_ind = [i for i in range(len(behavior_names)) if t[2].lower() == behavior_names[i]]
+                bhvr_ind = bhvr_ind[0]
+                if bhvr_ind == None:
+                    print('undefined behavior' + t[2])
+                if bnds1[k-1,1]+1 != int(t[0])-1 and k>0:
+                    print('%d ~= %d' % (bnds1[k,1], int(t[0]) - 1))
+                bnds1[k,:] = [int(t[0]) - 1, int(t[1]) - 1]  # added -1 so that we're 0-indexing!
+                #actions1[k] = behavior_names[bhvr_ind]
+                start, end, bev = int(t[0])-1, int(t[1])-1, str(t[2].lower())
+                if bev != 'other' and self.sample_rate():
+                    is_float = isinstance(start, float) or isinstance(end, float)
+                    if bev not in behaviors:
+                        behaviors.append(bev)
+                        self.ensure_and_activate_behaviors(behaviors)
+                    self.add_bout(Bout(
+                                tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(start)) if is_float
+                                    else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(start)),
+                                tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(end)) if is_float
+                                    else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(end)),
+                                self._behaviors.get(bev)),
+                                current_channel)
+                k += 1
+                line += 1
+                if line == len(lines):
+                    break
+                    
+            if nStrm1 == 1:
+                nFrames = bnds1[k-1, 1] + 1
+            assert nFrames == bnds1[k-1, 1] + 1
+            if line == len(lines):
+                break
+            while not lines[line]:
+                line += 1
+        self._start_frame, self._end_frame = 1, nFrames
+        self.note_annotations_changed()
+    
+    def _read_boris(self, f):
+        self._channels['Ch1'] = Channel()
+        current_channel = 'Ch1'
+        to_activate = []
+        with open(f) as csv_file:
+            reader = csv.reader(csv_file)
+            header_flag = 1
+            nFrames = 0
+            for row in reader:
+                if header_flag and not (row[0] == 'Time' and row[1] == 'Media file path' and row[2] == 'Total length'):
+                    continue
+                elif header_flag:
+                    header_flag = 0
+                    continue
+
+                fps = float(row[3])
+                self._sample_rate = fps
+                if not nFrames:
+                    nFrames = math.ceil(float(row[2]) * fps) + 1
+                self._start_frame, self._end_frame = 1, nFrames
+                bev = row[-4]
+                if bev not in to_activate:
+                    to_activate.append(bev)
+                if row[-1] == 'POINT':
+                    start_end = [round(float(row[0]) * fps), round(float(row[0]) * fps)+1]
+                elif row[-1] == 'START':
+                    start_end = [round(float(row[0]) * fps), 0]
+                elif row[-1] == 'STOP':
+                    start_end[1] = round(float(row[0]) * fps)
+                
+                if start_end[1] > 0:
+                    is_float = isinstance(start_end[0], float) or isinstance(start_end[1], float)
+                    self.add_bout(Bout(
+                                tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(start_end[0])) if is_float
+                                    else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(start_end[0])),
+                                tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(start_end[1])) if is_float
+                                    else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(start_end[1])),
+                                self._behaviors.get(bev)),
+                            current_channel)
+                else:
+                    continue
+        self.ensure_and_activate_behaviors(to_activate)
+        self.note_annotations_changed()
+
+
+    def _read_simba(self, f):
+        self._channels['Ch1'] = Channel()
+        current_channel = 'Ch1'
+        with open(f) as csv_file:
+            reader = csv.reader(csv_file)
+            ordered_headers = next(reader)
+        behaviors = []
+        df = pd.read_csv(f)
+
+        # figure out the behaviors scored
+        while True:
+            if 'Low_prob' in ordered_headers[-1]:  # this looks like it could sometimes be binary
+                break
+            if any([x not in [0, 1] for x in df[ordered_headers[-1]] if x == x]):
+                break
+            behaviors.append(ordered_headers[-1])
+            del ordered_headers[-1]
+        
+        self.ensure_and_activate_behaviors(behaviors)
+        self._start_frame, self._end_frame = 1, df.index[-1] + 1
+        
+        for b in behaviors:
+            start = ([0] if df[b][0] else []) + df.index[df[b].diff() == 1].tolist()
+            end = [i for i in df.index[df[b].diff()==-1].tolist()] + ([df.index[-1]] if df[b][df.index[-1]]==1 else [])
+            start_end = np.column_stack((start, end))
+            if self.sample_rate():
+                for start, end in start_end:
+                    is_float = isinstance(start, float) or isinstance(end, float)
+                    self.add_bout(Bout(
+                                    tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(start)) if is_float
+                                        else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(start)),
+                                    tc.Timecode(self._sample_rate, start_seconds=self._offset_time.float+float(end)) if is_float
+                                        else tc.Timecode(self._sample_rate, frames=self._offset_time.frames+int(end)),
+                                    self._behaviors.get(b)),
+                                current_channel)
+    
     def write_caltech(self, f, video_files):
         if not f.writable():
             raise RuntimeError("File not writable")
@@ -513,7 +716,7 @@ class Annotations(QObject, DataExporter):
             f.write("\n")
 
         f.close()
-        print(f"Done writing Caltech annotation file {f.name}")
+        print(f"Done writing Bento annotation file {f.name}")
 
     def _read_ethovision(self, f):
         print("Ethovision annotations not yet supported")

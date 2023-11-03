@@ -2,7 +2,7 @@
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QKeyEvent
-from qtpy.QtWidgets import (QTableView, QMessageBox, QTreeWidget, QTreeWidgetItem, 
+from qtpy.QtWidgets import (QTableView, QMessageBox, QTreeWidget, QTreeWidgetItem, QComboBox,
                         QStyledItemDelegate, QLineEdit, QDoubleSpinBox)
 
 
@@ -17,6 +17,22 @@ class OffsetTimeItemDelegate(QStyledItemDelegate):
             index.model().headerData(index.column(), Qt.Horizontal, Qt.DisplayRole) == 'Offset Time'):
             editor = QLineEdit(parent)
             return editor
+        return editor
+
+class CustomComboBoxDelegate(QStyledItemDelegate):
+    def __init__(self, comboItems):
+        super().__init__()
+        self.comboItems = comboItems
+
+    def createEditor(self, parent, option, index):
+        editor = super().createEditor(parent, option, index)
+        if (isinstance(editor, QLineEdit) and
+            index.model().headerData(index.column(), Qt.Horizontal, Qt.DisplayRole) == 'Format'):
+            editor.close()
+            comboBox = QComboBox(parent)
+            comboBox.addItems(self.comboItems)
+            comboBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            return comboBox
         return editor
 
 class DeleteableTableView(QTableView):
