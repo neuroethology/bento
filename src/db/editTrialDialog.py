@@ -62,6 +62,9 @@ class EditTrialDialog(QDialog):
                                               str(datetime.now().isoformat(sep=" ", timespec="milliseconds")),
                                               "%Y-%m-%d %H:%M:%S.%f"
                                             ))
+        self.ui.annotationsDeleteButton.clicked.connect(self.deleteAnnotationFiles)
+        self.ui.neuralsDeleteButton.clicked.connect(self.deleteNeuralFiles)
+        self.ui.videoPoseDeleteButton.clicked.connect(self.deleteVideoPoseFiles)
         self.video_data = None
 
         self.trial_id = trial_id
@@ -287,6 +290,32 @@ class EditTrialDialog(QDialog):
             for file_path in videoFiles:
                 self.addVideoFile(file_path, baseDir, available_cameras)
 
+    @Slot()
+    def deleteVideoPoseFiles(self):
+        msgBox = QMessageBox(
+                QMessageBox.Question,
+                "Delete Rows",
+                "This will delete the selected file(s) along with any dependent "
+                "items from the database and cannot be undone.  Okay to continue?",
+                buttons=QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Yes:
+            for item in self.ui.videosTreeWidget.selectedItems():
+                item.setHidden(True)
+                if bool(item.parent()):
+                    # pose item: hide the header if no children remain unhidden
+                    nonHeaderChildCount = 0
+                    poseHeaderIx = -1
+                    parentChildCount = item.parent().childCount()
+                    for child_ix in range(parentChildCount):
+                        child = item.parent().child(child_ix)
+                        if child.type() == DeleteableTreeWidget.PoseHeaderType:
+                            poseHeaderIx = child_ix
+                        elif not child.isHidden():
+                            nonHeaderChildCount += 1
+                    if nonHeaderChildCount == 0 and poseHeaderIx >= 0:
+                        item.parent().child(poseHeaderIx).setHidden(True)
+
     def updateVideoData(self, trial, db_sess):
         videoHeader = VideoData().header()
         poseHeader = PoseData().header()
@@ -477,6 +506,18 @@ class EditTrialDialog(QDialog):
             for file_path in neuralFiles:
                 self.addNeuralFile(file_path, baseDir)
 
+    @Slot()
+    def deleteNeuralFiles(self):
+        msgBox = QMessageBox(
+                QMessageBox.Question,
+                "Delete Rows",
+                "This will delete the selected file(s) from the database and cannot be undone.  Okay to continue?",
+                buttons=QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Yes:
+            for ix in self.ui.neuralsTableView.selectedIndexes():
+                self.ui.neuralsTableView.hideRow(ix.row())
+
     def updateNeuralData(self, trial, db_sess):
         model = self.ui.neuralsTableView.model()
         if model:
@@ -658,6 +699,18 @@ class EditTrialDialog(QDialog):
         if len(annotationFiles) > 0:
             for file_path in annotationFiles:
                 self.addAnnotationFile(file_path, baseDir)
+
+    @Slot()
+    def deleteAnnotationFiles(self):
+        msgBox = QMessageBox(
+                QMessageBox.Question,
+                "Delete Rows",
+                "This will delete the selected file(s) from the database and cannot be undone.  Okay to continue?",
+                buttons=QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Yes:
+            for ix in self.ui.annotationsTableView.selectedIndexes():
+                self.ui.annotationsTableView.hideRow(ix.row())
 
     @Slot()
     def accept(self):

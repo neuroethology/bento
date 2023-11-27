@@ -122,6 +122,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="videoPoseDeleteButton">
+         <property name="text">
+          <string>Delete</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="videosSearchVerticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -159,6 +166,13 @@
         <widget class="QPushButton" name="annotationsSearchPushButton">
          <property name="text">
           <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="annotationsDeleteButton">
+         <property name="text">
+          <string>Delete</string>
          </property>
         </widget>
        </item>
@@ -206,6 +220,13 @@
         <widget class="QPushButton" name="neuralsSearchPushButton">
          <property name="text">
           <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="neuralsDeleteButton">
+         <property name="text">
+          <string>Delete</string>
          </property>
         </widget>
        </item>
@@ -267,6 +288,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="audiosDeleteButton">
+         <property name="text">
+          <string>Delete</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="audiosSearchVerticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -320,6 +348,13 @@
          </property>
          <property name="text">
           <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="othersDeleteButton">
+         <property name="text">
+          <string>Delete</string>
          </property>
         </widget>
        </item>
