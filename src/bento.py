@@ -652,8 +652,9 @@ class Bento(QObject, DataExporter):
         sample_rate_set = False
 
         for video in videos:
-            self.time_start_end['video'].append([video.start_time, 
-                                                 video.start_time+float(24*60*60)])
+            video_start_time = self.trial_start_time + video.offset_time
+            self.time_start_end['video'].append([video_start_time, 
+                                                 video_start_time + float(24*60*60)])
             if not sample_rate_set:
                 sample_rate = video.sample_rate
                 sample_rate_set = True
@@ -669,8 +670,9 @@ class Bento(QObject, DataExporter):
                 if trial.neural_data:
                     running_time = Timecode(str(trial.neural_data[0].sample_rate),
                                             frames=trial.neural_data[0].stop_frame-trial.neural_data[0].start_frame).float
-                    self.time_start_end['neural'].append([trial.neural_data[0].start_time, 
-                                                          trial.neural_data[0].start_time+running_time])
+                    neural_start_time = self.trial_start_time + trial.neural_data[0].offset_time
+                    self.time_start_end['neural'].append([neural_start_time, 
+                                                          neural_start_time + running_time])
         if loadAudio:
             # not supported yet
             pass
