@@ -32,7 +32,7 @@ from pynwb import NWBFile, NWBHDF5IO
 from pynwb.file import Subject
 from utils import fix_path, padded_rectf
 import sys, traceback, time, itertools
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.tz import tzlocal
 import numpy as np
 
@@ -507,6 +507,17 @@ class Bento(QObject, DataExporter):
             prev_bout = self.annotations.channel(ch).get_prev_end(self.player.currentTime() - 1)
             prev_event = max(prev_event, prev_bout.end())
         self.set_time(prev_event)
+
+    def jumpToTime(self):
+        time = self.mainWindow.ui.currentTimeEdit.time().toPython()
+        dt = datetime.combine(datetime.fromtimestamp(0., tz=timezone.utc).date(),
+                            time, tzinfo=timezone.utc)
+        self.set_time(Timecode(str(self.time_start.framerate), start_seconds=dt.timestamp()))
+
+    @Slot()
+    def jumpToFrame(self):
+        frame = self.mainWindow.ui.currentFrameBox.value()
+        self.set_time(Timecode(str(self.time_start.framerate), frames=frame))
 
     # @Slot(QObject.event)
     def processHotKey(self, event: QObject.event):
