@@ -3,24 +3,18 @@
 ################################################################################
 ## Form generated from reading UI file 'editTrialDialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.2
+## Created by: Qt User Interface Compiler version 5.15.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from qtpy.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from qtpy.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from qtpy.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication, QDialog,
-    QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
-    QLineEdit, QPushButton, QSizePolicy, QSpacerItem,
-    QTreeView, QTreeWidgetItem, QVBoxLayout, QWidget)
+from qtpy.QtCore import *
+from qtpy.QtGui import *
+from qtpy.QtWidgets import *
 
-from widgets.deleteableViews import (DeleteableTableView, DeleteableTreeWidget)
+from widgets.deleteableViews import DeleteableTableView
+from widgets.deleteableViews import DeleteableTreeWidget
+
 
 class Ui_EditTrialDialog(object):
     def setupUi(self, EditTrialDialog):
@@ -42,6 +36,21 @@ class Ui_EditTrialDialog(object):
 
         self.generalInfoHorizontalLayout.addWidget(self.trialNumLineEdit)
 
+        self.trialStartTimeLabel = QLabel(EditTrialDialog)
+        self.trialStartTimeLabel.setObjectName(u"trialStartTimeLabel")
+
+        self.generalInfoHorizontalLayout.addWidget(self.trialStartTimeLabel)
+
+        self.trialDateTimeEdit = QDateTimeEdit(EditTrialDialog)
+        self.trialDateTimeEdit.setObjectName(u"trialDateTimeEdit")
+        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.trialDateTimeEdit.sizePolicy().hasHeightForWidth())
+        self.trialDateTimeEdit.setSizePolicy(sizePolicy)
+
+        self.generalInfoHorizontalLayout.addWidget(self.trialDateTimeEdit)
+
         self.stimulusLabel = QLabel(EditTrialDialog)
         self.stimulusLabel.setObjectName(u"stimulusLabel")
 
@@ -49,11 +58,11 @@ class Ui_EditTrialDialog(object):
 
         self.stimulusLineEdit = QLineEdit(EditTrialDialog)
         self.stimulusLineEdit.setObjectName(u"stimulusLineEdit")
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.stimulusLineEdit.sizePolicy().hasHeightForWidth())
-        self.stimulusLineEdit.setSizePolicy(sizePolicy)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy1.setHorizontalStretch(1)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.stimulusLineEdit.sizePolicy().hasHeightForWidth())
+        self.stimulusLineEdit.setSizePolicy(sizePolicy1)
 
         self.generalInfoHorizontalLayout.addWidget(self.stimulusLineEdit)
 
@@ -253,6 +262,7 @@ class Ui_EditTrialDialog(object):
     def retranslateUi(self, EditTrialDialog):
         EditTrialDialog.setWindowTitle(QCoreApplication.translate("EditTrialDialog", u"Add or Edit Trial", None))
         self.trialNumLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Trial Num: ", None))
+        self.trialStartTimeLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Trial Start Time: ", None))
         self.stimulusLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Stimulus: ", None))
         self.videosLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Video Files: ", None))
         self.videosSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))

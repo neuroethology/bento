@@ -33,6 +33,23 @@
       <widget class="QLineEdit" name="trialNumLineEdit"/>
      </item>
      <item>
+      <widget class="QLabel" name="trialStartTimeLabel">
+       <property name="text">
+        <string>Trial Start Time: </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDateTimeEdit" name="trialDateTimeEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QLabel" name="stimulusLabel">
        <property name="text">
         <string>Stimulus: </string>

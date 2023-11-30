@@ -81,11 +81,11 @@ class NeuralData(Base):
     file_path = Column(String(512))
     sample_rate = Column(Float)
     format = Column(String(128))
-    start_time = Column(Float)   # needs to be convertible to timecode
+    offset_time = Column(Float)   # needs to be convertible to timecode
     start_frame = Column(Integer)
     stop_frame = Column(Integer)
     trial = Column(Integer, ForeignKey('trial.id'))   # 'Trial.trial_id' is quoted because it's a forward reference
-    keys = ['id', 'Neural File Path', 'Sample Rate', 'Format', 'Start Time', 'Start Frame', 'Stop Frame', 'trial_id']
+    keys = ['id', 'Neural File Path', 'Sample Rate', 'Format', 'Offset Time', 'Start Frame', 'Stop Frame', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -93,8 +93,8 @@ class NeuralData(Base):
             self.fromDict(d, db_sess)
 
     def __repr__(self):
-        return "<NeuralData(file_path='%s', sample_rate='%f', format='%s', start_time='%f', start_frame='%d', stop_frame='%d')>" % (
-            self.file_path, self.sample_rate, self.format, self.start_time, self.start_frame, self.stop_frame
+        return "<NeuralData(file_path='%s', sample_rate='%f', format='%s', offset_time='%f', start_frame='%d', stop_frame='%d')>" % (
+            self.file_path, self.sample_rate, self.format, self.offset_time, self.start_frame, self.stop_frame
         )
 
     def header(self):
@@ -106,7 +106,7 @@ class NeuralData(Base):
             'Neural File Path': self.file_path,
             'Sample Rate': self.sample_rate,
             'Format': self.format,
-            'Start Time': str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
+            'Offset Time': self.offset_time,
             'Start Frame': self.start_frame,
             'Stop Frame': self.stop_frame,
             'trial_id': self.trial
@@ -124,8 +124,8 @@ class NeuralData(Base):
             self.sample_rate = d['Sample Rate']
         if 'Format' in d.keys() and d['Format'] != self.format:
             self.format = d['Format']
-        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
+        if 'Offset Time' in d.keys() and d['Offset Time'] != self.offset_time:
+            self.offset_time = d['Offset Time']
         if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
             self.start_frame = d['Start Frame']
         if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
@@ -142,13 +142,13 @@ class VideoData(Base):
     id = Column(Integer, primary_key=True)
     file_path = Column(String(512))
     sample_rate = Column(Float)
-    start_time = Column(Float)   # needs to be convertible to timecode
+    offset_time = Column(Float)   # needs to be convertible to timecode
     camera_id = Column(Integer, ForeignKey('camera.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
     camera = relationship('Camera')
     pose_data = relationship('PoseData')
     # don't put id first, because then we can't hide it in a QTreeWidget as column 0
-    keys = ['Video File Path', 'Sample Rate', 'Start Time', 'Camera Position', 'trial_id', 'id']
+    keys = ['Video File Path', 'Sample Rate', 'Offset Time', 'Camera Position', 'trial_id', 'id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -156,8 +156,8 @@ class VideoData(Base):
             self.fromDict(d, db_sess)
 
     def __repr__(self):
-        return "<VideoData(file_path='%s', sample_rate='%s', start_time='%s')>" % (
-            self.file_path, self.sample_rate, self.start_time
+        return "<VideoData(file_path='%s', sample_rate='%s', offset_time='%s')>" % (
+            self.file_path, self.sample_rate, self.offset_time
         )
 
     def header(self):
@@ -169,7 +169,7 @@ class VideoData(Base):
             'id': self.id,
             'Video File Path': self.file_path,
             'Sample Rate': self.sample_rate,
-            'Start Time': str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
+            'Offset Time': self.offset_time,
             'Camera Position': self.camera.position,
             'trial_id': self.trial,
             'pose_data': pose_data
@@ -189,8 +189,8 @@ class VideoData(Base):
             self.file_path = d['Video File Path']
         if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
             self.sample_rate = d['Sample Rate']
-        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
+        if 'Offset Time' in d.keys() and d['Offset Time'] != self.offset_time:
+            self.offset_time = d['Offset Time']
         if self.camera_id != camera.id:
             self.camera_id = camera.id
         if self.camera != camera:
@@ -209,13 +209,13 @@ class AnnotationsData(Base):
     file_path = Column(String(512))
     sample_rate = Column(Float)
     format = Column(String(128), nullable=False)
-    start_time = Column(Float)   # needs to be convertible to timecode
+    offset_time = Column(Float)   # needs to be convertible to timecode
     start_frame = Column(Integer)
     stop_frame = Column(Integer)
     annotator_name = Column(String(128))
     method = Column(String(128))   # e.g. manual, MARS v1_8
     trial = Column(Integer, ForeignKey('trial.id'))
-    keys = ['id', 'Annotations File Path', 'Sample Rate', 'Format', 'Start Time', 'Start Frame',
+    keys = ['id', 'Annotations File Path', 'Sample Rate', 'Format', 'Offset Time', 'Start Frame',
             'Stop Frame', 'Annotator Name', 'Method', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
@@ -225,10 +225,10 @@ class AnnotationsData(Base):
 
     def __repr__(self):
         return ( "<AnnotationsData(file_path='%s', sample_rate='%s', format='%s',"
-            " start_time='%s', start_frame='%s', stop_frame='%s',"
+            " offset_time='%s', start_frame='%s', stop_frame='%s',"
             " annotator_name='%s', method='%s')>" % (
             self.file_path, self.sample_rate, self.format,
-            self.start_time, self.start_frame, self.stop_frame,
+            self.offset_time, self.start_frame, self.stop_frame,
             self.annotator_name, self.method )
         )
 
@@ -241,7 +241,7 @@ class AnnotationsData(Base):
             'Annotations File Path': self.file_path,
             'Sample Rate': self.sample_rate,
             'Format': self.format,
-            'Start Time': str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
+            'Offset Time': self.offset_time,
             'Start Frame': self.start_frame,
             'Stop Frame': self.stop_frame,
             'Annotator Name': self.annotator_name,
@@ -261,8 +261,8 @@ class AnnotationsData(Base):
             self.sample_rate = d['Sample Rate']
         if 'Format' in d.keys() and d['Format'] != self.format:
             self.format = d['Format']
-        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
+        if 'Offset Time' in d.keys() and d['Offset Time'] != self.offset_time:
+            self.offset_time = d['Offset Time']
         if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
             self.start_frame = d['Start Frame']
         if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
@@ -283,12 +283,12 @@ class AudioData(Base):
     id = Column(Integer, primary_key=True)
     file_path = Column(String(512))
     sample_rate = Column(Float)
-    start_time = Column(Float)   # needs to be convertible to timecode
+    offset_time = Column(Float)   # needs to be convertible to timecode
     processed_audio_file_path = Column(String(512))
     # annotations_id = Column(Integer, ForeignKey('annotations.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
-    # keys = ['id', 'file_path', 'sample_rate', 'start_time', 'processed_audio_file_path', 'annotations_id', 'trial_id']
-    keys = ['id', 'Audio File Path', 'Sample Rate', 'Start Time', 'Processed Audio File Path', 'trial_id']
+    # keys = ['id', 'file_path', 'sample_rate', 'offset_time', 'processed_audio_file_path', 'annotations_id', 'trial_id']
+    keys = ['id', 'Audio File Path', 'Sample Rate', 'Offset Time', 'Processed Audio File Path', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -296,9 +296,9 @@ class AudioData(Base):
             self.fromDict(d, db_sess)
 
     def __repr__(self):
-        return ( "<AudioData(file_path='%s', sample_rate='%s', start_time='%s',"
+        return ( "<AudioData(file_path='%s', sample_rate='%s', offset_time='%s',"
             " start_frame='%s', stop_frame='%s', processed_audio_file_path='%s')>" % (
-            self.file_path, self.sample_rate, self.start_time,
+            self.file_path, self.sample_rate, self.offset_time,
             self.start_frame, self.stop_time, self.processed_audio_file_path )
         )
 
@@ -310,7 +310,7 @@ class AudioData(Base):
             'id': self.id,
             'Audio File Path': self.file_path,
             'Sample Rate': self.sample_rate,
-            'Start Time':str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
+            'Offset Time': self.offset_time,
             'Processed Audio File Path': self.processed_audio_file_path,
             # 'annotations_id': self.annotations_id,
             'trial_id': self.trial
@@ -326,8 +326,8 @@ class AudioData(Base):
             self.file_path = d['Audio File Path']
         if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
             self.sample_rate = d['Sample Rate']
-        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
+        if 'Offset Time' in d.keys() and d['Offset Time'] != self.offset_time:
+            self.offset_time = d['Offset Time']
         if ('Processed Audio File Path' in d.keys()
             and d['Processed Audio File Path'] != self.processed_audio_file_path):
             self.processed_audio_file_path = d['Processed Audio File Path']
@@ -345,12 +345,12 @@ class PoseData(Base):
     pose_id = Column(Integer, primary_key=True)
     file_path = Column(String(512))
     sample_rate = Column(Float)
-    start_time = Column(Float)   # needs to be convertible to timecode
+    offset_time = Column(Float)   # needs to be convertible to timecode
     format = Column(String(128), nullable=False)
     video = Column(Integer, ForeignKey('video_data.id'))
     trial = Column(Integer, ForeignKey('trial.id'))
     # don't put id first, because then we can't hide it in a QTreeWidget as column 0
-    keys = ['Pose File Path', 'Sample Rate', 'Start Time', 'Format', 'video_id', 'trial_id', 'id']
+    keys = ['Pose File Path', 'Sample Rate', 'Offset Time', 'Format', 'video_id', 'trial_id', 'id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -358,9 +358,9 @@ class PoseData(Base):
             self.fromDict(d, db_sess)
 
     def __repr__(self):
-        return ( "<PoseData(file_path='%s', sample_rate='%s', start_time='%s',"
+        return ( "<PoseData(file_path='%s', sample_rate='%s', offset_time='%s',"
             " format='%s')>" % (
-            self.file_path, self.sample_rate, self.start_time, self.format )
+            self.file_path, self.sample_rate, self.offset_time, self.format )
         )
 
     def header(self):
@@ -371,7 +371,7 @@ class PoseData(Base):
             'id': self.pose_id,
             'Pose File Path': self.file_path,
             'Sample Rate': self.sample_rate,
-            'Start Time': str(datetime.fromtimestamp(self.start_time).isoformat(sep=' ', timespec='milliseconds')),
+            'Offset Time': self.offset_time,
             'Format': self.format,
             'video_id': self.video,
             'trial_id': self.trial
@@ -387,8 +387,8 @@ class PoseData(Base):
             self.file_path = d['Pose File Path']
         if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
             self.sample_rate = d['Sample Rate']
-        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = datetime.timestamp(datetime.fromisoformat(d['Start Time']))
+        if 'Offset Time' in d.keys() and d['Offset Time'] != self.offset_time:
+            self.offset_time = d['Offset Time']
         if 'Format' in d.keys() and d['Format'] != self.format:
             self.format = d['Format']
         if 'video_id' in d.keys() and d['video_id'] != self.video:
@@ -405,12 +405,12 @@ class OtherData(Base):
     id = Column(Integer, primary_key=True)
     file_path = Column(String(512))
     sample_rate = Column(Float)
-    start_time = Column(Float)   # needs to be convertible to timecode
+    offset_time = Column(Float)   # needs to be convertible to timecode
     start_frame = Column(Integer)
     stop_frame = Column(Integer)
     format = Column(String(128))
     trial = Column(Integer, ForeignKey('trial.id'))
-    keys = ['id', 'File Path', 'Sample Rate', 'Start Time', 'Start Frame', 'Stop Frame', 'Format', 'trial_id']
+    keys = ['id', 'File Path', 'Sample Rate', 'Offset Time', 'Start Frame', 'Stop Frame', 'Format', 'trial_id']
 
     def __init__(self, d=None, db_sess=None):
         super().__init__()
@@ -418,10 +418,10 @@ class OtherData(Base):
             self.fromDict(d, db_sess)
 
     def __repr__(self):
-        return ( "<OtherData(file_path='%s', sample_rate='%s', start_time='%s',"
+        return ( "<OtherData(file_path='%s', sample_rate='%s', offset_time='%s',"
             " start_frame='%s', stop_frame='%s', format='%s')>" % (
-            self.file_path, self.sample_rate, self.start_time,
-            self.start_time, self.stop_frame, self.format )
+            self.file_path, self.sample_rate, self.offset_time,
+            self.offset_time, self.stop_frame, self.format )
         )
 
     def header(self):
@@ -432,7 +432,7 @@ class OtherData(Base):
             'id': self.id,
             'File Path': self.file_path,
             'Sample Rate': self.sample_rate,
-            'Start Time': self.start_time,
+            'Offset Time': self.offset_time,
             'Start Frame': self.start_frame,
             'Stop Frame': self.stop_frame,
             'Format': self.format,
@@ -449,8 +449,8 @@ class OtherData(Base):
             self.file_path = d['File Path']
         if 'Sample Rate' in d.keys() and d['Sample Rate'] != self.sample_rate:
             self.sample_rate = d['Sample Rate']
-        if 'Start Time' in d.keys() and d['Start Time'] != self.start_time:
-            self.start_time = d['Start Time']
+        if 'Offset Time' in d.keys() and d['Offset Time'] != self.offset_time:
+            self.offset_time = d['Offset Time']
         if 'Start Frame' in d.keys() and d['Start Frame'] != self.start_frame:
             self.start_frame = d['Start Frame']
         if 'Stop Frame' in d.keys() and d['Stop Frame'] != self.stop_frame:
@@ -493,6 +493,7 @@ class Trial(Base):
     id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey('session.id'))
     trial_num = Column(Integer)
+    trial_start_time = Column(Float)
     stimulus = Column(String(128))
     video_data = relationship('VideoData',
         cascade='all, delete, delete-orphan')    # could be more than one, e.g. top view, front view

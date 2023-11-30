@@ -231,6 +231,7 @@ class TrialDockWidget(QDockWidget):
                 trial = db_session.query(Trial).where(Trial.id == trial_id).one()
                 self.bento.session_id = trial.session_id
                 self.bento.trial_id = trial.id
+                self.bento.trial_start_time = trial.trial_start_time
             videos = []
             videoSelectionModel = self.ui.videoTableView.selectionModel()
             annotateSelectionModel = self.ui.annotationTableView.selectionModel()
