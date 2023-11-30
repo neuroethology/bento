@@ -71,7 +71,7 @@ class NeuralFrame(QFrame, DataExporter):
             self.bento.time_start_end_timecode['neural'][0][0],
             self.ui.showTraceRadioButton.isChecked(),
             self.ui.showHeatMapRadioButton.isChecked(),
-            self.ui.showAnnotationsCheckBox.checkState()
+            self.ui.showAnnotationsCheckBox.isChecked()
             )
         self.ui.dataMinLabel.setText(f"{self.neuralScene.data_min:.3f}")
         self.ui.dataMaxLabel.setText(f"{self.neuralScene.data_max:.3f}")
@@ -134,6 +134,7 @@ class NeuralFrame(QFrame, DataExporter):
             self.neuralScene.showTraces(checked)
             if checked:
                 self.ui.showAnnotationsCheckBox.setEnabled(True)
+                self.ui.showAnnotationsCheckBox.setChecked(True)
                 self.neuralScene.showAnnotations(
                     self.ui.showAnnotationsCheckBox.isChecked()
             )
@@ -144,6 +145,7 @@ class NeuralFrame(QFrame, DataExporter):
             self.neuralScene.showHeatmap(checked)
             if checked:
                 self.ui.showAnnotationsCheckBox.setEnabled(False)
+                self.ui.showAnnotationsCheckBox.setChecked(False)
                 self.neuralScene.showAnnotations(False)
 
     @Slot(int)
