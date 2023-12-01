@@ -545,7 +545,15 @@ class Bento(QObject, DataExporter):
 
         # Is there a pending bout?  If so, complete the annotation activity
         if self.pending_bout:
-            chan = self.active_channels[0]
+            if self.active_channels:
+                chan = self.active_channels[0]
+            else:
+                msgBox = QMessageBox(QMessageBox.Warning, 
+                                 "No annotation channel found", 
+                                 "No annotation channel found. Please add new annotation channel before \
+                                 doing annotations.")
+                msgBox.exec()
+                raise RuntimeError("Annotation channel should be added before doing annotations.")
             if self.pending_bout.start() > self.player.currentTime():
                 # swap start and end before completing
                 self.pending_bout.set_end(self.pending_bout.start())
