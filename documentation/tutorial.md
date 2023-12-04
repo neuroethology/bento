@@ -115,7 +115,7 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 > Note : Assuming you are a loading a trial with no annotation file in it. You can also load a trial with an exisiing annotation file and do all the steps. 
 
-1. Load a trial as mentioned in [Loading data from a trial](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Loading-data-from-a-trial).
+1. Load a trial as mentioned in [Loading data from a trial](https://github.com/neuroethology/bento/blob/main/documentation/tutorial.md#Loading-data-from-a-trial).
 2. In the **Main Window**, click on **New Channel** button. **New Channel Dialog** will pop up.
 3. Add any relevant channel name in the **Channel Name** text box and click **OK** button.
 4. You will see a channel added in the drop down box left to the **New Channel** button.
@@ -150,8 +150,8 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 
 > Note : Assuming you are a loading a trial with no annotation file in it. You can also load a trial with an exisiing annotation file and do all the steps. 
 
-1. Add a channel as mentioned in [Creating a new annotation channel](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Creating-a-new-annotation-channel)
-2. [Create new behaviors](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Creating-a-new-behavior) or [edit behavior properties](https://github.com/neuroethology/bento/blob/feature/documentation/documentation/tutorial.md#Editing-behavior-properties) based on your requirement for adding annotations.
+1. Add a channel as mentioned in [Creating a new annotation channel](https://github.com/neuroethology/bento/blob/main/documentation/tutorial.md#Creating-a-new-annotation-channel)
+2. [Create new behaviors](https://github.com/neuroethology/bento/blob/main/documentation/tutorial.md#Creating-a-new-behavior) or [edit behavior properties](https://github.com/neuroethology/bento/blob/main/documentation/tutorial.md#Editing-behavior-properties) based on your requirement for adding annotations.
 3. For adding annotations, select the channel for which you need to add annotations.
 4. Click on the rectangular annotations view, press the **hot_key** corresponding to the behavior.
 5. After pressing the **hot_key**, drag the cursor in the view for the length of time you need to add an annotation.
