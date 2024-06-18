@@ -142,15 +142,15 @@ class EditTrialDialog(QDialog):
                 for column in range(self.ui.videosTreeWidget.columnCount()):
                     self.ui.videosTreeWidget.resizeColumnToContents(column)
 
-                if updateTrialNum:
-                    self.ui.videosTreeWidget.itemSelectionChanged.connect(self.populateTrialNum)
-                else:
-                    try:
-                        self.ui.videosTreeWidget.itemSelectionChanged.disconnect(self.populateTrialNum)
-                    except RuntimeError:
-                        # The above call raises RuntimeError if the signal is not connected,
-                        # which we can safely ignore.
-                        pass
+                # if updateTrialNum:
+                #     self.ui.videosTreeWidget.itemSelectionChanged.connect(self.populateTrialNum)
+                # else:
+                #     try:
+                #         self.ui.videosTreeWidget.itemSelectionChanged.disconnect(self.populateTrialNum)
+                #     except RuntimeError:
+                #         # The above call raises RuntimeError if the signal is not connected,
+                #         # which we can safely ignore.
+                #         pass
 
     def addVideoFile(self, file_path, baseDir, available_cameras):
         """
@@ -392,15 +392,15 @@ class EditTrialDialog(QDialog):
                 self.setNeuralModel(model)
 
                 selectionModel = self.ui.neuralsTableView.selectionModel()
-                if updateTrialNum:
-                    selectionModel.selectionChanged.connect(self.populateTrialNum)
-                else:
-                    try:
-                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
-                    except RuntimeError:
-                        # The above call raises RuntimeError if the signal is not connected,
-                        # which we can safely ignore.
-                        pass
+                # if updateTrialNum:
+                #     selectionModel.selectionChanged.connect(self.populateTrialNum)
+                # else:
+                #     try:
+                #         selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                #     except RuntimeError:
+                #         # The above call raises RuntimeError if the signal is not connected,
+                #         # which we can safely ignore.
+                #         pass
 
     def addNeuralFile(self, file_path, baseDir):
         """
@@ -532,15 +532,15 @@ class EditTrialDialog(QDialog):
                 self.setAnnotationsModel(model)
 
                 selectionModel = self.ui.annotationsTableView.selectionModel()
-                if updateTrialNum:
-                    selectionModel.selectionChanged.connect(self.populateTrialNum)
-                else:
-                    try:
-                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
-                    except RuntimeError:
-                        # The above call raises RuntimeError if the signal is not connected,
-                        # which we can safely ignore.
-                        pass
+                # if updateTrialNum:
+                #     selectionModel.selectionChanged.connect(self.populateTrialNum)
+                # else:
+                #     try:
+                #         selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                #     except RuntimeError:
+                #         # The above call raises RuntimeError if the signal is not connected,
+                #         # which we can safely ignore.
+                #         pass
 
     def addAnnotationFile(self, file_path, baseDir):
         """
