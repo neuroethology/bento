@@ -1,3 +1,7 @@
+import os
+# to avoid memory leak in Windows
+if os.name == 'nt':
+	os.environ["OMP_NUM_THREADS"] = '1'
 import math
 import numpy as np
 import matplotlib.pyplot as plt
