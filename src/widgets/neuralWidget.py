@@ -311,16 +311,17 @@ class NeuralScene(QGraphicsScene):
         self.data_max = self.data.max()
         self.colorMapper = NeuralColorMapper(self.data_min, self.data_max, "parula")
         # for chan in range(self.num_chans):
-        t_values = ((np.arange(self.data.shape[1]) - self.start_frame)/self.sample_rate) + self.time_start.float
-        y_values = np.arange(self.num_chans).reshape(-1,1) + 0.5 + self.normalize(self.data)
-        self.tracesOrder = y_values[:, self.start_frame]
-        self.drawTraces(t_values[self.start_frame:self.stop_frame], 
-                        y_values[:,self.start_frame:self.stop_frame])
+        self.t_values = ((np.arange(self.data.shape[1]) - self.start_frame)/self.sample_rate) + self.time_start.float
+        self.y_values = np.arange(self.num_chans).reshape(-1,1) + 0.5 + self.normalize(self.data)
+        self.tracesOrder = self.y_values[:, self.start_frame]
+        self.drawTraces(self.t_values[self.start_frame:self.stop_frame], 
+                        self.y_values[:,self.start_frame:self.stop_frame])
         #for chan in range(self.num_chans):
         #    self.loadChannel(self.data, chan)
         self.putTracesIntoAGroup()
         # create heatmap
-        self.createHeatmap(np.arange(self.num_chans))
+        heatmapData = self.data[:,self.start_frame:self.stop_frame]
+        self.createHeatmap(heatmapData)  #np.arange(self.num_chans)
         # finally, add the traces on top of everything
         self.addItem(self.traces)
         # pad some time on left and right to allow centering
@@ -341,10 +342,10 @@ class NeuralScene(QGraphicsScene):
         if isinstance(self.annotations, QGraphicsItem):
             self.annotations.setVisible(showAnnotations)
     
-    def createHeatmap(self, order):
+    def createHeatmap(self, data):
         self.heatmapImage, self.heatmap = None, None
         # Image has a pixel for each frame for each channel
-        self.heatmapImage = self.colorMapper.mappedImage(self.data[order,self.start_frame:self.stop_frame])
+        self.heatmapImage = self.colorMapper.mappedImage(data)
         self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
 
         # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
@@ -377,13 +378,34 @@ class NeuralScene(QGraphicsScene):
     def putTracesIntoAGroup(self):
         self.traces = QGraphicsItemGroup()
         pen = QPen()
-        pen.setWidth(0)
+        pen.setWidthF(0)
         for k in list(self.tracesCache.keys()):
             traceItem = QGraphicsPathItem(self.tracesCache[k])
             traceItem.setPen(pen)
             self.traces.addToGroup(traceItem)
 
-    def reorderTracesAndHeatmap(self, newOrder):
+    def addDarkLines(self, partitionIdx):
+        pen = QPen()
+        pen.setWidth(0.75)
+        pen.setColor(QColor('darkBlue'))
+        y_values = self.y_values[:,self.start_frame:self.stop_frame]
+        t_values = self.t_values[self.start_frame:self.stop_frame]
+        self.lines = dict()
+        for idx in partitionIdx[:-1]:
+            min = np.amin(y_values[idx-1, :])
+            midpt = min - 0.5
+            l = np.full((y_values.shape[1],), midpt)
+            line = QPainterPath()
+            line.reserve(self.stop_frame - self.start_frame)
+            line.addPolygon(self.createPoly(t_values, l))
+            self.lines[str(idx)] = line
+        
+        for l in list(self.lines.keys()):
+            lineItem = QGraphicsPathItem(self.lines[l])
+            lineItem.setPen(pen)
+            self.traces.addToGroup(lineItem)
+
+    def reorderTracesAndHeatmap(self, newOrder, partitionIdx):
         showTraces = self.parent().parent().ui.showTraceRadioButton.isChecked()
         showHeatMap = self.parent().parent().ui.showHeatMapRadioButton.isChecked()
         showAnnotations = self.parent().parent().ui.showAnnotationsCheckBox.isChecked()
@@ -392,7 +414,7 @@ class NeuralScene(QGraphicsScene):
         else:
             raise ValueError(f"newOrder array {newOrder} should be a Numpy array")
         if np.any(counts > 1):
-            raise ValueError(f"Unique integer values should be there in newOrder array {newOrder}")
+                raise ValueError(f"Unique integer values required in newOrder array {newOrder}")
         if newOrder.size != self.tracesOrder.size:
             raise RuntimeError(f"Size of newOrder array and traces order should be the same.")
         for item in self.items():
@@ -400,12 +422,19 @@ class NeuralScene(QGraphicsScene):
                 self.removeItem(item)
             elif isinstance(item, QGraphicsPixmapItem):
                 self.removeItem(item)
-        self.createHeatmap(newOrder)
+        heatmapData = self.data[newOrder, self.start_frame:self.stop_frame]
+        darkLines = np.full((partitionIdx.shape[0], heatmapData.shape[1]), self.data_min - 100.)
+        newHeatmapData = np.insert(heatmapData,
+                                   partitionIdx,
+                                   darkLines,
+                                   axis=0)
+        self.createHeatmap(newHeatmapData)
         offset = (self.tracesOrder[newOrder] - self.tracesOrder)
         self.tracesOrder = self.tracesOrder + offset
         for chan in list(self.tracesCache.keys()):
             self.tracesCache[chan] = self.tracesCache[chan].translated(0., offset[int(chan)])
-        self.putTracesIntoAGroup()
+        self.addTraces()
+        self.addDarkLines(partitionIdx)
         self.addItem(self.traces)
         self.setVisibility(showTraces, showHeatMap, showAnnotations)
     

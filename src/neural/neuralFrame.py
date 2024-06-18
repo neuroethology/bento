@@ -2,6 +2,7 @@
 
 from neural.neuralFrame_ui import Ui_neuralFrame
 from processing.processing import ProcessingRegistry
+from plugin.plugin_processing_kMeansClustering import kMeansClustering
 from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtGui import QPixmap
 from qtpy.QtWidgets import QFrame, QMenu
@@ -38,7 +39,11 @@ class NeuralFrame(QFrame, DataExporter):
         self.ui.launchPlugin.setMenu(self.neuralPluginsMenu)
         self.ui.launchPlugin.setToolTip("click to see neural plugin options")
         self.eventTriggeredAvg = self.neuralPluginsMenu.addAction("Event Triggered Average")
+        self.clusteringMenu = QMenu("Clustering")
+        self.kMeansClustering = self.clusteringMenu.addAction("K-Means Clustering")
+        self.neuralPluginsMenu.addMenu(self.clusteringMenu)
         self.eventTriggeredAvg.triggered.connect(self.launchEventTriggeredAvg)
+        self.kMeansClustering.triggered.connect(self.launchKMeansClustering)
         self.ui.neuralView.setScene(self.neuralScene)
         self.ui.neuralView.set_bento(bento)
         self.ui.neuralView.scale(10., self.ui.neuralView.height())
@@ -158,7 +163,13 @@ class NeuralFrame(QFrame, DataExporter):
         self.processing_registry.load_plugins()
         self.processing_class = self.processing_registry('BTA')
         self.processing_class.show()
-        
+    
+    def launchKMeansClustering(self):
+        self.processing_registry = ProcessingRegistry(self.nwbFile, self.bento)
+        self.processing_registry.load_plugins()
+        self.processing_class = self.processing_registry('kMeansClustering')
+        self.processing_class.setNeural(self)
+        self.processing_class.show()
 
     def exportToNWBFile(self, nwbFile: NWBFile):
         print(f"Export data from {self.dataExportType} to NWB file")

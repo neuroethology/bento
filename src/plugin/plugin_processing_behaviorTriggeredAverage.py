@@ -87,6 +87,9 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
         
         self.getBehaviorTriggeredTrials()
 
+    def getType(self):
+        return "BTA"
+    
     @Slot()
     def setBinSizeBoxValueToMin(self):
         if self.ui.binSizeBox.value()<float(1/self.neuralSampleRate):
@@ -518,8 +521,8 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
 
 
 def register(registry, nwbFile=None, bento=None):
-    bta_processing_plugin = behaviorTriggeredAverage(nwbFile, bento)
-    registry.register('BTA', bta_processing_plugin)
+    btaProcessingPlugin = behaviorTriggeredAverage(nwbFile, bento)
+    registry.register(btaProcessingPlugin.getType(), btaProcessingPlugin)
         
 
 
