@@ -6,7 +6,7 @@ from os import X_OK
 from qtpy.QtCore import Qt, QPointF, QRectF, Signal, Slot
 from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem, QGraphicsPixmapItem,
     QGraphicsScene, QGraphicsView, QMessageBox)
-from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
+from qtpy.QtGui import (QBrush, QColor, QImage, QKeyEvent, QMouseEvent, QPainterPath, QPen,
     QPixmap, QTransform, QWheelEvent, QPolygonF)
 from qtpy.QtCharts import QtCharts
 import numpy as np
@@ -193,6 +193,11 @@ class NeuralView(QGraphicsView):
                 start_seconds=self.time_x.float + (start_x - x)
             ))
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # Override the widget behavior on key strokes
+        # to let the parent window handle the event
+        event.ignore()
+    
     def updateFromScroll(self):
         assert self.bento
         center = self.viewport().rect().center()
@@ -202,11 +207,6 @@ class NeuralView(QGraphicsView):
             self.time_x.framerate,
             start_seconds=sceneCenter.x()
         ))
-
-    def wheelEvent(self, event):
-        assert isinstance(event, QWheelEvent)
-        super(NeuralView, self).wheelEvent(event)
-        self.updateFromScroll()
 
     def drawForeground(self, painter, rect):
         now = self.bento.get_time().float
