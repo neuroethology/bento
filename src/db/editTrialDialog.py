@@ -6,11 +6,12 @@ from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from annot.annot import Annotations
 from qtpy.QtCore import QModelIndex, Qt, Signal, Slot
-from qtpy.QtGui import QBrush, QIntValidator
+from qtpy.QtGui import QBrush, QIntValidator, QStandardItemModel
 from qtpy.QtWidgets import (QDialog, QFileDialog, QHeaderView, QMessageBox,
-    QTreeWidgetItem, QTreeWidgetItemIterator)
+    QTreeWidgetItem, QTreeWidgetItemIterator, QLineEdit)
 from models.tableModel import EditableTableModel
-from widgets.deleteableViews import DeleteableTreeWidget, OffsetTimeItemDelegate
+from widgets.deleteableViews import (DeleteableTreeWidget, 
+                                     OffsetTimeItemDelegate, CustomComboBoxDelegate)
 # from models.videoTreeModel import VideoTreeModel
 from timecode import Timecode
 from os.path import expanduser, getmtime, basename
@@ -512,11 +513,15 @@ class EditTrialDialog(QDialog):
         font = self.ui.annotationsTableView.horizontalHeader().font()
         font.setBold(True)
         self.ui.annotationsTableView.horizontalHeader().setFont(font)
-        self.ui.annotationsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui.annotationsTableView.setItemDelegate(CustomComboBoxDelegate(self.bento.annotations_format))
+
+        #self.ui.annotationsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.annotationsTableView.resizeColumnsToContents()
         keys = AnnotationsData().keys
         self.ui.annotationsTableView.hideColumn(keys.index('id'))   # don't show the ID field, but we need it for reference
         self.ui.annotationsTableView.hideColumn(keys.index('trial_id')) # also don't show the internal trial_id field
+
+        
         self.ui.annotationsTableView.setSortingEnabled(False)
         self.ui.annotationsTableView.setAutoScroll(False)
         if oldModel:
@@ -556,10 +561,10 @@ class EditTrialDialog(QDialog):
         # if the file is a h5 file, we can read it using caiman.utils, as below
         # neural_dict = load_dict_from_hdf5(file_path)
         # Otherwise, we can only guess from the video file info.
-        if isinstance(annotations, Annotations):
+        if isinstance(annotations, Annotations) and annotations.sample_rate():
             sample_rate = annotations.sample_rate()
         else:
-            sample_rate = 30.0
+            sample_rate = None
 
         if file_path.startswith(baseDir):
             file_path = file_path[len(baseDir):]
@@ -647,8 +652,9 @@ class EditTrialDialog(QDialog):
             self,
             "Select Annotation Files to add to Trial",
             baseDir,
-            "Caltech Annotation files (*.annot)",
-            "Caltech Annotation files (*.annot)")
+            "Bento Annotation files (*.annot);;Boris Annotation files (*.csv);;\
+            Simba Annotation files (*.csv);;Caltech Annotation files (*.txt)",
+            "Bento Annotation files (*.annot)")
         if len(annotationFiles) > 0:
             for file_path in annotationFiles:
                 self.addAnnotationFile(file_path, baseDir)

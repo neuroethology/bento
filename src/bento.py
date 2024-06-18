@@ -123,6 +123,7 @@ class Bento(QObject, DataExporter):
         self.annotationsScene = AnnotationsScene()
         self.newAnnotations = False
         self.widgets = []
+        self.annotations_format = ['Bento', 'SimBA', 'Boris', 'Caltech']
         self.annotations = Annotations(self.behaviors)
         self.annotations.annotations_changed.connect(self.noteAnnotationsChanged)
         self.annotations.annotations_changed.connect(self.updateNWBFile)
@@ -176,6 +177,7 @@ class Bento(QObject, DataExporter):
             print(f"Try loading annotations from {fn}")
             try:
                 self.annotationsScene.clear()
+                self.annotations.set_sample_rate(sample_rate)
                 self.annotations.set_offset_time(self.time_start_end_timecode['annotations'][0][0]-self.time_start)
                 self.annotations.set_start_date_time(start_time)
                 self.annotations.read(fn)
