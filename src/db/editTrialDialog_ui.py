@@ -100,6 +100,11 @@ class Ui_EditTrialDialog(object):
 
         self.videosSearchVerticalLayout.addWidget(self.addPosePushButton)
 
+        self.videoPoseDeleteButton = QPushButton(EditTrialDialog)
+        self.videoPoseDeleteButton.setObjectName(u"videoPoseDeleteButton")
+
+        self.videosSearchVerticalLayout.addWidget(self.videoPoseDeleteButton)
+
         self.videosSearchVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         self.videosSearchVerticalLayout.addItem(self.videosSearchVerticalSpacer)
@@ -129,6 +134,11 @@ class Ui_EditTrialDialog(object):
         self.annotationsSearchPushButton.setObjectName(u"annotationsSearchPushButton")
 
         self.annotationsSearchVerticalLayout.addWidget(self.annotationsSearchPushButton)
+
+        self.annotationsDeleteButton = QPushButton(EditTrialDialog)
+        self.annotationsDeleteButton.setObjectName(u"annotationsDeleteButton")
+
+        self.annotationsSearchVerticalLayout.addWidget(self.annotationsDeleteButton)
 
         self.annotationsSearchVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -160,6 +170,11 @@ class Ui_EditTrialDialog(object):
         self.neuralsSearchPushButton.setObjectName(u"neuralsSearchPushButton")
 
         self.neuralsSearchVerticalLayout.addWidget(self.neuralsSearchPushButton)
+
+        self.neuralsDeleteButton = QPushButton(EditTrialDialog)
+        self.neuralsDeleteButton.setObjectName(u"neuralsDeleteButton")
+
+        self.neuralsSearchVerticalLayout.addWidget(self.neuralsDeleteButton)
 
         self.neuralsSearchVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -195,6 +210,11 @@ class Ui_EditTrialDialog(object):
 
         self.audiosSearchVerticalLayout.addWidget(self.audiosSearchPushButton)
 
+        self.audiosDeleteButton = QPushButton(EditTrialDialog)
+        self.audiosDeleteButton.setObjectName(u"audiosDeleteButton")
+
+        self.audiosSearchVerticalLayout.addWidget(self.audiosDeleteButton)
+
         self.audiosSearchVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         self.audiosSearchVerticalLayout.addItem(self.audiosSearchVerticalSpacer)
@@ -228,6 +248,11 @@ class Ui_EditTrialDialog(object):
         self.othersSearchPushButton.setEnabled(True)
 
         self.othersSearchVerticalLayout.addWidget(self.othersSearchPushButton)
+
+        self.othersDeleteButton = QPushButton(EditTrialDialog)
+        self.othersDeleteButton.setObjectName(u"othersDeleteButton")
+
+        self.othersSearchVerticalLayout.addWidget(self.othersDeleteButton)
 
         self.othersSearchVerticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -267,13 +292,18 @@ class Ui_EditTrialDialog(object):
         self.videosLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Video Files: ", None))
         self.videosSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
         self.addPosePushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Add Pose...", None))
+        self.videoPoseDeleteButton.setText(QCoreApplication.translate("EditTrialDialog", u"Delete", None))
         self.annotationsLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Annotation Files: ", None))
         self.annotationsSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
+        self.annotationsDeleteButton.setText(QCoreApplication.translate("EditTrialDialog", u"Delete", None))
         self.neuralsLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Neural Files: ", None))
         self.neuralsSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
+        self.neuralsDeleteButton.setText(QCoreApplication.translate("EditTrialDialog", u"Delete", None))
         self.audiosLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Audio Files: ", None))
         self.audiosSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
+        self.audiosDeleteButton.setText(QCoreApplication.translate("EditTrialDialog", u"Delete", None))
         self.othersLabel.setText(QCoreApplication.translate("EditTrialDialog", u"Other Files: ", None))
         self.othersSearchPushButton.setText(QCoreApplication.translate("EditTrialDialog", u"Search...", None))
+        self.othersDeleteButton.setText(QCoreApplication.translate("EditTrialDialog", u"Delete", None))
     # retranslateUi
 
