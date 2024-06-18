@@ -318,7 +318,7 @@ class NeuralScene(QGraphicsScene):
                         self.y_values[:,self.start_frame:self.stop_frame])
         #for chan in range(self.num_chans):
         #    self.loadChannel(self.data, chan)
-        self.addTraces()
+        self.putTracesIntoAGroup()
         # create heatmap
         heatmapData = self.data[:,self.start_frame:self.stop_frame]
         self.createHeatmap(heatmapData)  #np.arange(self.num_chans)
@@ -375,7 +375,7 @@ class NeuralScene(QGraphicsScene):
         
         return poly
 
-    def addTraces(self):
+    def putTracesIntoAGroup(self):
         self.traces = QGraphicsItemGroup()
         pen = QPen()
         pen.setWidthF(0)
@@ -414,7 +414,7 @@ class NeuralScene(QGraphicsScene):
         else:
             raise ValueError(f"newOrder array {newOrder} should be a Numpy array")
         if np.any(counts > 1):
-                raise ValueError(f"Unique integer values should be there in newOrder array {newOrder}")
+                raise ValueError(f"Unique integer values required in newOrder array {newOrder}")
         if newOrder.size != self.tracesOrder.size:
             raise RuntimeError(f"Size of newOrder array and traces order should be the same.")
         for item in self.items():
