@@ -269,7 +269,7 @@ class Ui_BTAFrame(object):
     # setupUi
 
     def retranslateUi(self, BTAFrame):
-        BTAFrame.setWindowTitle(QCoreApplication.translate("BTAFrame", u"Behavior Trieggered Average", None))
+        BTAFrame.setWindowTitle(QCoreApplication.translate("BTAFrame", u"Behavior Triggered Average", None))
         self.saveButton.setText(QCoreApplication.translate("BTAFrame", u"Save", None))
         self.behaviorLabel.setText(QCoreApplication.translate("BTAFrame", u"Behavior trigger :", None))
         self.channelLabel.setText(QCoreApplication.translate("BTAFrame", u"in channel :", None))
