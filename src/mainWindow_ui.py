@@ -3,30 +3,31 @@
 ################################################################################
 ## Form generated from reading UI file 'mainWindow.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.1.2
+## Created by: Qt User Interface Compiler version 5.15.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from qtpy.QtCore import *  # type: ignore
-from qtpy.QtGui import *  # type: ignore
-from qtpy.QtWidgets import *  # type: ignore
+from qtpy.QtCore import *
+from qtpy.QtGui import *
+from qtpy.QtWidgets import *
 
 from widgets.annotationsWidget import AnnotationsView
+from timeEdit import CustomTimeEdit
 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(460, 328)
+        MainWindow.resize(460, 350)
         sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setMinimumSize(QSize(460, 328))
-        MainWindow.setMaximumSize(QSize(457, 328))
+        MainWindow.setMinimumSize(QSize(460, 350))
+        MainWindow.setMaximumSize(QSize(493, 496))
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         sizePolicy1 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -36,10 +37,36 @@ class Ui_MainWindow(object):
         self.centralwidget.setSizePolicy(sizePolicy1)
         self.verticalLayout = QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.timeLabel = QLabel(self.centralwidget)
-        self.timeLabel.setObjectName(u"timeLabel")
+        self.currentTimeFrameLayout = QHBoxLayout()
+        self.currentTimeFrameLayout.setObjectName(u"currentTimeFrameLayout")
+        self.currentTimeLabel = QLabel(self.centralwidget)
+        self.currentTimeLabel.setObjectName(u"currentTimeLabel")
 
-        self.verticalLayout.addWidget(self.timeLabel)
+        self.currentTimeFrameLayout.addWidget(self.currentTimeLabel)
+
+        self.currentTimeEdit = CustomTimeEdit(self.centralwidget)
+        self.currentTimeEdit.setObjectName(u"currentTimeEdit")
+
+        self.currentTimeFrameLayout.addWidget(self.currentTimeEdit)
+
+        self.currentFrameLabel = QLabel(self.centralwidget)
+        self.currentFrameLabel.setObjectName(u"currentFrameLabel")
+
+        self.currentTimeFrameLayout.addWidget(self.currentFrameLabel)
+
+        self.currentFrameBox = QSpinBox(self.centralwidget)
+        self.currentFrameBox.setObjectName(u"currentFrameBox")
+        self.currentFrameBox.setMinimum(1)
+        self.currentFrameBox.setMaximum(10000000)
+
+        self.currentTimeFrameLayout.addWidget(self.currentFrameBox)
+
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.currentTimeFrameLayout.addItem(self.horizontalSpacer)
+
+
+        self.verticalLayout.addLayout(self.currentTimeFrameLayout)
 
         self.annotLabel = QLabel(self.centralwidget)
         self.annotLabel.setObjectName(u"annotLabel")
@@ -176,7 +203,9 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.timeLabel.setText(QCoreApplication.translate("MainWindow", u"Current Time", None))
+        self.currentTimeLabel.setText(QCoreApplication.translate("MainWindow", u"Current Time", None))
+        self.currentTimeEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"HH:mm:ss.zzz", None))
+        self.currentFrameLabel.setText(QCoreApplication.translate("MainWindow", u"Current Frame", None))
         self.annotLabel.setText(QCoreApplication.translate("MainWindow", u"annotation label", None))
         self.toStartButton.setText(QCoreApplication.translate("MainWindow", u"|<", None))
         self.fbButton.setText(QCoreApplication.translate("MainWindow", u"<<", None))
@@ -185,11 +214,11 @@ class Ui_MainWindow(object):
         self.stepButton.setText(QCoreApplication.translate("MainWindow", u">", None))
         self.ffButton.setText(QCoreApplication.translate("MainWindow", u">>", None))
         self.toEndButton.setText(QCoreApplication.translate("MainWindow", u">|", None))
-        self.previousButton.setText(QCoreApplication.translate("MainWindow", u"Previous", None))
-        self.nextButton.setText(QCoreApplication.translate("MainWindow", u"Next", None))
-        self.halveFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"/2", None))
+        self.previousButton.setText(QCoreApplication.translate("MainWindow", u"Previous Annotation", None))
+        self.nextButton.setText(QCoreApplication.translate("MainWindow", u"Next Annotation", None))
+        self.halveFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"0.5x", None))
         self.oneXFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"1x", None))
-        self.doubleFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"* 2", None))
+        self.doubleFrameRateButton.setText(QCoreApplication.translate("MainWindow", u"2x", None))
         self.newChannelPushButton.setText(QCoreApplication.translate("MainWindow", u"New Channel", None))
         self.trialPushButton.setText(QCoreApplication.translate("MainWindow", u"Select Trial...", None))
         self.quitButton.setText(QCoreApplication.translate("MainWindow", u"Quit", None))

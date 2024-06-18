@@ -96,7 +96,6 @@ class behaviorTriggeredAverage(QFrame, ProcessingBase):
             self.ui.binSizeBox.setValue(float(1/self.neuralSampleRate))
         else:
             self.ui.binSizeBox.setValue(self.ui.binSizeBox.value())
-    
     @Slot()
     def populateBehaviorCombo(self):
         for channel in list(self.behaviorNames.keys()):

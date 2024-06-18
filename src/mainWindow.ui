@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>460</width>
-    <height>328</height>
+    <height>350</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,13 +19,13 @@
   <property name="minimumSize">
    <size>
     <width>460</width>
-    <height>328</height>
+    <height>350</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>457</width>
-    <height>328</height>
+    <width>493</width>
+    <height>496</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -40,11 +40,52 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QLabel" name="timeLabel">
-      <property name="text">
-       <string>Current Time</string>
-      </property>
-     </widget>
+     <layout class="QHBoxLayout" name="currentTimeFrameLayout">
+      <item>
+       <widget class="QLabel" name="currentTimeLabel">
+        <property name="text">
+         <string>Current Time</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="CustomTimeEdit" name="currentTimeEdit">
+        <property name="displayFormat">
+         <string>HH:mm:ss.zzz</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="currentFrameLabel">
+        <property name="text">
+         <string>Current Frame</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="currentFrameBox">
+        <property name="minimum">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <number>10000000</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="QLabel" name="annotLabel">
@@ -133,14 +174,14 @@
       <item>
        <widget class="QPushButton" name="previousButton">
         <property name="text">
-         <string>Previous</string>
+         <string>Previous Annotation</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QPushButton" name="nextButton">
         <property name="text">
-         <string>Next</string>
+         <string>Next Annotation</string>
         </property>
        </widget>
       </item>
@@ -151,7 +192,7 @@
       <item>
        <widget class="QPushButton" name="halveFrameRateButton">
         <property name="text">
-         <string>/2</string>
+         <string>0.5x</string>
         </property>
        </widget>
       </item>
@@ -165,7 +206,7 @@
       <item>
        <widget class="QPushButton" name="doubleFrameRateButton">
         <property name="text">
-         <string>* 2</string>
+         <string>2x</string>
         </property>
        </widget>
       </item>
@@ -231,6 +272,11 @@
    <class>AnnotationsView</class>
    <extends>QGraphicsView</extends>
    <header>widgets.annotationsWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CustomTimeEdit</class>
+   <extends>QTimeEdit</extends>
+   <header location="global">timeEdit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
