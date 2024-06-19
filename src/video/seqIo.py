@@ -14,6 +14,7 @@ import pickle
 import pdb
 import cv2
 import progressbar as pb
+from qtpy.QtGui import QPixmap
 
 # Create interface sr for reading seq files.
 #   sr = seqIo_reader( fName )
@@ -46,7 +47,7 @@ def fread(fid, nelements, dtype):
 
     """Equivalent to Matlab fread function"""
 
-    if dtype is np.str:
+    if dtype is np.str_:
         dt = np.uint8  # WARNING: assuming 8-bit ASCII for np.str!
     else:
         dt = dtype
@@ -56,9 +57,9 @@ def fread(fid, nelements, dtype):
         data_array = data_array[0]
     return data_array
 
-def fwrite(fid,a,dtype=np.str):
+def fwrite(fid,a,dtype=np.str_):
     # assuming 8but ASCII for string
-    if dtype is np.str:
+    if dtype is np.str_:
         dt = np.uint8  # WARNING: assuming 8-bit ASCII for np.str!
     else:
         dt = dtype
@@ -653,6 +654,15 @@ class seqIo_reader():
         else: assert(False)
         ts = fread(self.file,1,np.uint32)+fread(self.file,1,np.uint16)/1000.
         return np.array(I), ts
+
+    def getFrameAsQPixmap(self, index, decode=True):
+        """
+        Get the frame in the form of a Qt QPixmap
+        """
+        image, _ = self.getFrame(index, decode)
+        pixmap = QPixmap()
+        pixmap.loadFromData(image.tobytes())
+        return pixmap
 
     # Close the file
     def close(self):

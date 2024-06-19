@@ -1,17 +1,22 @@
 # neuralFrame.py
 
 from neural.neuralFrame_ui import Ui_neuralFrame
+from processing.processing import ProcessingRegistry
+from plugin.plugin_processing_kMeansClustering import kMeansClustering
 from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtGui import QPixmap
-from qtpy.QtWidgets import QFrame
+from qtpy.QtWidgets import QFrame, QMenu
 import time
 from timecode import Timecode
 from widgets.neuralWidget import NeuralScene
+from dataExporter import DataExporter
+from pynwb import NWBFile
 import numpy as np
 from utils import fix_path
 from os.path import isabs
 
-class NeuralFrame(QFrame):
+
+class NeuralFrame(QFrame, DataExporter):
 
     openReader = Signal(str)
     quitting = Signal()
@@ -19,8 +24,9 @@ class NeuralFrame(QFrame):
     active_channel_changed = Signal(str)
 
     def __init__(self, bento):
-        # super(NeuralDockWidget, self).__init__()
-        super(NeuralFrame, self).__init__()
+        QFrame.__init__(self)
+        DataExporter.__init__(self)
+        self.dataExportType = "neural"
         self.bento = bento
         # self.ui = Ui_NeuralDockWidget()
         self.ui = Ui_neuralFrame()
@@ -29,6 +35,15 @@ class NeuralFrame(QFrame):
         self.quitting.connect(self.bento.quit)
         self.neuralScene = NeuralScene()
         self.active_channel_changed.connect(self.neuralScene.setActiveChannel)
+        self.neuralPluginsMenu = QMenu("neural plugins")
+        self.ui.launchPlugin.setMenu(self.neuralPluginsMenu)
+        self.ui.launchPlugin.setToolTip("click to see neural plugin options")
+        self.eventTriggeredAvg = self.neuralPluginsMenu.addAction("Event Triggered Average")
+        self.clusteringMenu = QMenu("Clustering")
+        self.kMeansClustering = self.clusteringMenu.addAction("K-Means Clustering")
+        self.neuralPluginsMenu.addMenu(self.clusteringMenu)
+        self.eventTriggeredAvg.triggered.connect(self.launchEventTriggeredAvg)
+        self.kMeansClustering.triggered.connect(self.launchKMeansClustering)
         self.ui.neuralView.setScene(self.neuralScene)
         self.ui.neuralView.set_bento(bento)
         self.ui.neuralView.scale(10., self.ui.neuralView.height())
@@ -58,10 +73,10 @@ class NeuralFrame(QFrame):
             neuralData.sample_rate,
             neuralData.start_frame,
             neuralData.stop_frame,
-            self.bento.time_start,
+            self.bento.time_start_end_timecode['neural'][0][0],
             self.ui.showTraceRadioButton.isChecked(),
             self.ui.showHeatMapRadioButton.isChecked(),
-            self.ui.showAnnotationsCheckBox.checkState()
+            self.ui.showAnnotationsCheckBox.isChecked()
             )
         self.ui.dataMinLabel.setText(f"{self.neuralScene.data_min:.3f}")
         self.ui.dataMaxLabel.setText(f"{self.neuralScene.data_max:.3f}")
@@ -124,6 +139,7 @@ class NeuralFrame(QFrame):
             self.neuralScene.showTraces(checked)
             if checked:
                 self.ui.showAnnotationsCheckBox.setEnabled(True)
+                self.ui.showAnnotationsCheckBox.setChecked(True)
                 self.neuralScene.showAnnotations(
                     self.ui.showAnnotationsCheckBox.isChecked()
             )
@@ -134,6 +150,7 @@ class NeuralFrame(QFrame):
             self.neuralScene.showHeatmap(checked)
             if checked:
                 self.ui.showAnnotationsCheckBox.setEnabled(False)
+                self.ui.showAnnotationsCheckBox.setChecked(False)
                 self.neuralScene.showAnnotations(False)
 
     @Slot(int)
@@ -141,3 +158,22 @@ class NeuralFrame(QFrame):
         if isinstance(self.neuralScene, NeuralScene):
             self.neuralScene.showAnnotations(state > 0)
 
+    def launchEventTriggeredAvg(self):
+        self.processing_registry = ProcessingRegistry(self.nwbFile, self.bento)
+        self.processing_registry.load_plugins()
+        self.processing_class = self.processing_registry('BTA')
+        self.processing_class.show()
+    
+    def launchKMeansClustering(self):
+        self.processing_registry = ProcessingRegistry(self.nwbFile, self.bento)
+        self.processing_registry.load_plugins()
+        self.processing_class = self.processing_registry('kMeansClustering')
+        self.processing_class.setNeural(self)
+        self.processing_class.show()
+
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        print(f"Export data from {self.dataExportType} to NWB file")
+        if isinstance(self.neuralScene, NeuralScene):
+            self.nwbFile = self.neuralScene.exportToNWBFile(nwbFile)
+        
+        return self.nwbFile

@@ -10,6 +10,8 @@ class TableModel(QAbstractTableModel):
         self.mylist = mylist
         self.header = header
         self.colorRoleColumns = set()
+        self.toolTipColumns = set()
+        self.setToolTipColumn()
 
     def rowCount(self, parent):
         return len(self.mylist)
@@ -20,7 +22,7 @@ class TableModel(QAbstractTableModel):
     def data(self, index, role):
         if not isinstance(index, QModelIndex) or not index.isValid():
             raise RuntimeError("Index is not valid")
-        if role not in (Qt.DisplayRole, Qt.BackgroundRole, Qt.EditRole):
+        if role not in (Qt.DisplayRole, Qt.BackgroundRole, Qt.EditRole, Qt.ToolTipRole):
             return None
         row = self.mylist[index.row()]
         if isinstance(row, (tuple, list)):
@@ -29,7 +31,9 @@ class TableModel(QAbstractTableModel):
             datum = row[self.header[index.column()]]
         else:
             raise RuntimeError(f"Can't handle indexing with data of type {type(row)}")
-        if (index.column() in self.colorRoleColumns) and (role == Qt.BackgroundRole or role == Qt.EditRole):
+        if (index.column() in self.toolTipColumns) and (role == Qt.ToolTipRole):
+            return 'ss.ms'
+        elif (index.column() in self.colorRoleColumns) and (role == Qt.BackgroundRole or role == Qt.EditRole):
             return QColor(datum)
         elif (index.column() not in self.colorRoleColumns) and (role in (Qt.DisplayRole, Qt.EditRole)):
             return str(datum)
@@ -39,6 +43,8 @@ class TableModel(QAbstractTableModel):
     def headerData(self, col, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.header[col]
+        if col in self.toolTipColumns and role == Qt.ToolTipRole:
+            return 'ss.ms'
         return None
 
     def sort(self, col, order):
@@ -72,6 +78,10 @@ class TableModel(QAbstractTableModel):
     def __iter__(self):
         return TableModelIterator(self.mylist)
 
+    def setToolTipColumn(self):
+        if 'Offset Time' in self.header:
+            self.toolTipColumns.add(self.header.index('Offset Time'))
+
     def setColorRoleColumn(self, column):
         self.colorRoleColumns.add(column)
 
@@ -89,7 +99,7 @@ class EditableTableModel(TableModel):
     def flags(self, index):
         flags = super().flags(index)
         if index.column() not in self.immutableColumns:
-            flags |= Qt.ItemIsEditable
+            flags = flags | Qt.ItemIsEditable | Qt.ToolTip
         return flags
 
     def setData(self, index, value, role=Qt.EditRole):

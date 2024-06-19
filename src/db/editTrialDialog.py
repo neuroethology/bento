@@ -6,11 +6,12 @@ from sqlalchemy import func, select
 from db.editTrialDialog_ui import Ui_EditTrialDialog
 from annot.annot import Annotations
 from qtpy.QtCore import QModelIndex, Qt, Signal, Slot
-from qtpy.QtGui import QBrush, QIntValidator
+from qtpy.QtGui import QBrush, QIntValidator, QStandardItemModel
 from qtpy.QtWidgets import (QDialog, QFileDialog, QHeaderView, QMessageBox,
-    QTreeWidgetItem, QTreeWidgetItemIterator)
+    QTreeWidgetItem, QTreeWidgetItemIterator, QLineEdit)
 from models.tableModel import EditableTableModel
-from widgets.deleteableViews import DeleteableTreeWidget
+from widgets.deleteableViews import (DeleteableTreeWidget, 
+                                     OffsetTimeItemDelegate, CustomComboBoxDelegate)
 # from models.videoTreeModel import VideoTreeModel
 from timecode import Timecode
 from os.path import expanduser, getmtime, basename
@@ -29,6 +30,7 @@ def addPoseHeaderIfNeeded(parent):
         flags &= ~Qt.ItemIsEditable
         flags &= ~Qt.ItemIsSelectable
         poseHeaderItem.setFlags(flags)
+        poseHeaderItem.setToolTip(header.index('Offset Time'), 'ss.ms')
         font = poseHeaderItem.font(0)
         font.setBold(True)
         for column in range(poseHeaderItem.columnCount()):
@@ -55,6 +57,14 @@ class EditTrialDialog(QDialog):
         self.ui.annotationsSearchPushButton.clicked.connect(self.addAnnotationFiles)
         self.ui.addPosePushButton.clicked.connect(self.addPoseFileToVideo)
         self.ui.trialNumLineEdit.setValidator(QIntValidator())
+        self.ui.trialDateTimeEdit.setDisplayFormat("yyyy-MM-dd HH:mm:ss.zzz")
+        self.ui.trialDateTimeEdit.setDateTime(datetime.strptime(
+                                              str(datetime.now().isoformat(sep=" ", timespec="milliseconds")),
+                                              "%Y-%m-%d %H:%M:%S.%f"
+                                            ))
+        self.ui.annotationsDeleteButton.clicked.connect(self.deleteAnnotationFiles)
+        self.ui.neuralsDeleteButton.clicked.connect(self.deleteNeuralFiles)
+        self.ui.videoPoseDeleteButton.clicked.connect(self.deleteVideoPoseFiles)
         self.video_data = None
 
         self.trial_id = trial_id
@@ -69,6 +79,8 @@ class EditTrialDialog(QDialog):
             if trial:
                 self.ui.trialNumLineEdit.setText(str(trial.trial_num))
                 self.ui.stimulusLineEdit.setText(trial.stimulus)
+                trial_start_time = str(datetime.fromtimestamp(trial.trial_start_time).isoformat(sep=' ', timespec='milliseconds'))
+                self.ui.trialDateTimeEdit.setDateTime(datetime.strptime(trial_start_time, "%Y-%m-%d %H:%M:%S.%f"))
         self.populateVideosTreeWidget(True)
         self.populateNeuralsTableView(True)
         self.populateAnnotationsTableView(True)
@@ -107,13 +119,16 @@ class EditTrialDialog(QDialog):
                         self.ui.videosTreeWidget.setHeaderLabels(header)
                         self.ui.videosTreeWidget.hideColumn(header.index('id'))
                         self.ui.videosTreeWidget.hideColumn(header.index('trial_id'))
+                        self.ui.videosTreeWidget.setItemDelegate(OffsetTimeItemDelegate())
                         headerItem = self.ui.videosTreeWidget.headerItem()
+                        headerItem.setToolTip(header.index('Offset Time'), 'ss.ms')
                         font = headerItem.font(0)
                         font.setBold(True)
                         for column in range(headerItem.columnCount()):
                             headerItem.setFont(column, font)
                             headerItem.setTextAlignment(column, Qt.AlignCenter)
                         headerSet = True
+                    videoTreeItem.setToolTip(header.index('Offset Time'), 'ss.ms')
                     for ix, key in enumerate(header):
                         videoTreeItem.setData(ix, Qt.EditRole, videoDict[key])
                     if len(elem.pose_data) > 0:
@@ -121,6 +136,7 @@ class EditTrialDialog(QDialog):
                         for poseItem in elem.pose_data:
                             poseTreeItem = QTreeWidgetItem(videoTreeItem)
                             poseTreeItem.setFlags(poseTreeItem.flags() | Qt.ItemIsEditable)
+                            poseTreeItem.setToolTip(poseItem.header().index('Offset Time'), 'ss.ms')
                             poseDict = poseItem.toDict()
                             for iy, poseKey in enumerate(poseItem.header()):
                                 poseTreeItem.setData(iy, Qt.EditRole, poseDict[poseKey])
@@ -130,15 +146,15 @@ class EditTrialDialog(QDialog):
                 for column in range(self.ui.videosTreeWidget.columnCount()):
                     self.ui.videosTreeWidget.resizeColumnToContents(column)
 
-                if updateTrialNum:
-                    self.ui.videosTreeWidget.itemSelectionChanged.connect(self.populateTrialNum)
-                else:
-                    try:
-                        self.ui.videosTreeWidget.itemSelectionChanged.disconnect(self.populateTrialNum)
-                    except RuntimeError:
-                        # The above call raises RuntimeError if the signal is not connected,
-                        # which we can safely ignore.
-                        pass
+                # if updateTrialNum:
+                #     self.ui.videosTreeWidget.itemSelectionChanged.connect(self.populateTrialNum)
+                # else:
+                #     try:
+                #         self.ui.videosTreeWidget.itemSelectionChanged.disconnect(self.populateTrialNum)
+                #     except RuntimeError:
+                #         # The above call raises RuntimeError if the signal is not connected,
+                #         # which we can safely ignore.
+                #         pass
 
     def addVideoFile(self, file_path, baseDir, available_cameras):
         """
@@ -150,8 +166,10 @@ class EditTrialDialog(QDialog):
         try:
             if ext=='mp4'or ext=='avi':
                 reader = mp4Io_reader(file_path)
+                #create_time = getmtime(file_path)
             elif ext=='seq':
                 reader = seqIo_reader(file_path, buildTable=False)
+                #create_time = 0.
             else:
                 raise Exception(f"video format {ext} not supported.")
         except Exception:
@@ -161,9 +179,8 @@ class EditTrialDialog(QDialog):
         sample_rate = float(reader.header['fps'])
         ts = reader.getTs(1)[0]
         reader.close()
-        dt = datetime.fromtimestamp(ts)
-        # set the video start time
-        start_time = Timecode(sample_rate, dt.time().isoformat()).float
+        # set the video offset time
+        offset_time = float(0.000)
 
         if file_path.startswith(baseDir):
             file_path = file_path[len(baseDir):]
@@ -177,7 +194,7 @@ class EditTrialDialog(QDialog):
             'id': None,
             'Video File Path': file_path,
             'Sample Rate': sample_rate,
-            'Start Time': start_time,
+            'Offset Time': offset_time,
             'Camera Position': this_camera_position,
             'trial_id': self.trial_id,
             'pose_data': [],
@@ -190,9 +207,11 @@ class EditTrialDialog(QDialog):
             self.ui.videosTreeWidget.setColumnCount(len(videoKeys))
             self.ui.videosTreeWidget.setHeaderLabels(videoKeys)
             self.ui.videosTreeWidget.hideColumn(videoKeys.index('id'))
+            self.ui.videosTreeWidget.setItemDelegate(OffsetTimeItemDelegate())
         # Attach the video file to treeWidget as a top-level item
         videoItem = QTreeWidgetItem(self.ui.videosTreeWidget)
         videoItem.setFlags(videoItem.flags() | Qt.ItemIsEditable)
+        videoItem.setToolTip(videoKeys.index('Offset Time'), 'ss.ms')
         # insert the data into item
         for key in videoKeys:
             videoItem.setData(videoKeys.index(key), Qt.EditRole, item[key])
@@ -237,9 +256,10 @@ class EditTrialDialog(QDialog):
         videosHeader = [videosHeaderItem.data(ix, Qt.DisplayRole) for ix in range(videosHeaderItem.columnCount())]
         # insert the data into the pose child item
         poseKeys = PoseData().keys
+        poseItem.setToolTip(poseKeys.index('Offset Time'), 'ss.ms')
         poseItem.setData(poseKeys.index('Pose File Path'), Qt.EditRole, poseFilePath)
         poseItem.setData(poseKeys.index('Sample Rate'), Qt.EditRole, videoItem.data(videosHeader.index('Sample Rate'), Qt.DisplayRole))
-        poseItem.setData(poseKeys.index('Start Time'), Qt.EditRole, videoItem.data(videosHeader.index('Start Time'), Qt.DisplayRole))
+        poseItem.setData(poseKeys.index('Offset Time'), Qt.EditRole, videoItem.data(videosHeader.index('Offset Time'), Qt.DisplayRole))
         poseItem.setData(poseKeys.index('Format'), Qt.EditRole, format)
         poseItem.setData(poseKeys.index('video_id'), Qt.EditRole, videoItem.data(videosHeader.index('id'), Qt.DisplayRole))
         poseItem.setData(poseKeys.index('trial_id'), Qt.EditRole, videoItem.data(videosHeader.index('trial_id'), Qt.DisplayRole))
@@ -264,11 +284,37 @@ class EditTrialDialog(QDialog):
             self,
             "Select Video Files to add to Trial",
             baseDir,
-            "Seq files (*.seq);;mp4 files (*.mp4);;Generic video files (*.avi)",
-            "Seq files (*.seq)")
+            "Seq files (*.seq);;mp4 files (*.mp4);;Generic video files (*.avi);; Supported videos (*.seq *.mp4 *.avi)",
+            "Supported videos (*.seq *.mp4 *.avi)")
         if len(videoFiles) > 0:
             for file_path in videoFiles:
                 self.addVideoFile(file_path, baseDir, available_cameras)
+
+    @Slot()
+    def deleteVideoPoseFiles(self):
+        msgBox = QMessageBox(
+                QMessageBox.Question,
+                "Delete Rows",
+                "This will delete the selected file(s) along with any dependent "
+                "items from the database and cannot be undone.  Okay to continue?",
+                buttons=QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Yes:
+            for item in self.ui.videosTreeWidget.selectedItems():
+                item.setHidden(True)
+                if bool(item.parent()):
+                    # pose item: hide the header if no children remain unhidden
+                    nonHeaderChildCount = 0
+                    poseHeaderIx = -1
+                    parentChildCount = item.parent().childCount()
+                    for child_ix in range(parentChildCount):
+                        child = item.parent().child(child_ix)
+                        if child.type() == DeleteableTreeWidget.PoseHeaderType:
+                            poseHeaderIx = child_ix
+                        elif not child.isHidden():
+                            nonHeaderChildCount += 1
+                    if nonHeaderChildCount == 0 and poseHeaderIx >= 0:
+                        item.parent().child(poseHeaderIx).setHidden(True)
 
     def updateVideoData(self, trial, db_sess):
         videoHeader = VideoData().header()
@@ -376,15 +422,15 @@ class EditTrialDialog(QDialog):
                 self.setNeuralModel(model)
 
                 selectionModel = self.ui.neuralsTableView.selectionModel()
-                if updateTrialNum:
-                    selectionModel.selectionChanged.connect(self.populateTrialNum)
-                else:
-                    try:
-                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
-                    except RuntimeError:
-                        # The above call raises RuntimeError if the signal is not connected,
-                        # which we can safely ignore.
-                        pass
+                # if updateTrialNum:
+                #     selectionModel.selectionChanged.connect(self.populateTrialNum)
+                # else:
+                #     try:
+                #         selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                #     except RuntimeError:
+                #         # The above call raises RuntimeError if the signal is not connected,
+                #         # which we can safely ignore.
+                #         pass
 
     def addNeuralFile(self, file_path, baseDir):
         """
@@ -405,13 +451,10 @@ class EditTrialDialog(QDialog):
         # Otherwise, we can only guess from the video file info.
         if isinstance(self.video_data, dict):
             sample_rate = self.video_data['sample_rate']
-            start_time = self.video_data['start_time']
+            offset_time = float(0.)
         else:
             sample_rate = 30.0
-            # get start time (seconds from midnight) from file create time
-            create_time = datetime.fromtimestamp(getmtime(file_path))
-            create_day_midnight = datetime.fromordinal(create_time.toordinal())
-            start_time = create_time.timestamp() - create_day_midnight.timestamp()
+            offset_time = float(0.)
         start_frame = 1
         stop_frame = data.shape[1]
 
@@ -423,7 +466,7 @@ class EditTrialDialog(QDialog):
             'Neural File Path': file_path,
             'Sample Rate': sample_rate,
             'Format': 'CNMFE', # by default
-            'Start Time': start_time,
+            'Offset Time': offset_time,
             'Start Frame': start_frame,
             'Stop Frame': stop_frame,
             'trial_id': self.trial_id,
@@ -463,6 +506,18 @@ class EditTrialDialog(QDialog):
             for file_path in neuralFiles:
                 self.addNeuralFile(file_path, baseDir)
 
+    @Slot()
+    def deleteNeuralFiles(self):
+        msgBox = QMessageBox(
+                QMessageBox.Question,
+                "Delete Rows",
+                "This will delete the selected file(s) from the database and cannot be undone.  Okay to continue?",
+                buttons=QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Yes:
+            for ix in self.ui.neuralsTableView.selectedIndexes():
+                self.ui.neuralsTableView.hideRow(ix.row())
+
     def updateNeuralData(self, trial, db_sess):
         model = self.ui.neuralsTableView.model()
         if model:
@@ -499,11 +554,15 @@ class EditTrialDialog(QDialog):
         font = self.ui.annotationsTableView.horizontalHeader().font()
         font.setBold(True)
         self.ui.annotationsTableView.horizontalHeader().setFont(font)
-        self.ui.annotationsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui.annotationsTableView.setItemDelegate(CustomComboBoxDelegate(self.bento.annotations_format))
+
+        #self.ui.annotationsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.annotationsTableView.resizeColumnsToContents()
         keys = AnnotationsData().keys
         self.ui.annotationsTableView.hideColumn(keys.index('id'))   # don't show the ID field, but we need it for reference
         self.ui.annotationsTableView.hideColumn(keys.index('trial_id')) # also don't show the internal trial_id field
+
+        
         self.ui.annotationsTableView.setSortingEnabled(False)
         self.ui.annotationsTableView.setAutoScroll(False)
         if oldModel:
@@ -519,15 +578,15 @@ class EditTrialDialog(QDialog):
                 self.setAnnotationsModel(model)
 
                 selectionModel = self.ui.annotationsTableView.selectionModel()
-                if updateTrialNum:
-                    selectionModel.selectionChanged.connect(self.populateTrialNum)
-                else:
-                    try:
-                        selectionModel.selectionChanged.disconnect(self.populateTrialNum)
-                    except RuntimeError:
-                        # The above call raises RuntimeError if the signal is not connected,
-                        # which we can safely ignore.
-                        pass
+                # if updateTrialNum:
+                #     selectionModel.selectionChanged.connect(self.populateTrialNum)
+                # else:
+                #     try:
+                #         selectionModel.selectionChanged.disconnect(self.populateTrialNum)
+                #     except RuntimeError:
+                #         # The above call raises RuntimeError if the signal is not connected,
+                #         # which we can safely ignore.
+                #         pass
 
     def addAnnotationFile(self, file_path, baseDir):
         """
@@ -543,10 +602,10 @@ class EditTrialDialog(QDialog):
         # if the file is a h5 file, we can read it using caiman.utils, as below
         # neural_dict = load_dict_from_hdf5(file_path)
         # Otherwise, we can only guess from the video file info.
-        if isinstance(annotations, Annotations):
+        if isinstance(annotations, Annotations) and annotations.sample_rate():
             sample_rate = annotations.sample_rate()
         else:
-            sample_rate = 30.0
+            sample_rate = None
 
         if file_path.startswith(baseDir):
             file_path = file_path[len(baseDir):]
@@ -558,12 +617,19 @@ class EditTrialDialog(QDialog):
                 if investigator:
                     annotator_name = investigator.user_name
 
+        if annotations.start_date_time():
+            trial_start_time = datetime.timestamp(datetime.fromisoformat(
+                                                 self.ui.trialDateTimeEdit.textFromDateTime(self.ui.trialDateTimeEdit.dateTime())))
+            offset_time = datetime.timestamp(datetime.fromisoformat(str(annotations.start_date_time()))) -  trial_start_time
+        else:
+            offset_time = float(0.)
+
         item = {
             'id': None,
             'Annotations File Path': file_path,
             'Sample Rate': sample_rate,
             'Format': annotations.format(),
-            'Start Time': self.bento.time_start.float,
+            'Offset Time': offset_time,
             'Start Frame': annotations.start_frame(),
             'Stop Frame': annotations.end_frame(),
             'Annotator Name': annotator_name,
@@ -627,11 +693,24 @@ class EditTrialDialog(QDialog):
             self,
             "Select Annotation Files to add to Trial",
             baseDir,
-            "Caltech Annotation files (*.annot)",
-            "Caltech Annotation files (*.annot)")
+            "Bento Annotation files (*.annot);;Boris Annotation files (*.csv);;\
+            Simba Annotation files (*.csv);;Caltech Annotation files (*.txt)",
+            "Bento Annotation files (*.annot)")
         if len(annotationFiles) > 0:
             for file_path in annotationFiles:
                 self.addAnnotationFile(file_path, baseDir)
+
+    @Slot()
+    def deleteAnnotationFiles(self):
+        msgBox = QMessageBox(
+                QMessageBox.Question,
+                "Delete Rows",
+                "This will delete the selected file(s) from the database and cannot be undone.  Okay to continue?",
+                buttons=QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+        if result == QMessageBox.Yes:
+            for ix in self.ui.annotationsTableView.selectedIndexes():
+                self.ui.annotationsTableView.hideRow(ix.row())
 
     @Slot()
     def accept(self):
@@ -646,6 +725,8 @@ class EditTrialDialog(QDialog):
                 trial.session_id = self.session_id
             trial.trial_num = self.ui.trialNumLineEdit.text()
             trial.stimulus = self.ui.stimulusLineEdit.text()
+            trial.trial_start_time = datetime.timestamp(datetime.fromisoformat(
+                                                        self.ui.trialDateTimeEdit.textFromDateTime(self.ui.trialDateTimeEdit.dateTime())))
 
             self.updateVideoData(trial, db_sess)
             self.updateNeuralData(trial, db_sess)

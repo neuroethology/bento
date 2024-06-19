@@ -33,6 +33,23 @@
       <widget class="QLineEdit" name="trialNumLineEdit"/>
      </item>
      <item>
+      <widget class="QLabel" name="trialStartTimeLabel">
+       <property name="text">
+        <string>Trial Start Time: </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDateTimeEdit" name="trialDateTimeEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QLabel" name="stimulusLabel">
        <property name="text">
         <string>Stimulus: </string>
@@ -105,6 +122,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="videoPoseDeleteButton">
+         <property name="text">
+          <string>Delete</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="videosSearchVerticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -142,6 +166,13 @@
         <widget class="QPushButton" name="annotationsSearchPushButton">
          <property name="text">
           <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="annotationsDeleteButton">
+         <property name="text">
+          <string>Delete</string>
          </property>
         </widget>
        </item>
@@ -189,6 +220,13 @@
         <widget class="QPushButton" name="neuralsSearchPushButton">
          <property name="text">
           <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="neuralsDeleteButton">
+         <property name="text">
+          <string>Delete</string>
          </property>
         </widget>
        </item>
@@ -250,6 +288,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="audiosDeleteButton">
+         <property name="text">
+          <string>Delete</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="audiosSearchVerticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -303,6 +348,13 @@
          </property>
          <property name="text">
           <string>Search...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="othersDeleteButton">
+         <property name="text">
+          <string>Delete</string>
          </property>
         </widget>
        </item>

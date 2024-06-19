@@ -4,16 +4,20 @@
 
 from os import X_OK
 from qtpy.QtCore import Qt, QPointF, QRectF, Signal, Slot
-from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem,
+from qtpy.QtWidgets import (QGraphicsItem, QGraphicsItemGroup, QGraphicsPathItem, QGraphicsPixmapItem,
     QGraphicsScene, QGraphicsView, QMessageBox)
-from qtpy.QtGui import (QBrush, QColor, QImage, QMouseEvent, QPainterPath, QPen,
-    QPixmap, QTransform, QWheelEvent)
+from qtpy.QtGui import (QBrush, QColor, QImage, QKeyEvent, QMouseEvent, QPainterPath, QPen,
+    QPixmap, QTransform, QWheelEvent, QPolygonF)
+from qtpy.QtCharts import QtCharts
 import numpy as np
 import pymatreader as pmr
 from qimage2ndarray import gray2qimage
 from timecode import Timecode
-from utils import get_colormap, padded_rectf
+from utils import get_colormap, padded_rectf, quantizeTicksScale
+from pynwb import NWBFile, TimeSeries
 import warnings
+import shiboken2 as shiboken
+import ctypes
 
 class QGraphicsSubSceneItem(QGraphicsItem):
     """
@@ -75,7 +79,6 @@ class NeuralView(QGraphicsView):
         self.start_transform = None
         self.start_x = 0.
         self.scale_h = 1.
-        self.min_scale_v = 0.2
         self.center_y = 0.
         self.horizontalScrollBar().sliderReleased.connect(self.updateFromScroll)
         self.verticalScrollBar().sliderReleased.connect(self.updateFromScroll)
@@ -90,6 +93,7 @@ class NeuralView(QGraphicsView):
         # give the sceneRect some additional padding
         # so that the start and end can be centered in the view
         super().setScene(scene)
+        scene.setParent(self)
         self.time_x = Timecode(str(scene.sample_rate), '0:0:0:1')
         self.center_y = float(scene.num_chans) / 2.
 
@@ -107,33 +111,46 @@ class NeuralView(QGraphicsView):
             )
         self.setTransform(t, combine=False)
 
+    def setTransformScaleH(self, t, scale_h: float):
+        t.setMatrix(
+            scale_h,
+            t.m12(),
+            t.m13(),
+            t.m21(),
+            t.m22(),
+            t.m23(),
+            t.m31(),
+            t.m32(),
+            t.m33()
+        )
+        self.setTransform(t, combine=False)
+
     def resizeEvent(self, event):
         oldHeight = float(event.oldSize().height())
         if oldHeight < 0.:
             return
         newHeight = float(event.size().height())
-        self.min_scale_v *= newHeight / oldHeight
+        min_scale_v = newHeight / self.sceneRect().height()
         t = self.transform()
-        if t.m22() < self.min_scale_v:
-            self.setTransformScaleV(t, self.min_scale_v)
-            self.update()
+        if t.m22() < min_scale_v:
+            self.setTransformScaleV(t, min_scale_v)
+        self.updatePosition(self.bento.current_time())
+        self.synchronizeHScale()
 
     @Slot()
     def updateScene(self):
         self.sample_rate = self.scene().sample_rate
-        # self.time_x.framerate(self.sample_rate)
 
         self.center_y = self.scene().height() / 2.
-        scale_v = max(self.viewport().height() / self.scene().height(), self.min_scale_v)
+        scale_v = self.viewport().height() / self.scene().height()
         self.scale(10., scale_v)
-        self.min_scale_v = self.transform().m22()
-        self.updatePosition(self.bento.current_time)
+        self.updatePosition(self.bento.current_time())
 
     @Slot(Timecode)
     def updatePosition(self, t):
         pt = QPointF(t.float, self.center_y)
         self.centerOn(pt)
-        self.show()
+        self.update()
 
     def synchronizeHScale(self):
         self.hScaleChanged.emit(self.transform().m11())
@@ -141,9 +158,10 @@ class NeuralView(QGraphicsView):
     def mousePressEvent(self, event):
         assert isinstance(event, QMouseEvent)
         assert self.bento
-        assert not self.transform().isRotating()
-        self.start_transform = QTransform(self.transform())
-        self.scale_h = self.transform().m11()
+        t = self.transform()
+        assert not t.isRotating()
+        self.start_transform = QTransform(t)
+        self.scale_h = t.m11()
         self.start_x = event.localPos().x()
         self.start_y = event.localPos().y()
         self.time_x = self.bento.get_time()
@@ -153,11 +171,17 @@ class NeuralView(QGraphicsView):
         assert isinstance(event, QMouseEvent)
         assert self.bento
         if event.modifiers() & Qt.ShiftModifier:
-            factor_x = event.localPos().x() / self.start_x
+            factor_x = max(0.1, event.localPos().x()) / self.start_x
             factor_y = event.localPos().y() / self.start_y
             t = QTransform(self.start_transform)
             t.scale(factor_x, factor_y)
-            self.setTransformScaleV(t, min(64., max(self.min_scale_v, t.m22())))
+            min_scale_v = self.viewport().rect().height() / self.sceneRect().height()
+            self.setTransformScaleV(t, max(min_scale_v, t.m22()))
+            min_scale_h = self.viewport().rect().width() / self.sceneRect().width()
+            h_scale = max(min_scale_h, t.m11())
+            initialTicksScale = 100./h_scale
+            self.ticksScale = quantizeTicksScale(initialTicksScale)
+            self.setTransformScaleH(t, h_scale)
             self.synchronizeHScale()
         else:
             x = event.localPos().x() / self.scale_h
@@ -169,6 +193,11 @@ class NeuralView(QGraphicsView):
                 start_seconds=self.time_x.float + (start_x - x)
             ))
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # Override the widget behavior on key strokes
+        # to let the parent window handle the event
+        event.ignore()
+    
     def updateFromScroll(self):
         assert self.bento
         center = self.viewport().rect().center()
@@ -178,11 +207,6 @@ class NeuralView(QGraphicsView):
             self.time_x.framerate,
             start_seconds=sceneCenter.x()
         ))
-
-    def wheelEvent(self, event):
-        assert isinstance(event, QWheelEvent)
-        super(NeuralView, self).wheelEvent(event)
-        self.updateFromScroll()
 
     def drawForeground(self, painter, rect):
         now = self.bento.get_time().float
@@ -247,6 +271,8 @@ class NeuralScene(QGraphicsScene):
         self.heatmap = None
         self.annotations = None
         self.activeChannel = None
+        self.tracesCache = dict()
+        self.tracesOrder = None
 
     """
     .mat files can be either old-style (MatLab 7.2 and earlier), in which case we need to use
@@ -268,43 +294,43 @@ class NeuralScene(QGraphicsScene):
             warnings.simplefilter('ignore', category=UserWarning)
             mat = pmr.read_mat(ca_file)
         try:
-            data = mat['results']['C_raw']
+            self.data = mat['results']['C_raw']
         except Exception as e:
             QMessageBox.about(self, "Load Error", f"Error loading neural data from file {ca_file}: {e}")
             return
-        self.range = data.max() - data.min()
+        self.range = self.data.max() - self.data.min()
         # Provide for a little space between traces
-        self.minimum = data.min() + self.range * 0.05
+        self.minimum = self.data.min() + self.range * 0.05
         self.range *= 0.9
 
         self.sample_rate = sample_rate
         self.start_frame = start_frame
         self.stop_frame = stop_frame
-        self.num_chans = data.shape[0]
-        self.data_min = data.min()
-        self.data_max = data.max()
+        self.num_chans = self.data.shape[0]
+        self.data_min = self.data.min()
+        self.data_max = self.data.max()
         self.colorMapper = NeuralColorMapper(self.data_min, self.data_max, "parula")
         # for chan in range(self.num_chans):
-        for chan in range(self.num_chans):
-            self.loadChannel(data, chan)
-
-        # Image has a pixel for each frame for each channel
-        self.heatmapImage = self.colorMapper.mappedImage(data)
-        self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
-
-        # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
-        # to the time scale
-        transform = QTransform()
-        transform.scale(1. / self.sample_rate, 1.)
-        self.heatmap.setTransform(transform)
-        self.heatmap.setOpacity(0.5)
+        self.t_values = ((np.arange(self.data.shape[1]) - self.start_frame)/self.sample_rate) + self.time_start.float
+        self.y_values = np.arange(self.num_chans).reshape(-1,1) + 0.5 + self.normalize(self.data)
+        self.tracesOrder = self.y_values[:, self.start_frame]
+        self.drawTraces(self.t_values[self.start_frame:self.stop_frame], 
+                        self.y_values[:,self.start_frame:self.stop_frame])
+        #for chan in range(self.num_chans):
+        #    self.loadChannel(self.data, chan)
+        self.putTracesIntoAGroup()
+        # create heatmap
+        heatmapData = self.data[:,self.start_frame:self.stop_frame]
+        self.createHeatmap(heatmapData)  #np.arange(self.num_chans)
         # finally, add the traces on top of everything
         self.addItem(self.traces)
         # pad some time on left and right to allow centering
         sceneRect = padded_rectf(self.sceneRect())
-        sceneRect.setY(-1.)
         sceneRect.setHeight(float(self.num_chans) + 1.)
         self.setSceneRect(sceneRect)
+        self.setVisibility(showTraces, showHeatmap, showAnnotations)
+
+    def setVisibility(self, showTraces, showHeatmap, showAnnotations):
         if isinstance(self.traces, QGraphicsItem):
             self.traces.setVisible(showTraces)
         if isinstance(self.heatmap, QGraphicsItem):
@@ -315,26 +341,103 @@ class NeuralScene(QGraphicsScene):
             self.heatmap.setVisible(showHeatmap)
         if isinstance(self.annotations, QGraphicsItem):
             self.annotations.setVisible(showAnnotations)
+    
+    def createHeatmap(self, data):
+        self.heatmapImage, self.heatmap = None, None
+        # Image has a pixel for each frame for each channel
+        self.heatmapImage = self.colorMapper.mappedImage(data)
+        self.heatmap = self.addPixmap(QPixmap.fromImageInPlace(self.heatmapImage, Qt.NoFormatConversion))
 
-    def loadChannel(self, data, chan):
+        # Scale the heatmap's time axis by the 1 / sample rate so that it corresponds correctly
+        # to the time scale
+        transform = QTransform()
+        transform.scale(1. / self.sample_rate, 1.)
+        self.heatmap.setTransform(transform)
+        self.heatmap.setOpacity(0.5)
+    
+    def drawTraces(self, t_values, y_values):
+        for chan in range(self.num_chans):
+            trace = QPainterPath()
+            trace.reserve(self.stop_frame - self.start_frame)
+            trace.addPolygon(self.createPoly(t_values, y_values[chan, :]))
+            self.tracesCache[str(chan)] = trace
+
+    def createPoly(self, x_values, y_values):
+        if not (x_values.size == y_values.size == x_values.shape[0] == y_values.shape[0]):
+            raise ValueError("Arguments must be 1D NumPy arrays with same size")
+        size = x_values.size
+        poly = QPolygonF(size)
+        address = shiboken.getCppPointer(poly.data())[0]
+        buffer = (ctypes.c_double * 2 * size).from_address(address)
+        memory = np.frombuffer(buffer, np.float64)
+        memory[: (size - 1) * 2 + 1 : 2] = np.array(x_values, dtype=np.float64, copy=False)
+        memory[1 : (size - 1) * 2 + 2 : 2] = np.array(y_values, dtype=np.float64, copy=False)
+        
+        return poly
+
+    def putTracesIntoAGroup(self):
+        self.traces = QGraphicsItemGroup()
         pen = QPen()
-        pen.setWidth(0)
-        trace = QPainterPath()
-        trace.reserve(self.stop_frame - self.start_frame + 1)
-        y = float(chan) + self.normalize(data[chan][self.start_frame])
-        trace.moveTo(self.time_start.float, y)
-        time_start_float = self.time_start.float
+        pen.setWidthF(0)
+        for k in list(self.tracesCache.keys()):
+            traceItem = QGraphicsPathItem(self.tracesCache[k])
+            traceItem.setPen(pen)
+            self.traces.addToGroup(traceItem)
 
-        for ix in range(self.start_frame + 1, self.stop_frame):
-            t = (ix - self.start_frame)/self.sample_rate + time_start_float
-            val = self.normalize(data[chan][ix])
-            # Add a section to the trace path
-            y = float(chan) + val
-            trace.lineTo(t, y)
-        traceItem = QGraphicsPathItem(trace)
-        traceItem.setPen(pen)
-        self.traces.addToGroup(traceItem)
+    def addDarkLines(self, partitionIdx):
+        pen = QPen()
+        pen.setWidth(0.75)
+        pen.setColor(QColor('darkBlue'))
+        y_values = self.y_values[:,self.start_frame:self.stop_frame]
+        t_values = self.t_values[self.start_frame:self.stop_frame]
+        self.lines = dict()
+        for idx in partitionIdx[:-1]:
+            min = np.amin(y_values[idx-1, :])
+            midpt = min - 0.5
+            l = np.full((y_values.shape[1],), midpt)
+            line = QPainterPath()
+            line.reserve(self.stop_frame - self.start_frame)
+            line.addPolygon(self.createPoly(t_values, l))
+            self.lines[str(idx)] = line
+        
+        for l in list(self.lines.keys()):
+            lineItem = QGraphicsPathItem(self.lines[l])
+            lineItem.setPen(pen)
+            self.traces.addToGroup(lineItem)
 
+    def reorderTracesAndHeatmap(self, newOrder, partitionIdx):
+        showTraces = self.parent().parent().ui.showTraceRadioButton.isChecked()
+        showHeatMap = self.parent().parent().ui.showHeatMapRadioButton.isChecked()
+        showAnnotations = self.parent().parent().ui.showAnnotationsCheckBox.isChecked()
+        if isinstance(newOrder, np.ndarray):
+            _, counts = np.unique(newOrder, return_counts=True)
+        else:
+            raise ValueError(f"newOrder array {newOrder} should be a Numpy array")
+        if np.any(counts > 1):
+                raise ValueError(f"Unique integer values required in newOrder array {newOrder}")
+        if newOrder.size != self.tracesOrder.size:
+            raise RuntimeError(f"Size of newOrder array and traces order should be the same.")
+        for item in self.items():
+            if isinstance(item, QGraphicsItemGroup):
+                self.removeItem(item)
+            elif isinstance(item, QGraphicsPixmapItem):
+                self.removeItem(item)
+        heatmapData = self.data[newOrder, self.start_frame:self.stop_frame]
+        darkLines = np.full((partitionIdx.shape[0], heatmapData.shape[1]), self.data_min - 100.)
+        newHeatmapData = np.insert(heatmapData,
+                                   partitionIdx,
+                                   darkLines,
+                                   axis=0)
+        self.createHeatmap(newHeatmapData)
+        offset = (self.tracesOrder[newOrder] - self.tracesOrder)
+        self.tracesOrder = self.tracesOrder + offset
+        for chan in list(self.tracesCache.keys()):
+            self.tracesCache[chan] = self.tracesCache[chan].translated(0., offset[int(chan)])
+        self.addTraces()
+        self.addDarkLines(partitionIdx)
+        self.addItem(self.traces)
+        self.setVisibility(showTraces, showHeatMap, showAnnotations)
+    
     def normalize(self, y_val):
         return 1.0 - (y_val - self.minimum) / self.range
 
@@ -369,3 +472,14 @@ class NeuralScene(QGraphicsScene):
             self.annotations.setVisible(enabled)
         if isinstance(self.heatmap, QGraphicsItem):
             self.heatmap.setOpacity(0.5 if enabled else 1.)
+    
+    def exportToNWBFile(self, nwbFile: NWBFile):
+        neuralData = TimeSeries(name=f"neural_data",
+                                data = self.data[:,self.start_frame+1:self.stop_frame],
+                                rate=self.sample_rate,
+                                starting_time = self.time_start.float,
+                                unit = "None",
+                                )
+        nwbFile.add_acquisition(neuralData)
+
+        return nwbFile

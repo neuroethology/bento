@@ -6,6 +6,7 @@ import timecode as tc
 from qtpy.QtCore import Qt, QEvent, Signal, Slot
 from qtpy.QtWidgets import QMainWindow, QMenuBar
 from db.trialWindow import TrialDockWidget
+from datetime import datetime, timezone
 
 class MainWindow(QMainWindow):
 
@@ -27,6 +28,8 @@ class MainWindow(QMainWindow):
         self.ui.nextButton.clicked.connect(bento.toNextEvent)
         self.ui.previousButton.clicked.connect(bento.toPrevEvent)
         self.ui.quitButton.clicked.connect(bento.quit)
+        self.ui.currentTimeEdit.set_bento(bento)
+        self.ui.currentFrameBox.textChanged.connect(bento.jumpToFrame)
         bento.quitting.connect(self.close)
         self.quitting.connect(bento.quit)
 
@@ -36,6 +39,7 @@ class MainWindow(QMainWindow):
         self.ui.doubleFrameRateButton.clicked.connect(bento.player.doubleFrameRate)
         self.ui.oneXFrameRateButton.clicked.connect(bento.player.resetFrameRate)
         self.ui.annotationsView.set_bento(bento)
+        self.ui.annotationsView.set_showTickLabels(False)
         self.ui.annotationsView.setScene(bento.annotationsScene)
         bento.annotationsScene.sceneRectChanged.connect(self.ui.annotationsView.update)
         self.ui.annotationsView.scale(10., self.ui.annotationsView.height())
@@ -51,6 +55,8 @@ class MainWindow(QMainWindow):
         self.fileMenu = self.menuBar.addMenu("File")
         self.saveAnnotationsAction = self.fileMenu.addAction("Save Annotations...")
         self.saveAnnotationsAction.triggered.connect(bento.save_annotations)
+        self.exportDataAction = self.fileMenu.addAction("Export Data...")
+        self.exportDataAction.triggered.connect(bento.export_data)
         self.fileMenuSeparatorAction = self.fileMenu.addSeparator()
         self.setInvestigatorAction = self.fileMenu.addAction("Set Investigator...")
         self.setInvestigatorAction.triggered.connect(bento.set_investigator)
@@ -115,7 +121,12 @@ class MainWindow(QMainWindow):
 
     @Slot(tc.Timecode)
     def updateTime(self, t):
-        self.ui.timeLabel.setText(f"{t} ({t.frame_number})")
+        time = datetime.fromtimestamp(t.float, tz=timezone.utc).time()
+        maxTime = datetime.fromtimestamp(self.bento.time_end.float, tz=timezone.utc).time()
+        self.ui.currentTimeEdit.setMaximumTime(maxTime)
+        self.ui.currentTimeEdit.setTime(time)
+        self.ui.currentFrameBox.setValue(int(t.frames))
+        self.ui.currentFrameBox.setMaximum(int(self.bento.time_end.frames))
         self.ui.annotationsView.updatePosition(t)
         self.show()
 

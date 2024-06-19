@@ -89,9 +89,15 @@ Now that you have experimenters, animals, and cameras on record, you can start u
 3. Select a session in the **Select Session** table by clicking the corresponding row.
 4. Click on **Add New Trial...** button. **Add or Edit Trial dialog** will pop up.
 5. Add Stimulus in the **Stimulus** field.
-6. You can add **Video files**, **Annotation files** and **Neural Files** in the window. **Pose files** and **Audio files** are not yet supported.
+6. You can add **Video files**, **Pose files**, **Annotation files** and **Neural files** in the window. **Audio files** are not yet supported.
+- Note : **Pose files** can be added only if there is a video file present.
 7. Click **OK** button. You will see a trial added in the **Trial** table along with files you selected for the trial.
 8. You can add multiple trials under the same session. Repeat steps 1-7, every time you need to add a trial under a particular session.
+
+#### Adding a Pose file
+1. Click on a **Video file** and click on **Add Pose...** button
+2. Select the appropriate format for the file in the file selection window. Bento supports MARS, SLEAP and DeepLabCut files.
+3. You can add one pose file to each video file present in a trial.
 
 ![alt-text](_gifs/adding_trials.gif)
 
