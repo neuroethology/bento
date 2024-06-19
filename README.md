@@ -21,8 +21,6 @@ An earlier, Matlab-based version of Bento is available [here](https://github.com
 - Editing trials in v0.2.0-beta caused an increment in the trial number; this is now fixed
 - Widgets are now cleared out when new data is loaded
 
-## Features
-
 ## Getting Started
 
 - Please look for the installation instructions at [Installation Instructions](https://github.com/neuroethology/bento/blob/main/documentation/installation.md)
